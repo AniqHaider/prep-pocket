@@ -1,6 +1,6 @@
 // Tutor/LLM settings, stored on-device only (localStorage). Keys never leave the phone except
 // in requests to the provider the user picked.
-export type Provider = 'none' | 'gemini' | 'anthropic' | 'openai-compatible';
+export type Provider = 'none' | 'on-device' | 'gemini' | 'anthropic' | 'openai-compatible';
 
 export interface TutorSettings {
 	provider: Provider;
@@ -12,6 +12,7 @@ export interface TutorSettings {
 
 export const DEFAULT_MODELS: Record<Provider, string> = {
 	none: '',
+	'on-device': 'qwen2.5-1.5b-instruct-q4_k_m.gguf', // file name of the chosen local model
 	gemini: 'gemini-2.5-flash',
 	anthropic: 'claude-haiku-5-5',
 	'openai-compatible': 'llama3.2'
