@@ -1,0 +1,11 @@
+node_modules
+dist
+public/pyodide
+android/app/build
+android/build
+android/.gradle
+android/local.properties
+android/app/src/main/assets/public
+.DS_Store
+*.log
+prep-pocket-debug.apk

@@ -1,0 +1,20 @@
+{
+	"extends": "@tsconfig/svelte/tsconfig.json",
+	"compilerOptions": {
+		"target": "ESNext",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"useDefineForClassFields": true,
+		"resolveJsonModule": true,
+		"allowJs": true,
+		"checkJs": false,
+		"isolatedModules": true,
+		"moduleDetection": "force",
+		"strict": true,
+		"allowImportingTsExtensions": true,
+		"noEmit": true,
+		"lib": ["ESNext", "DOM", "DOM.Iterable", "WebWorker"],
+		"types": ["bun", "vite/client", "svelte"]
+	},
+	"include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte", "scripts/**/*.ts"]
+}
