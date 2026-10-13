@@ -1,13 +1,15 @@
 // Reference solutions must pass every drill test; untouched stubs must fail.
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { DRILLS } from '../src/drills/drills';
 import { runDrill } from '../src/drills/drills-core';
 
-const dir = new URL('../src/drills/', import.meta.url).pathname;
+const dir = fileURLToPath(new URL('../src/drills/', import.meta.url));
 let bad = 0;
 for (const d of DRILLS) {
-	const ref = await runDrill(d, readFileSync(`${dir}ref/solutions/${d.file}.ts`, 'utf8'));
-	const stub = await runDrill(d, readFileSync(`${dir}stubs/${d.file}.ts`, 'utf8'));
+	const ref = await runDrill(d, readFileSync(join(dir, 'ref', 'solutions', `${d.file}.ts`), 'utf8'));
+	const stub = await runDrill(d, readFileSync(join(dir, 'stubs', `${d.file}.ts`), 'utf8'));
 	const refOk = ref.all_passed;
 	const stubFails = !stub.all_passed;
 	if (!refOk || !stubFails) bad++;

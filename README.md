@@ -4,6 +4,8 @@
 
 *(repo: `prep-pocket`)*
 
+> **Windows?** See **[SETUP-WINDOWS.md](SETUP-WINDOWS.md)** for a step-by-step guide (browser dev + building the APK).
+
 One Android app (Android 16 / API 36, minSdk 33) that bundles three prep projects, **fully offline**:
 
 | Tab | What | Engine |

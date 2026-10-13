@@ -11,7 +11,6 @@
 		"verify": "bun scripts/verify-dojo.ts && bun scripts/verify-drills.ts",
 		"pyodide:copy": "bun scripts/copy-pyodide.ts",
 		"android:sync": "bun run build && cap sync android",
-		"android:build": "bun run android:sync && cd android && ./gradlew assembleDebug",
 		"predev": "bun scripts/copy-pyodide.ts",
 		"prebuild": "bun scripts/copy-pyodide.ts"
 	},

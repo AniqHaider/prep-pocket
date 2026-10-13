@@ -2,13 +2,14 @@
 // (Pyodide + PGlite) under Node. Each must PASS; also each starter must be gradeable (no crash).
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { loadPyodide } from 'pyodide';
 import { PGlite } from '@electric-sql/pglite';
 import { runPython, initPython } from '../src/dojo/engine/python-core';
 import { runSql } from '../src/dojo/engine/sql-core';
 
-const ROOT = new URL('../src/dojo/content', import.meta.url).pathname;
-const SEEDS = new URL('../src/dojo/seeds', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('../src/dojo/content', import.meta.url));
+const SEEDS = fileURLToPath(new URL('../src/dojo/seeds', import.meta.url));
 const exercises: any[] = [];
 for (const ch of readdirSync(ROOT).sort()) {
 	const dir = join(ROOT, ch, 'exercises');
