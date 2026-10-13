@@ -1,6 +1,10 @@
-# Prep Pocket
+<p align="center"><img src="assets/icon.png" width="120" alt="Kata icon"></p>
 
-One Android app (Android 16 / API 36, minSdk 24) that bundles three prep projects, **fully offline**:
+# Kata — pocket dev dojo
+
+*(repo: `prep-pocket`)*
+
+One Android app (Android 16 / API 36, minSdk 33) that bundles three prep projects, **fully offline**:
 
 | Tab | What | Engine |
 |---|---|---|
@@ -13,8 +17,8 @@ Copied from `backend-dojo`, `svelte-typescript-prep`, `stock-company-prep/exerci
 The Dojo's old FastAPI/Postgres/`claude`-CLI backend is replaced by on-device ports (`src/dojo/engine/`): same grading, XP, streak and diagram-unlock rules.
 
 ## Install on your phone
-`prep-pocket-debug.apk` (≈18 MB, debug-signed):
-- **USB:** enable *Developer options → USB debugging*, then `adb install -r prep-pocket-debug.apk`
+`kata-debug.apk` (≈18 MB, debug-signed):
+- **USB:** enable *Developer options → USB debugging*, then `adb install -r kata-debug.apk`
 - **File transfer:** send the APK to the phone (Drive, Telegram, WhatsApp "document", Nearby Share, cable), open it, allow *Install unknown apps* for that app. Play Protect may warn about an unknown developer — that's expected for a self-built APK.
 
 ## Tutor (optional)
