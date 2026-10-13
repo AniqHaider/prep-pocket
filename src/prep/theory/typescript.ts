@@ -212,9 +212,9 @@ let { data } = $props(); // data.item is Item`
 		{
 			id: 'story',
 			heading: 'Connect it to YOUR experience',
-			say: "In my storefront work, TypeScript was how I kept a large widget architecture coherent: each widget has typed props — a generic WidgetProps with data and settings types — a variant registry, and typed templates, so wiring a section into a theme is checked by the compiler. I've used type-only imports to keep bundles clean, and I hit real runtime-boundary issues, like editor schemas whose field shapes the types couldn't enforce, which reinforced validating at the edges.",
+			say: "In my storefront work, TypeScript was how I kept a large widget architecture coherent: each widget has typed props — a generic props type with data and settings parameters — a variant registry, and typed templates, so wiring a section into a theme is checked by the compiler. I've used type-only imports to keep bundles clean, and I hit real runtime-boundary issues, like editor schemas whose field shapes the types couldn't enforce, which reinforced validating at the edges.",
 			points: [
-				'Use a concrete example: typed widget props (`WidgetProps<TData, TSettings>`) and variant registries.',
+				'Use a concrete example: typed widget props (a generic `Props<TData, TSettings>` type) and variant registries.',
 				'Mention a pre-commit gate: `tsc` via Husky; fix root causes rather than `--no-verify`.',
 				'Mention a boundary bug: shape assumptions about external data (API/editor schema) that types alone did not catch.',
 				'Be ready to describe a type you modelled with a discriminated union (e.g. loading/error/success UI state).'
