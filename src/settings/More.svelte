@@ -195,7 +195,7 @@
 
 	<section>
 		<h2>ℹ️ About</h2>
-		<p class="muted">Prep Pocket bundles Backend Dojo (Python via Pyodide, SQL via real Postgres-in-WASM), the Svelte/TypeScript quiz + theory, and the JS/TS drills — all offline.</p>
+		<p class="muted">Kata bundles Backend Dojo (Python via Pyodide, SQL via real Postgres-in-WASM), the Svelte/TypeScript quiz + theory, and the JS/TS drills — all offline.</p>
 	</section>
 </div>
 

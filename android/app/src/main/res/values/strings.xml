@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Prep Pocket</string>
-    <string name="title_activity_main">Prep Pocket</string>
+    <string name="app_name">Kata</string>
+    <string name="title_activity_main">Kata</string>
     <string name="package_name">com.aniqhaider.preppocket</string>
     <string name="custom_url_scheme">com.aniqhaider.preppocket</string>
 </resources>
