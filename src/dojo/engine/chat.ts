@@ -4,6 +4,7 @@
 import { loadSettings, DEFAULT_MODELS, type TutorSettings } from '../../settings/settings';
 import { getExercisePublic } from './content';
 import { store } from './store';
+import { LocalLlm, onDeviceAvailable } from '../../settings/localllm';
 
 const TUTOR_PROMPT =
 	'You are a patient backend-engineering tutor for a learner who is a strong FRONTEND engineer but NEW to backend. ' +
@@ -130,6 +131,40 @@ async function* openaiCompatible(s: TutorSettings, system: string, user: string,
 	}
 }
 
+/** Runs the model that lives on the phone (llama.cpp via the LocalLlm plugin). */
+async function onDevice(s: TutorSettings, system: string, user: string, onChunk?: (full: string) => void, signal?: AbortSignal): Promise<string> {
+	if (!onDeviceAvailable()) throw new Error('On-device models only work inside the Android app.');
+	const file = s.model || DEFAULT_MODELS['on-device'];
+	const { models, loaded } = await LocalLlm.listModels();
+	if (!models.some((m) => m.file === file && m.complete)) {
+		const msg = '(That model isn\'t downloaded yet. Open **More → Dojo tutor → On this phone** and tap Download.)';
+		onChunk?.(msg);
+		return msg;
+	}
+	if (loaded !== file) {
+		onChunk?.('(Loading the model into memory — first question only, ~10–30 s…)');
+		await LocalLlm.load({ file });
+	}
+	let full = '';
+	const handle = await LocalLlm.addListener('token', (e) => {
+		full += e.text;
+		onChunk?.(full);
+	});
+	const onAbort = () => LocalLlm.stop();
+	signal?.addEventListener('abort', onAbort);
+	try {
+		await LocalLlm.generate({ system, user, maxTokens: 600, temperature: 0.4 });
+	} finally {
+		signal?.removeEventListener('abort', onAbort);
+		await handle.remove();
+	}
+	if (!full) {
+		full = '(No response.)';
+		onChunk?.(full);
+	}
+	return full;
+}
+
 /** Streams the tutor's answer; calls onChunk(fullTextSoFar) as text arrives and returns the full answer. */
 export async function chatStream(question: string, mode: string, currentExerciseId: string | null, onChunk?: (full: string) => void, signal?: AbortSignal): Promise<string> {
 	const s = loadSettings();
@@ -137,6 +172,13 @@ export async function chatStream(question: string, mode: string, currentExercise
 		const msg = '(No tutor is set up yet. Open **More → Tutor settings** and choose Gemini, Claude, or a local model such as Ollama.)';
 		onChunk?.(msg);
 		return msg;
+	}
+	if (s.provider === 'on-device') {
+		try {
+			return await onDevice(s, systemPromptFor(mode), buildContext(question, currentExerciseId), onChunk, signal);
+		} catch (e: any) {
+			throw new Error(String(e?.message ?? e));
+		}
 	}
 	if (s.provider !== 'openai-compatible' && !s.apiKey) {
 		const msg = '(Add your API key in **More → Tutor settings** first.)';

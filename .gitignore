@@ -9,3 +9,5 @@ android/app/src/main/assets/public
 .DS_Store
 *.log
 prep-pocket-debug.apk
+android/app/src/main/cpp/llama.cpp
+android/app/.cxx

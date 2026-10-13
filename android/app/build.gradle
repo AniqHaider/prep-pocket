@@ -3,6 +3,7 @@ apply plugin: 'com.android.application'
 android {
     namespace = "com.aniqhaider.preppocket"
     compileSdk = rootProject.ext.compileSdkVersion
+    ndkVersion "27.2.12479018"
     defaultConfig {
         applicationId "com.aniqhaider.preppocket"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -10,11 +11,29 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // llama.cpp is built for 64-bit ARM phones only (the OnePlus Nord 4 and the arm64 emulator).
+        ndk { abiFilters "arm64-v8a" }
+        externalNativeBuild {
+            cmake {
+                arguments "-DCMAKE_BUILD_TYPE=Release", "-DANDROID_STL=c++_shared"
+                cppFlags "-O3"
+            }
+        }
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
+    }
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+            version "3.31.6"
+        }
+    }
+    packaging {
+        // ggml loads its per-CPU backend libraries from the native lib directory at runtime, so they must be extracted to disk.
+        jniLibs { useLegacyPackaging = true }
     }
     buildTypes {
         release {
