@@ -4,6 +4,8 @@
 
 *(repo: `prep-pocket`)*
 
+[![Download APK](https://img.shields.io/badge/Download-Kata%20v1.0.0%20APK-3DDC84?logo=android&logoColor=white)](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Kata-v1.0.0.apk)
+
 > **Windows?** See **[SETUP-WINDOWS.md](SETUP-WINDOWS.md)** for a step-by-step guide (browser dev + building the APK).
 
 One Android app (Android 16 / API 36, minSdk 33) that bundles three prep projects, **fully offline**:
@@ -19,8 +21,8 @@ Copied from `backend-dojo`, `svelte-typescript-prep`, `stock-company-prep/exerci
 The Dojo's old FastAPI/Postgres/`claude`-CLI backend is replaced by on-device ports (`src/dojo/engine/`): same grading, XP, streak and diagram-unlock rules.
 
 ## Install on your phone
-`kata-debug.apk` (≈18 MB, debug-signed):
-- **USB:** enable *Developer options → USB debugging*, then `adb install -r kata-debug.apk`
+Download **[Kata-v1.0.0.apk](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Kata-v1.0.0.apk)** (≈30 MB, debug-signed, arm64) from the [latest release](https://github.com/AniqHaider/prep-pocket/releases/latest), then:
+- **USB:** enable *Developer options → USB debugging*, then `adb install -r Kata-v1.0.0.apk`
 - **File transfer:** send the APK to the phone (Drive, Telegram, WhatsApp "document", Nearby Share, cable), open it, allow *Install unknown apps* for that app. Play Protect may warn about an unknown developer — that's expected for a self-built APK.
 
 ## Tutor (optional)
