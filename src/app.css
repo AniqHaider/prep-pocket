@@ -1,9 +1,11 @@
 :root {
 	color-scheme: dark;
 	font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-	--nav-h: 58px;
+	--nav-h: 0px; /* no bottom bar any more (drawer navigation); floating buttons still anchor to it */
+	--bar-h: 48px;
 	--safe-b: env(safe-area-inset-bottom, 0px);
 	--safe-t: env(safe-area-inset-top, 0px);
+	--bar-top: calc(var(--bar-h) + env(safe-area-inset-top, 0px)); /* height of the sticky app bar incl. status-bar inset */
 	/* prep tab palette */
 	--bg: #0b1020;
 	--panel: #121a30;
