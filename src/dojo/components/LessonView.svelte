@@ -294,7 +294,7 @@
   .theory :global(pre code) { background: none; color: #d6e2f2; }
   .theory :global(strong) { color: #eef4fb; }
   .theory :global(blockquote) { border-left: 3px solid #2f6df6; margin: 12px 0; padding: 4px 14px; color: #aebfd6; background: #11161f; border-radius: 0 8px 8px 0; }
-  .exlist { background: #11161f; border: 1px solid #1f2735; border-radius: 14px; padding: 14px; position: sticky; top: 80px; }
+  .exlist { background: #11161f; border: 1px solid #1f2735; border-radius: 14px; padding: 14px; position: sticky; top: calc(80px + var(--bar-top, 0px)); }
   .exlist h3 { color: #aebfd6; font-size: 14px; margin: 0 0 10px; }
   .exhint { color: #6b7d96; font-size: 11.5px; line-height: 1.45; margin: 0 0 12px; }
   .exitem {

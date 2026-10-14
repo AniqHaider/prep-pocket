@@ -4,25 +4,26 @@
 
 *(repo: `prep-pocket`)*
 
-[![Download APK](https://img.shields.io/badge/Download-Kata%20v1.0.0%20APK-3DDC84?logo=android&logoColor=white)](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Kata-v1.0.0.apk)
+[![Download APK](https://img.shields.io/badge/Download-Kata%20v1.1.0%20APK-3DDC84?logo=android&logoColor=white)](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Kata-v1.1.0.apk)
 
 > **Windows?** See **[SETUP-WINDOWS.md](SETUP-WINDOWS.md)** for a step-by-step guide (browser dev + building the APK).
 
-One Android app (Android 16 / API 36, minSdk 33) that bundles three prep projects, **fully offline**:
+One Android app (Android 16 / API 36, minSdk 33) that bundles four prep projects, **fully offline**, behind a slide-out menu (☰) instead of a bottom bar:
 
 | Tab | What | Engine |
 |---|---|---|
 | ⛩️ **Dojo** | Backend Dojo — 12 chapters, 76 Python + 24 SQL exercises + 47 quizzes, XP/streaks, growing architecture diagram | Python in **Pyodide** (WASM), SQL on real Postgres in **PGlite** (WASM) |
-| 🧠 **Prep** | Svelte + TypeScript: 100 MCQs with explanations + Svelte/TypeScript interview theory | plain Svelte 5 |
+| 🧠 **Svelte + TypeScript** | 100 MCQs with explanations + Svelte/TypeScript interview theory | plain Svelte 5 |
+| ⚛️ **React + Next + TS** | **500 MCQs** (200 React 19 · 200 Next.js 15/16 · 100 TypeScript), basic → advanced, every answer explained | plain Svelte 5 over the question bank from `react-next-typescript-prep` |
 | ⌨️ **Drills** | 9 JS/TS interview drills (debounce, promise pool, LRU, event loop…) | TypeScript → JS via sucrase, run in a Web Worker |
 | ⚙️ **More** | Tutor settings — **an LLM that runs on the phone itself** (llama.cpp), or Gemini / Claude / an OpenAI-compatible server such as Ollama; export/reset progress | llama.cpp (CPU) via a native Capacitor plugin |
 
-Copied from `backend-dojo`, `svelte-typescript-prep`, `stock-company-prep/exercises` (originals untouched).
+Copied from `backend-dojo`, `svelte-typescript-prep`, `react-next-typescript-prep`, `stock-company-prep/exercises` (originals untouched).
 The Dojo's old FastAPI/Postgres/`claude`-CLI backend is replaced by on-device ports (`src/dojo/engine/`): same grading, XP, streak and diagram-unlock rules.
 
 ## Install on your phone
-Download **[Kata-v1.0.0.apk](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Kata-v1.0.0.apk)** (≈30 MB, debug-signed, arm64) from the [latest release](https://github.com/AniqHaider/prep-pocket/releases/latest), then:
-- **USB:** enable *Developer options → USB debugging*, then `adb install -r Kata-v1.0.0.apk`
+Download **[Kata-v1.1.0.apk](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Kata-v1.1.0.apk)** (≈30 MB, debug-signed, arm64) from the [latest release](https://github.com/AniqHaider/prep-pocket/releases/latest), then:
+- **USB:** enable *Developer options → USB debugging*, then `adb install -r Kata-v1.1.0.apk`
 - **File transfer:** send the APK to the phone (Drive, Telegram, WhatsApp "document", Nearby Share, cable), open it, allow *Install unknown apps* for that app. Play Protect may warn about an unknown developer — that's expected for a self-built APK.
 
 ## Tutor (optional)

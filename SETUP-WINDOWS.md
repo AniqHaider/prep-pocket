@@ -68,9 +68,12 @@ What runs where (nothing needs a server or database):
 | Tab | Engine |
 |---|---|
 | ⛩️ Dojo | Python in **Pyodide** (WebAssembly), SQL on real Postgres compiled to WASM (**PGlite**) |
-| 🧠 Prep | Svelte/TypeScript quiz + theory |
+| 🧠 Svelte + TypeScript | Svelte/TypeScript quiz + theory |
+| ⚛️ React + Next + TS | 500-question React/Next.js/TypeScript quiz |
 | ⌨️ Drills | TypeScript compiled in-browser with sucrase, run in a Web Worker |
 | ⚙️ More | Tutor settings (see below) |
+
+On the phone all sections are reached from the **☰ menu** (top-left), not a bottom bar.
 
 Useful commands:
 
@@ -202,6 +205,7 @@ install on the PC. For a OnePlus Nord 4 (12 GB RAM) start with **Qwen2.5 1.5B**,
 |---|---|
 | `src/dojo/` | Backend Dojo UI + `engine/` (grading, Pyodide/PGlite workers, XP/streak/diagram ports) |
 | `src/prep/` | Svelte/TypeScript quiz + theory |
+| `src/prep2/` | React / Next.js / TypeScript quiz (copy of the `react-next-typescript-prep` question bank + a Svelte UI) |
 | `src/drills/` | JS/TS drills + in-browser test runner |
 | `src/settings/` | Tutor settings, `localllm.ts` (on-device model catalog) |
 | `android/app/src/main/cpp/` | `localllm.cpp` JNI bridge + CMake for llama.cpp |

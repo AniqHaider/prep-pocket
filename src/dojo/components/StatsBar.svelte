@@ -35,7 +35,7 @@
   .bar {
     display: flex; align-items: center; justify-content: space-between;
     padding: 12px 22px; background: #11161f; border-bottom: 1px solid #1f2735;
-    position: sticky; top: 0; z-index: 20;
+    position: sticky; top: var(--bar-top, 0px); z-index: 20;
   }
   .brand {
     background: none; border: none; color: #e8eef6; font-size: 18px; font-weight: 800;
