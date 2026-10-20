@@ -9,8 +9,8 @@
 	let testing = $state(false);
 
 	const providers: { id: Provider; label: string; note: string }[] = [
-		{ id: 'none', label: 'Off', note: 'No tutor. Everything else works offline.' },
-		{ id: 'on-device', label: 'On this phone (offline)', note: 'Runs a small open model right on your phone — no internet, no Mac, no account. One-time download of 0.5–2 GB.' },
+		{ id: 'none', label: 'Off', note: 'No AI. Everything else works offline.' },
+		{ id: 'on-device', label: 'On this phone (offline)', note: 'Runs a small open model right on your phone — no internet, no Mac, no account. One-time download of 0.5–4.7 GB (7B models need a 12 GB phone).' },
 		{ id: 'gemini', label: 'Google Gemini', note: 'Free API key from aistudio.google.com. Needs internet.' },
 		{ id: 'anthropic', label: 'Claude (Anthropic)', note: 'API key from console.anthropic.com. Needs internet.' },
 		{ id: 'openai-compatible', label: 'Local / other (OpenAI-compatible)', note: 'Ollama, LM Studio, llama.cpp server… running on your Mac (same Wi-Fi) or anywhere reachable.' }
@@ -70,7 +70,7 @@
 		llmMsg = 'Loading model into memory…';
 		try {
 			await LocalLlm.load({ file });
-			llmMsg = 'Model loaded ✓ — ask the tutor in the Dojo.';
+			llmMsg = 'Model loaded ✓ — ask in the Dojo or tap ✨ Assistant anywhere else.';
 		} catch (e: any) {
 			llmMsg = String(e?.message ?? e);
 		} finally {
@@ -95,11 +95,11 @@
 	async function test() {
 		save();
 		testing = true;
-		status = 'Asking the tutor…';
+		status = 'Asking the model…';
 		try {
 			const { chatStream } = await import('../dojo/engine/chat');
 			const out = await chatStream('Reply with the single word: ready', 'explain', null);
-			status = 'Tutor says: ' + out.slice(0, 120);
+			status = 'Model says: ' + out.slice(0, 120);
 		} catch (e: any) {
 			status = '❌ ' + (e?.message ?? e);
 		} finally {
@@ -127,8 +127,8 @@
 	<h1>⚙️ More</h1>
 
 	<section>
-		<h2>🧑‍🏫 Dojo tutor</h2>
-		<p class="muted">The Dojo chat needs an LLM. Pick one — your key is stored only on this phone and sent only to that provider.</p>
+		<h2>🤖 AI models</h2>
+		<p class="muted">One model powers both the <b>Dojo tutor</b> (💬 Ask inside the Dojo) and the app-wide <b>✨ Assistant</b> (every other section). Your key is stored only on this phone and sent only to that provider.</p>
 		{#each providers as p}
 			<label class="opt" class:on={s.provider === p.id}>
 				<input type="radio" name="prov" value={p.id} bind:group={s.provider} onchange={() => (s.model = '')} />
@@ -140,12 +140,12 @@
 			{#if !native}
 				<p class="muted small">On-device models run inside the Android app. This browser build can't load them.</p>
 			{:else}
-				<p class="muted small">Models are open-weights GGUF files from Hugging Face, stored privately in the app. {freeBytes ? fmtBytes(freeBytes) + ' free.' : ''} Bigger = smarter but slower.</p>
+				<p class="muted small">Models are open-weights GGUF files from Hugging Face, stored privately in the app. {freeBytes ? fmtBytes(freeBytes) + ' free.' : ''} Bigger = smarter but slower; the 7B models need a 12 GB phone and a few minutes to download — use Wi-Fi.</p>
 				{#each MODEL_CATALOG as m}
 					{@const h = have[m.file]}
 					{@const p = progress[m.file]}
 					<div class="model" class:sel={s.model === m.file}>
-						<div class="mhead"><b>{m.label}</b><span class="muted small">{fmtBytes(m.bytes)}</span></div>
+						<div class="mhead"><b>{m.label}</b><span class="muted small">{fmtBytes(m.bytes)} · RAM {m.ram}</span></div>
 						<div class="muted small">{m.note}</div>
 						{#if p}
 							<div class="bar"><div style="width:{Math.round((p.received / p.total) * 100)}%"></div></div>
@@ -195,7 +195,7 @@
 
 	<section>
 		<h2>ℹ️ About</h2>
-		<p class="muted">Kata bundles Backend Dojo (Python via Pyodide, SQL via real Postgres-in-WASM), the Svelte/TypeScript quiz + theory, and the JS/TS drills — all offline.</p>
+		<p class="muted">Kata bundles Backend Dojo (Python via Pyodide, SQL via real Postgres-in-WASM), the Svelte/TypeScript and React/Next/TypeScript quizzes, theory and the JS/TS drills — all offline. The AI assistant is optional.</p>
 	</section>
 </div>
 

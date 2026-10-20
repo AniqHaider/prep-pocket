@@ -2,6 +2,8 @@
 	import { questions } from './questions/index';
 	import { buildDeck, type Config, type Item } from './quiz';
 	import { loadMissed, saveMissed } from './storage';
+	import { publish } from '../assistant/context';
+	import { quizContext } from '../assistant/quizContext';
 	import { inline } from './inline';
 
 	type Screen = 'home' | 'quiz' | 'result';
@@ -26,6 +28,9 @@
 				(!cfg.onlyMissed || missed.has(q.id))
 		).length
 	);
+
+	// tell the app-level ✨ assistant what is on screen
+	$effect(() => publish('prep2-quiz', quizContext('React + Next + TypeScript', screen, cur, pick, revealed, score, deck.length)));
 
 	function start() {
 		deck = buildDeck(questions, cfg, missed);
