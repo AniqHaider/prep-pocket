@@ -2,6 +2,8 @@
 	import { questions } from './questions/index';
 	import { buildDeck, type Config, type Item } from './quiz';
 	import { loadMissed, saveMissed } from './storage';
+	import { publish } from '../assistant/context';
+	import { quizContext } from '../assistant/quizContext';
 	import { theories } from './theory/index';
 	import Theory from './Theory.svelte';
 
@@ -29,6 +31,12 @@
 				(!cfg.onlyMissed || missed.has(q.id))
 		).length
 	);
+
+	// tell the app-level ✨ assistant what is on screen (quiz view only; Theory publishes its own)
+	$effect(() => {
+		if (view !== 'quiz') return;
+		return publish('prep-quiz', quizContext('Svelte + TypeScript', screen, cur, pick, revealed, score, deck.length));
+	});
 
 	function start() {
 		deck = buildDeck(questions, cfg, missed);

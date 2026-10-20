@@ -137,7 +137,7 @@ async function onDevice(s: TutorSettings, system: string, user: string, onChunk?
 	const file = s.model || DEFAULT_MODELS['on-device'];
 	const { models, loaded } = await LocalLlm.listModels();
 	if (!models.some((m) => m.file === file && m.complete)) {
-		const msg = '(That model isn\'t downloaded yet. Open **More → Dojo tutor → On this phone** and tap Download.)';
+		const msg = '(That model isn\'t downloaded yet. Open **More → AI models → On this phone** and tap Download.)';
 		onChunk?.(msg);
 		return msg;
 	}
@@ -165,28 +165,27 @@ async function onDevice(s: TutorSettings, system: string, user: string, onChunk?
 	return full;
 }
 
-/** Streams the tutor's answer; calls onChunk(fullTextSoFar) as text arrives and returns the full answer. */
-export async function chatStream(question: string, mode: string, currentExerciseId: string | null, onChunk?: (full: string) => void, signal?: AbortSignal): Promise<string> {
+/** Sends one (system, user) prompt to whichever provider is configured in More → AI models and streams the reply.
+ *  Shared by the Dojo tutor and the app-level assistant. Calls onChunk(fullTextSoFar); returns the full answer. */
+export async function runModel(system: string, user: string, onChunk?: (full: string) => void, signal?: AbortSignal): Promise<string> {
 	const s = loadSettings();
 	if (s.provider === 'none') {
-		const msg = '(No tutor is set up yet. Open **More → Tutor settings** and choose Gemini, Claude, or a local model such as Ollama.)';
+		const msg = '(No AI model is set up yet. Open **More → AI models** and choose a model on this phone, Gemini, Claude, or a local server such as Ollama.)';
 		onChunk?.(msg);
 		return msg;
 	}
 	if (s.provider === 'on-device') {
 		try {
-			return await onDevice(s, systemPromptFor(mode), buildContext(question, currentExerciseId), onChunk, signal);
+			return await onDevice(s, system, user, onChunk, signal);
 		} catch (e: any) {
 			throw new Error(String(e?.message ?? e));
 		}
 	}
 	if (s.provider !== 'openai-compatible' && !s.apiKey) {
-		const msg = '(Add your API key in **More → Tutor settings** first.)';
+		const msg = '(Add your API key in **More → AI models** first.)';
 		onChunk?.(msg);
 		return msg;
 	}
-	const system = systemPromptFor(mode);
-	const user = buildContext(question, currentExerciseId);
 	const gen = s.provider === 'gemini' ? gemini(s, system, user, signal) : s.provider === 'anthropic' ? anthropic(s, system, user, signal) : openaiCompatible(s, system, user, signal);
 	let full = '';
 	try {
@@ -204,4 +203,9 @@ export async function chatStream(question: string, mode: string, currentExercise
 		onChunk?.(full);
 	}
 	return full;
+}
+
+/** Streams the Dojo tutor's answer (Dojo prompts + the learner's exercise/mistake context). */
+export function chatStream(question: string, mode: string, currentExerciseId: string | null, onChunk?: (full: string) => void, signal?: AbortSignal): Promise<string> {
+	return runModel(systemPromptFor(mode), buildContext(question, currentExerciseId), onChunk, signal);
 }

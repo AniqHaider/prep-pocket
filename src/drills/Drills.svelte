@@ -5,6 +5,7 @@
 	import type { DrillResult } from './drills-core';
 	import { DRILLS } from './drills';
 	import { referenceFor, starterFor } from './drills-code';
+	import { publish } from '../assistant/context';
 
 	const KEY = 'prep-pocket:drills:v1';
 	interface Saved { code?: string; solved?: boolean }
@@ -17,6 +18,25 @@
 
 	const drill = $derived(DRILLS.find((d) => d.id === openId) ?? null);
 	const solvedCount = $derived(DRILLS.filter((d) => saved[d.id]?.solved).length);
+
+	$effect(() =>
+		publish(
+			'drills',
+			drill
+				? {
+						label: `${drill.title} · drill`,
+						text:
+							`JS/TS coding drill "${drill.title}" (${drill.topic}).\nTask: ${drill.prompt}\n\nThe learner's current code:\n${code.slice(0, 1800)}\n\n` +
+							(result
+								? result.all_passed
+									? 'Last run: all tests passed.'
+									: `Last run: FAILED${result.error_category ? ' (' + result.error_category + ')' : ''}. ${result.detail ?? ''}\n` +
+										result.results.filter((r) => !r.passed).map((r) => `- ${r.name}: ${r.error ?? ''}`).join('\n')
+								: 'The learner has not run the tests yet.')
+					}
+				: { label: 'drills · list', text: `The learner is browsing the JS/TS drills list (${solvedCount}/${DRILLS.length} solved).` }
+		)
+	);
 
 	function load(): Record<string, Saved> {
 		try {

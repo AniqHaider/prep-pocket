@@ -5,6 +5,7 @@
 	import Dojo from './dojo/Dojo.svelte';
 	import Prep from './prep/Prep.svelte';
 	import Prep2 from './prep2/Prep2.svelte';
+	import Assistant from './assistant/Assistant.svelte';
 	import Drills from './drills/Drills.svelte';
 	import More from './settings/More.svelte';
 
@@ -27,12 +28,13 @@
 
 	let tab = $state<Tab>(TAB_IDS.has(stored) ? (stored as Tab) : 'dojo');
 	let drawer = $state(false);
+	let assistant = $state(false); // app-level ✨ assistant sheet (every section except the Dojo, which has its own tutor)
 	let restoring = false;
 	const current = $derived(ALL.find((t) => t.id === tab)!);
 
 	// Android's back button == history.back(). Every tab switch / Dojo screen change pushes an entry,
 	// so Back steps through them and exits the app only from the first screen.
-	const snapshot = () => ({ tab, view: get(view), drawer });
+	const snapshot = () => ({ tab, view: get(view), drawer, assistant });
 
 	onMount(() => {
 		history.replaceState(snapshot(), '');
@@ -45,6 +47,7 @@
 			restoring = true;
 			tab = e.state.tab;
 			drawer = !!e.state.drawer;
+			assistant = !!e.state.assistant;
 			view.set(e.state.view);
 			restoring = false;
 		};
@@ -73,9 +76,19 @@
 		if (drawer) history.back(); // popstate handler flips `drawer` off
 	}
 
+	// Same pattern for the assistant sheet: Back closes it before anything else.
+	function openAssistant() {
+		assistant = true;
+		history.pushState(snapshot(), '');
+	}
+	function closeAssistant() {
+		if (assistant) history.back();
+	}
+
 	function go(t: Tab) {
 		if (t === tab) return closeDrawer();
 		tab = t;
+		assistant = false;
 		persist(t);
 		drawer = false;
 		history.replaceState(snapshot(), ''); // reuse the drawer's history entry instead of stacking another
@@ -91,9 +104,13 @@
 	<span class="ttl" data-testid="title">{current.label}</span>
 </header>
 
-<div class="screen">
+<div class="screen" class:pad={tab !== 'dojo'}>
 	{#if tab === 'dojo'}<Dojo />{:else if tab === 'prep'}<Prep />{:else if tab === 'prep2'}<Prep2 />{:else if tab === 'drills'}<Drills />{:else}<More />{/if}
 </div>
+
+{#if tab !== 'dojo'}
+	<Assistant open={assistant} onopen={openAssistant} onclose={closeAssistant} />
+{/if}
 
 {#if drawer}
 	<button class="scrim" onclick={closeDrawer} aria-label="Close menu" tabindex="-1"></button>
@@ -123,6 +140,7 @@
 	.ttl { font-weight: 700; font-size: 16px; letter-spacing: -.01em; }
 	/* the bar owns the status-bar inset, so screens must not add it again */
 	.screen { --safe-t: 0px; min-height: calc(100dvh - var(--bar-h)); padding-bottom: var(--safe-b); }
+	.screen.pad { padding-bottom: calc(var(--safe-b) + 76px); } /* room for the floating ✨ button */
 
 	.scrim { position: fixed; inset: 0; z-index: 70; background: rgba(3, 6, 12, .6); border: 0; padding: 0; animation: fade .18s; }
 	.drawer {

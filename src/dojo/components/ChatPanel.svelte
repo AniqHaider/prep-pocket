@@ -26,7 +26,10 @@
   let busy = $state(false);
   let threads = $state(loadThreads()); // { threadId: [{role,text}] }
   let size = $state(loadSize());
-  let msgsEl;
+  let msgsEl = $state();
+  // Follow the stream only while the reader is at the bottom; scrolling up pauses it.
+  let stick = true;
+  const onMsgsScroll = () => { stick = msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight < 80; };
 
   // Which thread are we in? An exercise's id, or the shared general thread.
   let threadId = $derived($view.name === "exercise" ? $view.exerciseId : GENERAL);
@@ -53,13 +56,16 @@
     scrollToBottom();
   }
 
-  async function scrollToBottom() {
+  async function scrollToBottom(force = false) {
+    if (force) stick = true;
     await tick();
-    if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
+    if (msgsEl && stick) msgsEl.scrollTop = msgsEl.scrollHeight;
   }
 
   // auto-scroll when the visible thread changes or grows
-  $effect(() => { messages.length; threadId; open; scrollToBottom(); });
+  // jump to the end when a message is added, the thread changes or the panel opens — never while a reply streams in
+  let msgCount = $derived(messages.length);
+  $effect(() => { msgCount; threadId; open; scrollToBottom(true); });
 
   async function send() {
     const q = input.trim();
@@ -132,7 +138,7 @@
       </div>
     </div>
 
-    <div class="msgs" bind:this={msgsEl}>
+    <div class="msgs" bind:this={msgsEl} onscroll={onMsgsScroll}>
       {#if messages.length === 0}
         <p class="empty">
           {#if threadId === GENERAL}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Theory } from './types';
 	import { inline } from './inline';
+	import { publish } from '../assistant/context';
 
 	let { theory }: { theory: Theory } = $props();
 
@@ -15,6 +16,15 @@
 	const knownCount = $derived(theory.sections.filter((s) => known[theory.id + ':' + s.id]).length);
 	const isKnown = $derived(!!known[theory.id + ':' + section.id]);
 	const showSay = $derived(!hideSay || revealed);
+
+	$effect(() =>
+		publish('prep-theory', {
+			label: `${theory.title} · theory`,
+			text: `Interview theory script "${theory.title}", section ${idx + 1}/${theory.sections.length}: ${section.heading}\n` +
+				(section.say ? `Talking script: ${section.say}\n` : '') +
+				`Key points:\n- ${section.points.join('\n- ')}`
+		})
+	);
 
 	$effect(() => {
 		if (loaded) return;
