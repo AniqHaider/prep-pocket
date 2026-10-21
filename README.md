@@ -6,6 +6,8 @@
 
 [![Download APK](https://img.shields.io/badge/Download-Kata%20v1.2.0%20APK-3DDC84?logo=android&logoColor=white)](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Kata-v1.2.0.apk)
 
+> Changes per version: **[CHANGELOG.md](CHANGELOG.md)**
+
 > **Windows?** See **[SETUP-WINDOWS.md](SETUP-WINDOWS.md)** for a step-by-step guide (browser dev + building the APK).
 
 One Android app (Android 16 / API 36, minSdk 33) that bundles four prep projects, **fully offline**, behind a slide-out menu (☰) instead of a bottom bar:
