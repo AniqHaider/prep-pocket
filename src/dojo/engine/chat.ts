@@ -137,7 +137,7 @@ async function onDevice(s: TutorSettings, system: string, user: string, onChunk?
 	const file = s.model || DEFAULT_MODELS['on-device'];
 	const { models, loaded } = await LocalLlm.listModels();
 	if (!models.some((m) => m.file === file && m.complete)) {
-		const msg = '(That model isn\'t downloaded yet. Open **More → AI models → On this phone** and tap Download.)';
+		const msg = '(That model isn\'t downloaded yet. Open **Settings → AI models → On this phone** and tap Download.)';
 		onChunk?.(msg);
 		return msg;
 	}
@@ -165,12 +165,12 @@ async function onDevice(s: TutorSettings, system: string, user: string, onChunk?
 	return full;
 }
 
-/** Sends one (system, user) prompt to whichever provider is configured in More → AI models and streams the reply.
- *  Shared by the Dojo tutor and the app-level assistant. Calls onChunk(fullTextSoFar); returns the full answer. */
+/** Sends one (system, user) prompt to whichever provider is configured in Settings → AI models and streams the reply.
+ *  Shared by the Backend lab tutor and the app-level assistant. Calls onChunk(fullTextSoFar); returns the full answer. */
 export async function runModel(system: string, user: string, onChunk?: (full: string) => void, signal?: AbortSignal): Promise<string> {
 	const s = loadSettings();
 	if (s.provider === 'none') {
-		const msg = '(No AI model is set up yet. Open **More → AI models** and choose a model on this phone, Gemini, Claude, or a local server such as Ollama.)';
+		const msg = '(No AI model is set up yet. Open **Settings → AI models** and choose a model on this phone, Gemini, Claude, or a local server such as Ollama.)';
 		onChunk?.(msg);
 		return msg;
 	}
@@ -182,7 +182,7 @@ export async function runModel(system: string, user: string, onChunk?: (full: st
 		}
 	}
 	if (s.provider !== 'openai-compatible' && !s.apiKey) {
-		const msg = '(Add your API key in **More → AI models** first.)';
+		const msg = '(Add your API key in **Settings → AI models** first.)';
 		onChunk?.(msg);
 		return msg;
 	}
@@ -205,7 +205,7 @@ export async function runModel(system: string, user: string, onChunk?: (full: st
 	return full;
 }
 
-/** Streams the Dojo tutor's answer (Dojo prompts + the learner's exercise/mistake context). */
+/** Streams the Backend lab tutor's answer (its prompts + the learner's exercise/mistake context). */
 export function chatStream(question: string, mode: string, currentExerciseId: string | null, onChunk?: (full: string) => void, signal?: AbortSignal): Promise<string> {
 	return runModel(systemPromptFor(mode), buildContext(question, currentExerciseId), onChunk, signal);
 }

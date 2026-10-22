@@ -1,30 +1,104 @@
+/*
+ * Preppy design tokens — "true-black flat" (see docs/design.md).
+ * Elevation is lightness alone: ground #000 → surface #111 → raised #2a2a2a. No card borders or shadows at rest.
+ * Colour lives on progress data only (--accent); chrome, tabs, nav and buttons stay neutral.
+ * The primary control is inverted: a white pill with black text.
+ */
+@import '@fontsource-variable/inter';
+
 :root {
 	color-scheme: dark;
-	font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-	--nav-h: 0px; /* no bottom bar any more (drawer navigation); floating buttons still anchor to it */
-	--bar-h: 48px;
+	--font: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+
+	--ground: #000000;
+	--surface: #111111;
+	--raised: #2a2a2a;
+	--border: #1a1a1a;
+	--rule: #1f1f1f;
+	--control: #444444;
+	--text: #ffffff;
+	--muted: #b4b4b4;
+	--faint: #949494;
+	--accent: #c6f24e; /* data only: solved, accuracy, streak, progress */
+	--accent-ink: #0b1200;
+	--positive: #c6f24e;
+	--negative: #ff6b70;
+	--warning: #e5a93b;
+	--pill-positive-bg: #222a10; --pill-positive-ink: #c6f24e;
+	--pill-negative-bg: #2c1a20; --pill-negative-ink: #ff8a8f;
+	--pill-warning-bg: #2b2414;  --pill-warning-ink: #e5a93b;
+	--pill-neutral-bg: #222222;  --pill-neutral-ink: #ffffff;
+
+	--radius-card: 20px;
+	--radius-row: 14px;
+	--radius-control: 999px;
+	--radius-field: 12px;
+	--gap: 14px;
+	--pad: 20px;
+	--control-height: 44px; /* touch target floor */
+
+	--fs-title: 20px; --fs-section: 16px; --fs-kpi: 24px; --fs-body: 14px; --fs-small: 12px;
+
+	--nav-h: 0px; /* no bottom bar (drawer navigation); floating buttons still anchor to it */
+	--bar-h: 52px;
 	--safe-b: env(safe-area-inset-bottom, 0px);
 	--safe-t: env(safe-area-inset-top, 0px);
-	--bar-top: calc(var(--bar-h) + env(safe-area-inset-top, 0px)); /* height of the sticky app bar incl. status-bar inset */
-	/* prep tab palette */
-	--bg: #0b1020;
-	--panel: #121a30;
-	--line: #223050;
-	--text: #e6ecff;
-	--muted: #8b9bc4;
-	--accent: #7dd3fc;
-	--good: #34d399;
-	--bad: #fb7185;
-	--svelte: #ff7a3d;
-	--ts: #60a5fa;
+	--bar-top: calc(var(--bar-h) + env(safe-area-inset-top, 0px)); /* sticky app bar incl. status-bar inset */
+
+	/* Legacy names still used inside older components — all resolve to the tokens above. */
+	--bg: var(--ground);
+	--panel: var(--surface);
+	--line: var(--border);
+	--good: var(--positive);
+	--bad: var(--negative);
+	--svelte: var(--muted);
+	--ts: var(--muted);
 }
+
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; background: #0b0f16; color: #e8eef6; }
-body { min-height: 100dvh; -webkit-font-smoothing: antialiased; overscroll-behavior-y: none; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html, body { margin: 0; background: var(--ground); color: var(--text); }
+body {
+	min-height: 100dvh; font-family: var(--font); font-size: var(--fs-body); line-height: 1.45;
+	font-feature-settings: 'cv11', 'ss01'; -webkit-font-smoothing: antialiased; overscroll-behavior-y: none;
+}
 #app { min-height: 100dvh; }
 button { font-family: inherit; color: inherit; }
-a { color: #6ea8ff; }
-code, pre { font-family: ui-monospace, 'SF Mono', Menlo, monospace; }
-input, textarea, select { font-size: 16px; } /* stops Android/iOS zoom-on-focus */
+a { color: var(--text); text-underline-offset: 3px; }
+code, pre, kbd { font-family: var(--mono); }
+input, textarea, select { font-family: inherit; font-size: 16px; } /* 16px stops Android/iOS zoom-on-focus */
+.num { font-variant-numeric: tabular-nums; }
+
+/* Keyboard / switch-access focus ring on everything interactive; pointer taps stay clean. */
+:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+:focus:not(:focus-visible) { outline: none; }
+
+/* Shared primitives (used by every section) */
+.btn {
+	display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: var(--control-height);
+	padding: 0 20px; border-radius: var(--radius-control); border: 1px solid var(--control); background: transparent;
+	color: var(--text); font-weight: 600; font-size: var(--fs-body); cursor: pointer;
+}
+.btn:active { background: var(--raised); }
+.btn.primary { background: var(--text); color: #000; border-color: var(--text); }
+.btn.primary:active { background: #d9d9d9; }
+.btn:disabled { opacity: .45; cursor: default; }
+.pill {
+	display: inline-flex; align-items: center; min-height: 20px; padding: 0 9px; border-radius: 999px;
+	font-size: var(--fs-small); font-weight: 500; white-space: nowrap; flex: none;
+	background: var(--pill-neutral-bg); color: var(--pill-neutral-ink);
+}
+.pill.pos { background: var(--pill-positive-bg); color: var(--pill-positive-ink); }
+.pill.neg { background: var(--pill-negative-bg); color: var(--pill-negative-ink); }
+.pill.warn { background: var(--pill-warning-bg); color: var(--pill-warning-ink); }
+.muted { color: var(--muted); }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.faint { color: var(--faint); }
+
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-thumb { background: #232d3e; border-radius: 6px; }
+::-webkit-scrollbar-thumb { background: var(--raised); border-radius: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+	*, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+}

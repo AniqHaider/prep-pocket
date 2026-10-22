@@ -4,6 +4,7 @@
 	import { loadMissed, saveMissed } from './storage';
 	import { publish } from '../assistant/context';
 	import { quizContext } from '../assistant/quizContext';
+	import Icon from '../ui/Icon.svelte';
 	import { inline } from './inline';
 
 	type Screen = 'home' | 'quiz' | 'result';
@@ -29,7 +30,7 @@
 		).length
 	);
 
-	// tell the app-level ✨ assistant what is on screen
+	// tell the app-level assistant what is on screen
 	$effect(() => publish('prep2-quiz', quizContext('React + Next + TypeScript', screen, cur, pick, revealed, score, deck.length)));
 
 	function start() {
@@ -72,7 +73,6 @@
 	const letters = ['A', 'B', 'C', 'D'];
 	const topicLabel = { react: 'React', next: 'Next.js', typescript: 'TypeScript' } as const;
 	const levelLabel = { basic: 'Basic', mid: 'Mid', advanced: 'Advanced' } as const;
-	const topicColor = { react: '#61dafb', next: '#f4f4f5', typescript: 'var(--ts)' } as const;
 </script>
 
 <svelte:window onkeydown={onKey} />
@@ -82,32 +82,33 @@
 <div class="prep">
 	{#if screen === 'home'}
 		<header>
-			<h1>React + Next + TypeScript</h1>
+			<h1>Quiz setup</h1>
 			<p class="muted">{questions.length} multiple-choice questions · every answer explains <em>why</em> · React 19, Next.js 15/16 App Router, TypeScript, basic → advanced</p>
 		</header>
 
 		<section class="panel">
-			<div class="row">
-				<span class="lbl">Topic</span>
+			<div class="row" role="group" aria-label="Topic">
+				<span class="lbl" aria-hidden="true">Topic</span>
 				{#each [['all', 'All'], ['react', 'React'], ['next', 'Next.js'], ['typescript', 'TypeScript']] as [v, l]}
-					<button class="chip" class:on={cfg.topic === v} onclick={() => (cfg.topic = v as Config['topic'])}>{l}</button>
+					<button class="chip" class:on={cfg.topic === v} aria-pressed={cfg.topic === v} onclick={() => (cfg.topic = v as Config['topic'])}>{l}</button>
 				{/each}
 			</div>
-			<div class="row">
-				<span class="lbl">Level</span>
+			<div class="row" role="group" aria-label="Level">
+				<span class="lbl" aria-hidden="true">Level</span>
 				{#each [['all', 'All'], ['basic', 'Basic'], ['mid', 'Mid'], ['advanced', 'Adv.']] as [v, l]}
-					<button class="chip" class:on={cfg.level === v} onclick={() => (cfg.level = v as Config['level'])}>{l}</button>
+					<button class="chip" class:on={cfg.level === v} aria-pressed={cfg.level === v} onclick={() => (cfg.level = v as Config['level'])}>{l}</button>
 				{/each}
 			</div>
-			<div class="row">
-				<span class="lbl">Mode</span>
-				<button class="chip" class:on={cfg.mode === 'practice'} onclick={() => (cfg.mode = 'practice')}>Practice (explain instantly)</button>
-				<button class="chip" class:on={cfg.mode === 'exam'} onclick={() => (cfg.mode = 'exam')}>Exam (review at end)</button>
+			<div class="row" role="group" aria-label="Mode">
+				<span class="lbl" aria-hidden="true">Mode</span>
+				<button class="chip" class:on={cfg.mode === 'practice'} aria-pressed={cfg.mode === 'practice'} onclick={() => (cfg.mode = 'practice')}>Practice</button>
+				<button class="chip" class:on={cfg.mode === 'exam'} aria-pressed={cfg.mode === 'exam'} onclick={() => (cfg.mode = 'exam')}>Exam</button>
 			</div>
-			<div class="row">
-				<span class="lbl">Length</span>
+			<p class="muted" style="margin:-6px 0 0;font-size:var(--fs-small)">Practice explains each answer straight away. Exam shows results at the end.</p>
+			<div class="row" role="group" aria-label="Length">
+				<span class="lbl" aria-hidden="true">Length</span>
 				{#each [10, 25, 50, 0] as n}
-					<button class="chip" class:on={cfg.count === n} onclick={() => (cfg.count = n)}>{n === 0 ? 'All' : n}</button>
+					<button class="chip" class:on={cfg.count === n} aria-pressed={cfg.count === n} onclick={() => (cfg.count = n)}>{n === 0 ? 'All' : n}</button>
 				{/each}
 			</div>
 			<div class="row">
@@ -116,23 +117,23 @@
 					Only questions I missed before ({missed.size})
 				</label>
 			</div>
-			<button class="primary" onclick={start} disabled={poolSize === 0} data-testid="start">
+			<button class="btn primary start" onclick={start} disabled={poolSize === 0} data-testid="start">
 				Start · {cfg.count === 0 ? poolSize : Math.min(cfg.count, poolSize)} questions
 			</button>
 		</section>
 		<p class="muted small">Keys: 1–4 choose · Enter next. Options are shuffled every attempt, so explanations never rely on letters.</p>
 	{:else if screen === 'quiz' && cur}
 		<div class="top">
-			<span class="muted">{i + 1} / {deck.length}</span>
-			<span class="tags"><span class="tag" style="--c: {topicColor[cur.q.topic]}">{topicLabel[cur.q.topic]} · {levelLabel[cur.q.level]}</span><span class="tag dim">{cur.q.tag}</span></span>
+			<span class="muted num">Question {i + 1} of {deck.length}</span>
+			<span class="tags"><span class="pill">{topicLabel[cur.q.topic]} · {levelLabel[cur.q.level]}</span><span class="pill faint-pill">{cur.q.tag}</span></span>
 			<button class="link" onclick={() => (screen = 'home')}>Quit</button>
 		</div>
-		<div class="bar"><div style="width:{((i + (pick !== null ? 1 : 0)) / deck.length) * 100}%"></div></div>
+		<div class="bar" role="progressbar" aria-label="Quiz progress" aria-valuemin="0" aria-valuemax={deck.length} aria-valuenow={i + (pick !== null ? 1 : 0)}><div style="width:{((i + (pick !== null ? 1 : 0)) / deck.length) * 100}%"></div></div>
 
 		<h2 class="q">{@render rich(cur.q.q)}</h2>
 		{#if cur.q.code}<pre><code>{cur.q.code}</code></pre>{/if}
 
-		<div class="opts" role="radiogroup">
+		<div class="opts" role="radiogroup" aria-label="Answer options">
 			{#each cur.options as opt, n}
 				<button
 					class="opt"
@@ -145,39 +146,39 @@
 					aria-checked={pick === n}
 					data-testid="opt-{n}"
 				>
-					<b>{letters[n]}</b><span>{@render rich(opt)}</span>
+					<b aria-hidden="true">{letters[n]}</b><span>{@render rich(opt)}</span>{#if revealed && n === cur.correctIndex}<Icon name="check" size={20} label="Correct answer" />{:else if revealed && pick === n}<Icon name="close" size={20} label="Your answer, incorrect" />{/if}
 				</button>
 			{/each}
 		</div>
 
 		{#if revealed}
-			<div class="why" class:ok={pick === cur.correctIndex} data-testid="why">
-				<b>{pick === cur.correctIndex ? '✅ Correct' : '❌ Not quite'}</b>
+			<div class="why" class:ok={pick === cur.correctIndex} role="status" data-testid="why">
+				<b><Icon name={pick === cur.correctIndex ? 'check' : 'close'} size={18} />{pick === cur.correctIndex ? 'Correct' : 'Not quite'}</b>
 				<p>{@render rich(cur.q.why)}</p>
 			</div>
 		{/if}
 
 		<div class="nav">
-			{#if cfg.mode === 'exam' && i > 0}<button class="ghost" onclick={() => i--}>← Back</button>{:else}<span></span>{/if}
-			<button class="primary" onclick={next} disabled={pick === null} data-testid="next">
-				{i === deck.length - 1 ? 'Finish' : 'Next →'}
+			{#if cfg.mode === 'exam' && i > 0}<button class="btn" onclick={() => i--}><Icon name="back" size={16} />Back</button>{:else}<span></span>{/if}
+			<button class="btn primary" onclick={next} disabled={pick === null} data-testid="next">
+				{i === deck.length - 1 ? 'Finish' : 'Next'}<Icon name="chevron" size={16} />
 			</button>
 		</div>
 	{:else if screen === 'result'}
 		<header>
-			<h1>{score} / {deck.length}</h1>
-			<p class="muted">{Math.round((score / deck.length) * 100)}% — {score === deck.length ? 'flawless 🎯' : 'review the misses below, then retry only those'}</p>
+			<h1 class="score num">{score}<span class="of"> / {deck.length}</span></h1>
+			<p class="muted"><span class="pct num">{Math.round((score / deck.length) * 100)}%</span> — {score === deck.length ? 'flawless' : 'review the misses below, then retry only those'}</p>
 		</header>
 		<div class="nav">
-			<button class="ghost" onclick={() => (screen = 'home')}>Home</button>
-			<button class="primary" onclick={() => ((cfg.onlyMissed = true), (cfg.count = 0), start())} disabled={missed.size === 0}>Retry all missed ({missed.size})</button>
+			<button class="btn" onclick={() => (screen = 'home')}>Home</button>
+			<button class="btn primary" onclick={() => ((cfg.onlyMissed = true), (cfg.count = 0), start())} disabled={missed.size === 0}>Retry all missed ({missed.size})</button>
 		</div>
 
 		<h3>Review</h3>
 		{#each deck as d, n}
 			{@const ok = picks[n] === d.correctIndex}
 			<details class="rev" class:ok open={!ok}>
-				<summary>{ok ? '✅' : '❌'} {@render rich(d.q.q)}</summary>
+				<summary><Icon name={ok ? 'check' : 'close'} size={18} label={ok ? 'Correct' : 'Missed'} /><span>{@render rich(d.q.q)}</span></summary>
 				{#if d.q.code}<pre><code>{d.q.code}</code></pre>{/if}
 				<p><span class="muted">Your answer:</span> {#if picks[n] === null}—{:else}{@render rich(d.options[picks[n]!])}{/if}</p>
 				<p><span class="good-t">Correct:</span> {@render rich(d.q.correct)}</p>
@@ -188,44 +189,58 @@
 </div>
 
 <style>
-	.prep { max-width: 760px; margin: 0 auto; padding: 14px 14px 24px; color: var(--text); font-size: 16px; line-height: 1.55; }
-	h1 { margin: 12px 0 4px; font-size: 1.7rem; }
-	h2.q { font-size: 1.2rem; line-height: 1.45; margin: 18px 0 12px; }
+	.prep { max-width: 760px; margin: 0 auto; padding: 16px 16px 24px; color: var(--text); font-size: var(--fs-body); line-height: 1.5; }
+	h1 { margin: 8px 0 4px; font-size: var(--fs-title); font-weight: 600; letter-spacing: -.01em; }
+	h2.q { font-size: 17px; font-weight: 500; line-height: 1.45; margin: 20px 0 14px; }
+	h3 { font-size: var(--fs-section); font-weight: 600; margin: 24px 0 8px; }
 	.muted { color: var(--muted); }
-	.small { font-size: .85rem; }
-	.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 14px; margin-top: 16px; }
+	.small { font-size: var(--fs-small); color: var(--faint); }
+	.num { font-variant-numeric: tabular-nums; }
+	.panel { background: var(--surface); border-radius: var(--radius-card); padding: var(--pad); display: grid; gap: var(--gap); margin-top: 16px; }
 	.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-	.lbl { width: 64px; color: var(--muted); font-size: .85rem; }
-	.chip { background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; color: var(--muted); }
-	.chip.on { background: var(--accent); color: #06121f; border-color: var(--accent); font-weight: 600; }
-	.check { color: var(--muted); font-size: .9rem; display: flex; gap: 8px; align-items: center; }
-	.primary { background: var(--accent); color: #06121f; border: 0; border-radius: 12px; padding: 12px 18px; font-weight: 700; }
-	.primary:disabled { opacity: .35; cursor: not-allowed; }
-	.ghost { background: transparent; border: 1px solid var(--line); border-radius: 12px; padding: 12px 18px; }
-	.link { background: none; border: 0; color: var(--muted); text-decoration: underline; }
+	.lbl { width: 100%; color: var(--muted); font-size: var(--fs-small); font-weight: 500; }
+	.chip { min-height: 44px; background: transparent; border: 1px solid var(--control); border-radius: var(--radius-control); padding: 0 16px; color: var(--muted); font-size: var(--fs-body); }
+	.chip:active { background: var(--raised); }
+	.chip.on { background: var(--raised); border-color: var(--text); color: var(--text); font-weight: 600; }
+	.check { color: var(--muted); font-size: var(--fs-body); display: flex; gap: 10px; align-items: center; min-height: 44px; }
+	.check input { width: 20px; height: 20px; accent-color: var(--text); }
+	.start { width: 100%; }
+	.link { min-height: 44px; padding: 0 4px; background: none; border: 0; color: var(--muted); text-decoration: underline; font-size: var(--fs-body); }
 	.top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 	.tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-	.tag.dim { --c: var(--muted); }
-	.tag { color: var(--c); border: 1px solid var(--c); border-radius: 999px; padding: 2px 10px; font-size: .8rem; }
-	.ic { background: #0a1124; border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; font-size: .88em; color: #bfe3ff; }
-	.bar { height: 5px; background: var(--line); border-radius: 9px; overflow: hidden; margin-top: 10px; }
+	.ic { background: var(--raised); border-radius: 6px; padding: 1px 6px; font-family: var(--mono); font-size: .88em; }
+	.bar { height: 4px; background: var(--raised); border-radius: 9px; overflow: hidden; margin-top: 4px; }
 	.bar > div { height: 100%; background: var(--accent); transition: width .25s; }
-	pre { background: #060a16; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; overflow-x: auto; font-size: .85rem; line-height: 1.5; margin: 0 0 12px; }
+	pre { background: var(--raised); border-radius: var(--radius-row); padding: 14px; overflow-x: auto; font-family: var(--mono); font-size: 13px; line-height: 1.55; margin: 0 0 14px; }
 	.opts { display: grid; gap: 10px; }
-	.opt { display: flex; gap: 12px; text-align: left; align-items: flex-start; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
-	.opt b { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--line); font-size: .8rem; }
-	.opt:hover:not(:disabled) { border-color: var(--accent); }
-	.opt.picked { border-color: var(--accent); background: #16315a; }
-	.opt.good { border-color: var(--good); background: #0f2d25; }
-	.opt.bad { border-color: var(--bad); background: #35141d; }
-	.opt.dim { opacity: .55; }
-	.why { margin-top: 16px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--bad); background: #2a1219; }
-	.why.ok { border-color: var(--good); background: #0d2420; }
-	.why p { margin: 6px 0 0; }
-	.nav { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; gap: 10px; }
-	.rev { background: var(--panel); border: 1px solid var(--bad); border-radius: 12px; padding: 10px 14px; margin: 10px 0; }
-	.rev.ok { border-color: var(--line); }
-	.rev summary { cursor: pointer; font-weight: 600; }
-	.good-t { color: var(--good); }
+	.opt { display: flex; gap: 12px; text-align: left; align-items: center; min-height: 52px; font-size: 15px; background: var(--surface); border: 1px solid transparent; border-radius: var(--radius-row); padding: 12px 14px; }
+	.opt span { flex: 1; min-width: 0; }
+	.opt b { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--raised); color: var(--muted); font-size: var(--fs-small); font-weight: 600; }
+	.opt :global(svg) { flex: none; }
+	.opt.picked { border-color: var(--text); }
+	.opt.good { background: var(--pill-positive-bg); }
+	.opt.good :global(svg) { color: var(--accent); }
+	.opt.bad { background: var(--pill-negative-bg); }
+	.opt.bad :global(svg) { color: var(--negative); }
+	.opt.dim { opacity: .6; }
+	.why { margin-top: 16px; padding: 16px; border-radius: var(--radius-row); background: var(--surface); }
+	.why > b { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+	.why.ok > b :global(svg) { color: var(--accent); }
+	.why:not(.ok) > b :global(svg) { color: var(--negative); }
+	.why p { margin: 8px 0 0; }
+	.nav { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; gap: 10px; }
+	.nav :global(.btn) { gap: 6px; }
+	.score { font-size: 40px; font-weight: 600; letter-spacing: -.02em; }
+	.score .of { color: var(--faint); font-weight: 400; }
+	.pct { color: var(--accent); font-weight: 600; }
+	.rev { background: var(--surface); border-radius: var(--radius-row); padding: 4px 14px; margin: 10px 0; }
+	.rev summary { cursor: pointer; font-weight: 500; display: flex; gap: 10px; align-items: flex-start; min-height: 44px; padding: 10px 0; list-style: none; }
+	.rev summary::-webkit-details-marker { display: none; }
+	.rev summary :global(svg) { flex: none; margin-top: 2px; }
+	.rev:not(.ok) summary :global(svg) { color: var(--negative); }
+	.rev.ok summary :global(svg) { color: var(--accent); }
+	.rev p { margin: 0 0 10px; }
+	.good-t { color: var(--accent); font-weight: 500; }
 	.why-t { color: var(--muted); }
+	.faint-pill { color: var(--muted); }
 </style>

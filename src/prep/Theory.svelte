@@ -2,6 +2,7 @@
 	import type { Theory } from './types';
 	import { inline } from './inline';
 	import { publish } from '../assistant/context';
+	import Icon from '../ui/Icon.svelte';
 
 	let { theory }: { theory: Theory } = $props();
 
@@ -64,19 +65,19 @@
 		<h1>{theory.title}</h1>
 		<p class="muted">{theory.tagline}</p>
 		<div class="meta">
-			<span class="muted small">{knownCount} / {theory.sections.length} sections I can explain</span>
+			<span class="muted num">{knownCount} of {theory.sections.length} sections I can explain</span>
 			<label class="check">
 				<input type="checkbox" bind:checked={hideSay} onchange={() => (revealed = false)} />
 				Practice mode — hide the script, say it aloud first
 			</label>
 		</div>
-		<div class="bar"><div style="width:{(knownCount / theory.sections.length) * 100}%"></div></div>
+		<div class="bar" role="progressbar" aria-label="Sections I can explain" aria-valuemin="0" aria-valuemax={theory.sections.length} aria-valuenow={knownCount}><div style="width:{(knownCount / theory.sections.length) * 100}%"></div></div>
 	</header>
 
 	<nav class="toc" aria-label="Sections">
 		{#each theory.sections as s, n}
-			<button class="toc-item" class:on={n === idx} class:done={known[theory.id + ':' + s.id]} onclick={() => go(n)}>
-				<span class="num">{n + 1}</span>{s.heading.replace(/ \(.*\)$/, '')}
+			<button class="toc-item" class:on={n === idx} class:done={known[theory.id + ':' + s.id]} aria-current={n === idx ? 'step' : undefined} onclick={() => go(n)}>
+				<span class="num">{n + 1}</span>{s.heading.replace(/ \(.*\)$/, '')}{#if known[theory.id + ':' + s.id]}<Icon name="check" size={14} label="explainable" />{/if}
 			</button>
 		{/each}
 	</nav>
@@ -86,7 +87,7 @@
 
 		{#if section.say}
 			<div class="say">
-				<div class="say-h">🎤 Say it like this</div>
+				<div class="say-h"><Icon name="mic" size={16} />Say it like this</div>
 				{#if showSay}
 					<p>{section.say}</p>
 				{:else}
@@ -108,48 +109,48 @@
 		{/if}
 
 		{#if section.tip}
-			<div class="tip">💡 {section.tip}</div>
+			<div class="tip"><Icon name="sparkle" size={16} /><span>{section.tip}</span></div>
 		{/if}
 
 		<div class="nav">
-			<button class="ghost" onclick={() => go(idx - 1)} disabled={idx === 0}>← Prev</button>
-			<button class="known" class:on={isKnown} onclick={toggleKnown}>{isKnown ? '✓ I can explain this' : 'Mark as explainable'}</button>
-			<button class="primary" onclick={() => go(idx + 1)} disabled={idx === theory.sections.length - 1}>Next →</button>
+			<button class="btn" onclick={() => go(idx - 1)} disabled={idx === 0}><Icon name="back" size={16} />Prev</button>
+			<button class="btn known" class:on={isKnown} aria-pressed={isKnown} onclick={toggleKnown}>{#if isKnown}<Icon name="check" size={16} />I can explain this{:else}Mark as explainable{/if}</button>
+			<button class="btn primary" onclick={() => go(idx + 1)} disabled={idx === theory.sections.length - 1}>Next<Icon name="chevron" size={16} /></button>
 		</div>
 	</article>
 </div>
 
 <style>
-	h1 { margin: 12px 0 4px; font-size: 1.7rem; }
-	h2 { margin: 0 0 12px; font-size: 1.3rem; }
-	h3 { margin: 18px 0 6px; font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+	header { padding: 0 2px; }
+	h1 { margin: 8px 0 4px; font-size: var(--fs-title); font-weight: 600; letter-spacing: -.01em; }
+	h2 { margin: 0 0 14px; font-size: 18px; font-weight: 600; }
+	h3 { margin: 22px 0 8px; font-size: var(--fs-section); font-weight: 600; }
 	.muted { color: var(--muted); }
-	.small { font-size: .85rem; }
-	.meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; }
-	.check { color: var(--muted); font-size: .85rem; display: flex; gap: 8px; align-items: center; }
-	.bar { height: 5px; background: var(--line); border-radius: 9px; overflow: hidden; margin-top: 8px; }
-	.bar > div { height: 100%; background: var(--good); transition: width .25s; }
-	.toc { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0; }
-	.toc-item { background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 5px 10px; font-size: .82rem; color: var(--muted); display: flex; gap: 6px; align-items: center; }
-	.toc-item .num { opacity: .6; }
-	.toc-item.on { background: var(--panel); border-color: var(--accent); color: var(--text); }
-	.toc-item.done { border-color: color-mix(in srgb, var(--good) 60%, var(--line)); }
-	.toc-item.done .num { color: var(--good); opacity: 1; }
-	.card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
-	.say { background: #0d1c3a; border: 1px solid #1f3a6e; border-radius: 12px; padding: 12px 14px; }
-	.say-h { font-size: .8rem; color: var(--accent); font-weight: 700; margin-bottom: 4px; }
+	.num { font-variant-numeric: tabular-nums; }
+	.meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; margin-top: 10px; align-items: center; font-size: var(--fs-body); }
+	.check { color: var(--muted); font-size: var(--fs-body); display: flex; gap: 10px; align-items: center; min-height: 44px; }
+	.check input { width: 20px; height: 20px; accent-color: var(--text); }
+	.bar { height: 4px; background: var(--raised); border-radius: 9px; overflow: hidden; margin-top: 4px; }
+	.bar > div { height: 100%; background: var(--accent); transition: width .25s; }
+	.toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+	.toc-item { min-height: 44px; background: var(--surface); border: 1px solid transparent; border-radius: var(--radius-control); padding: 0 14px; font-size: var(--fs-body); color: var(--muted); display: flex; gap: 8px; align-items: center; }
+	.toc-item .num { color: var(--faint); }
+	.toc-item.on { background: var(--raised); border-color: var(--text); color: var(--text); font-weight: 600; }
+	.toc-item.done :global(svg) { color: var(--accent); }
+	.card { background: var(--surface); border-radius: var(--radius-card); padding: var(--pad); }
+	.say { background: var(--raised); border-radius: var(--radius-row); padding: 14px 16px; }
+	.say-h { display: flex; align-items: center; gap: 8px; font-size: var(--fs-small); color: var(--muted); font-weight: 600; margin-bottom: 6px; }
 	.say p { margin: 0; line-height: 1.65; }
-	.reveal { background: transparent; border: 1px dashed var(--accent); color: var(--accent); border-radius: 10px; padding: 8px 12px; }
-	ul { margin: 0; padding-left: 1.2rem; display: grid; gap: 6px; }
-	li code { background: #060a16; border: 1px solid var(--line); border-radius: 6px; padding: 0 5px; font-size: .88em; }
-	.code-t { margin: 16px 0 6px; font-size: .8rem; color: var(--muted); }
-	pre { background: #060a16; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; overflow-x: auto; font-size: .85rem; line-height: 1.5; margin: 0; }
+	.reveal { min-height: 44px; background: transparent; border: 1px dashed var(--control); color: var(--text); border-radius: var(--radius-row); padding: 0 14px; font-size: var(--fs-body); }
+	ul { margin: 0; padding-left: 1.2rem; display: grid; gap: 8px; }
+	li code { background: var(--raised); border-radius: 6px; padding: 1px 6px; font-family: var(--mono); font-size: .88em; }
+	.code-t { margin: 16px 0 6px; font-size: var(--fs-small); color: var(--muted); }
+	pre { background: var(--raised); border-radius: var(--radius-row); padding: 14px; overflow-x: auto; font-family: var(--mono); font-size: 13px; line-height: 1.55; margin: 0; }
 	.code-t + pre { margin-top: 0; }
-	.tip { margin-top: 16px; padding: 10px 14px; border-radius: 12px; background: #2a2410; border: 1px solid #5c4d12; color: #fde68a; }
+	.tip { display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; padding: 12px 14px; border-radius: var(--radius-row); background: var(--pill-warning-bg); color: var(--pill-warning-ink); }
+	.tip :global(svg) { flex: none; margin-top: 2px; }
 	.nav { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; gap: 8px; flex-wrap: wrap; }
-	.primary { background: var(--accent); color: #06121f; border: 0; border-radius: 12px; padding: 10px 16px; font-weight: 700; }
-	.ghost { background: transparent; border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
-	.primary:disabled, .ghost:disabled { opacity: .35; cursor: not-allowed; }
-	.known { background: transparent; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; color: var(--muted); }
-	.known.on { border-color: var(--good); color: var(--good); background: #0d2420; }
+	.nav :global(.btn) { gap: 6px; padding: 0 16px; }
+	.known.on { background: var(--pill-positive-bg); border-color: transparent; }
+	.known.on :global(svg) { color: var(--accent); }
 </style>

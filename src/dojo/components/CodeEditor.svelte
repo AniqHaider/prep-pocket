@@ -28,7 +28,16 @@
           EditorView.updateListener.of((v) => {
             if (v.docChanged && onChange) onChange(editor.state.doc.toString());
           }),
-          EditorView.theme({ "&": { fontSize: "13.5px" }, ".cm-content": { fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" } }),
+          // matches the app's true-black surfaces (keeps oneDark's syntax colours only)
+          EditorView.theme({
+            "&": { fontSize: "13.5px", backgroundColor: "var(--surface)", color: "var(--text)" },
+            ".cm-content": { fontFamily: "var(--mono)", caretColor: "#fff" },
+            ".cm-gutters": { backgroundColor: "var(--surface)", color: "var(--faint)", border: "none" },
+            ".cm-activeLine": { backgroundColor: "#ffffff0d" },
+            ".cm-activeLineGutter": { backgroundColor: "transparent", color: "var(--muted)" },
+            "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection": { backgroundColor: "#ffffff29" },
+            "&.cm-focused": { outline: "2px solid var(--text)", outlineOffset: "2px" },
+          }, { dark: true }),
         ],
       }),
     });
@@ -41,9 +50,8 @@
 
 <style>
   .editor :global(.cm-editor) {
-    border-radius: 10px;
+    border-radius: var(--radius-row);
     overflow: hidden;
-    border: 1px solid #2a3344;
     max-height: 420px;
   }
   .editor :global(.cm-scroller) { overflow: auto; }
