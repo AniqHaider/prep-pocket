@@ -69,6 +69,7 @@ a { color: var(--text); text-underline-offset: 3px; }
 code, pre, kbd { font-family: var(--mono); }
 input, textarea, select { font-family: inherit; font-size: 16px; } /* 16px stops Android/iOS zoom-on-focus */
 .num { font-variant-numeric: tabular-nums; }
+html.lock, html.lock body { overflow: hidden; } /* menu or sheet open: the page behind must not scroll */
 
 /* Keyboard / switch-access focus ring on everything interactive; pointer taps stay clean. */
 :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }

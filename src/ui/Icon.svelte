@@ -2,7 +2,7 @@
 	// One outline icon set (24px grid, 1.6 stroke, round caps). Decorative by default; pass `label` to expose it.
 	type Name =
 		| 'menu' | 'close' | 'back' | 'chevron' | 'dojo' | 'frontend' | 'react' | 'drills' | 'settings'
-		| 'sparkle' | 'flame' | 'check' | 'send' | 'stop' | 'trash' | 'book' | 'mic' | 'layers' | 'database' | 'alert' | 'play' | 'pause';
+		| 'sparkle' | 'flame' | 'check' | 'send' | 'stop' | 'trash' | 'book' | 'mic' | 'layers' | 'database' | 'alert' | 'play' | 'pause' | 'replay' | 'visual' | 'table' | 'braces';
 	let { name, size = 18, label = '' }: { name: Name; size?: number; label?: string } = $props();
 	const P: Record<Name, string> = {
 		menu: 'M4 7h16M4 12h16M4 17h16',
@@ -26,7 +26,11 @@
 		database: 'M5 6c0-1.7 3.1-3 7-3s7 1.3 7 3-3.1 3-7 3-7-1.3-7-3zM5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6',
 		alert: 'M12 4l9 16H3zM12 10v4M12 17.2v.1',
 		play: 'M8 5l11 7-11 7z',
-		pause: 'M8 5v14M16 5v14'
+		pause: 'M8 5v14M16 5v14',
+		replay: 'M4 12a8 8 0 1 0 2.5-5.8M4 4v4h4',
+		visual: 'M4 5h16v14H4zM10 9l5 3-5 3z',
+		table: 'M4 5h16v14H4zM4 10h16M10 5v14',
+		braces: 'M9 4C7 4 6 5 6 7v2c0 1-1.5 3-3 3 1.5 0 3 2 3 3v2c0 2 1 3 3 3M15 4c2 0 3 1 3 3v2c0 1 1.5 3 3 3-1.5 0-3 2-3 3v2c0 2-1 3-3 3'
 	};
 </script>
 
