@@ -9,6 +9,7 @@ let db: PGlite;
 async function seed() {
 	await db.exec('DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public; SET search_path TO public;');
 	for (const stmt of seedStatements(SHOP_SQL)) await db.exec(stmt);
+	await db.exec('ANALYZE;'); // gather statistics so EXPLAIN shows realistic row estimates, as on a real database
 }
 
 const ready = (async () => {

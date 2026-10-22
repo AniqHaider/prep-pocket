@@ -50,12 +50,12 @@ add('documents-and-collections', 'mid', 'limits',
 	'A BSON document can be at most 16 MB. That is why a document should not hold something that keeps growing, like every comment ever posted. The limit is per document, not per collection, it is far larger than a packet because drivers split messages, and it cannot be switched off.');
 
 add('documents-and-collections', 'mid', 'ObjectId',
-	'What are the parts of a default ObjectId?',
-	'12 bytes: a 4-byte timestamp, a 5-byte random value and a 3-byte counter',
-	['16 bytes built from the MAC address of the server plus the process id and a clock reading',
-	 '8 bytes holding only a counter that the server increments by one for every insert',
-	 'A 24-character string of random hexadecimal digits that has no time component at all'],
-	'An ObjectId is 12 bytes: 4 for the creation time in seconds, 5 random bytes chosen per process, and a 3-byte counter. The 24 hex characters you see are just those 12 bytes written out. Because it starts with a timestamp, ids sort roughly by creation time, which a purely random string would not.');
+	'Twenty app servers insert orders at the same time without setting _id and without talking to each other. Why do the default ids almost never collide, and what can you rely on about their order?',
+	'Each id mixes a creation time, a per-process random value and a counter, so no coordination is needed; ids sort roughly, not exactly, by creation time',
+	['The server keeps one global counter and hands every insert the next number, so ids are exactly in insert order',
+	 'The driver asks the primary for a lock before each insert, which serialises the ids across all app servers',
+	 'Ids are random, so they never collide, but they carry no information about when the document was created'],
+	'A default ObjectId is 12 bytes: a 4-byte timestamp in seconds, 5 random bytes chosen per process, and a 3-byte counter. Every process can build ids on its own, which is why no central counter or lock is needed. Because the timestamp comes first, ids sort roughly by creation time, but two ids made in the same second by different processes are not ordered by when they were really created. They are not purely random either: the time part is what makes that rough ordering possible.');
 
 // ───────────── insert-and-find ─────────────
 add('insert-and-find', 'basic', 'find',
@@ -72,8 +72,8 @@ add('insert-and-find', 'basic', 'findOne',
 	'Call findOne with a filter: it returns the first match or null',
 	['Call find with no arguments, because it stops after it reads the first document it meets',
 	 'Call findOne and wrap it in try and catch, because it throws an error when nothing matches',
-	 'Call find and add limit(0), which tells the server to return a single document only'],
-	'findOne returns the first matching document, or null if there is none, and it does not throw for a miss. find always gives a cursor over everything that matches. limit(0) actually means no limit, so it would not reduce the result to one document.');
+	 'Call find with a projection of one field, because a projection makes the server return a single document'],
+	'findOne returns the first matching document, or null if there is none, and it does not throw for a miss. find always gives a cursor over everything that matches. A projection only chooses which fields come back for each document, not how many documents there are.');
 
 add('insert-and-find', 'basic', 'projection',
 	'What does the second argument do in this call?',
@@ -457,10 +457,10 @@ add('schema-design', 'mid', 'principle',
 add('schema-design', 'advanced', 'bucket pattern',
 	'What is the bucket pattern used for?',
 	'Grouping many small time-ordered records, like readings, into one document per time window',
-	['Splitting one very large document into many small ones to get around the 16 MB document size limit',
+	['Splitting every reading into several tiny documents, one per field, so that each field can be indexed on its own',
 	 'Moving rarely used documents to a slower storage tier to save cost',
 	 'Spreading writes evenly over shards by hashing the shard key'],
-	'In the bucket pattern, for example, one document holds an hour of sensor readings as an array instead of one document per reading. That means far fewer documents and index entries to manage. It is not about the size limit, storage tiers or shard key hashing.');
+	'In the bucket pattern, for example, one document holds an hour of sensor readings as an array instead of one document per reading. That means far fewer documents and index entries to manage. It does not split records into smaller pieces, move them to other storage tiers, or hash a shard key.');
 
 // ───────────── transactions ─────────────
 add('transactions', 'basic', 'atomicity',
@@ -605,9 +605,9 @@ add('sharding', 'advanced', 'hashed keys',
 	'What does a hashed shard key give up?',
 	'Efficient range queries on the key, because neighbouring values are scattered across shards',
 	['An even distribution, because hashes cluster around small values and leave most shards empty for long',
-	 'Support for unique indexes on any other field',
+	 'The balancer, because chunks of a hashed key cannot be moved between shards once they are created',
 	 'Targeted queries that use equality on the key'],
-	'Hashing scatters neighbouring key values, which is exactly what spreads writes, but a range query such as ids 1 to 1000 then has to ask every shard. Equality queries on the key still go to one shard, and a good hash gives an even spread rather than clustering.');
+	'Hashing scatters neighbouring key values, which is exactly what spreads writes, but a range query such as ids 1 to 1000 then has to ask every shard. Equality queries on the key still go to one shard, chunks of a hashed key are balanced like any other, and a good hash gives an even spread rather than clustering.');
 
 add('sharding', 'advanced', 'scatter-gather',
 	'A query on a sharded collection does not include the shard key. What does mongos do?',

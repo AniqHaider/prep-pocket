@@ -15,6 +15,9 @@
 	let playing = $state(true);
 	let speed = $state(1);
 	let narrate = $state(false);
+	let preparing = $state(false); // the neural voice is buffering enough audio to play without pauses
+	let preparingPct = $state(0);
+	let notice = $state('');
 	const last = $derived(scene ? scene.steps.length - 1 : 0);
 	const atEnd = $derived(step >= last);
 	const hasNext = $derived(!!list && list.i < list.ids.length - 1);
@@ -38,9 +41,9 @@
 		const advance = () => { if (playing) step = Math.min(step + 1, last); };
 		if (narrate && speaker.supported) {
 			speaker.speakFrom(say.split(/\s+/), 0, speed, {
-				onWord() {}, onPreparing() {}, onNotice() {},
-				onEnd: () => { timer = setTimeout(advance, 600 / speed); },
-				onError: () => { timer = setTimeout(advance, captionMs(say) / speed); }
+				onWord() {}, onPreparing: (on, pct) => { preparing = on; preparingPct = pct ?? 0; }, onNotice: (m) => { notice = m; },
+				onEnd: () => { preparing = false; timer = setTimeout(advance, 600 / speed); },
+				onError: () => { preparing = false; timer = setTimeout(advance, captionMs(say) / speed); }
 			});
 		} else {
 			timer = setTimeout(advance, captionMs(say) / speed);
@@ -80,6 +83,7 @@
 		</header>
 
 		<div class="body">
+			<div class="inner">
 			<div class="stagewrap"><Explainer {scene} {step} /></div>
 
 			<div class="segs" role="progressbar" aria-label="Step {step + 1} of {scene.steps.length}" aria-valuemin="1" aria-valuemax={scene.steps.length} aria-valuenow={step + 1}>
@@ -89,6 +93,8 @@
 			</div>
 
 			<p class="cap" role="status" aria-live="polite" data-testid="caption">{scene.steps[step].say}</p>
+			{#if narrate && preparing}<p class="note" role="status">Preparing voice…{#if preparingPct > 0} {Math.round(preparingPct)}%{/if}</p>{:else if narrate && notice}<p class="note" role="status">{notice}</p>{/if}
+			</div>
 		</div>
 
 		<footer>
@@ -102,7 +108,7 @@
 			<div class="row sub">
 				<button class="btn small" onclick={cycleSpeed} aria-label="Speed {speed} times">{speed}×</button>
 				{#if speaker.supported}
-					<button class="btn small" class:on={narrate} aria-pressed={narrate} onclick={() => { narrate = !narrate; speaker.stop(); }}><Icon name="mic" size={16} />Read aloud</button>
+					<button class="btn small" class:on={narrate} aria-pressed={narrate} onclick={() => { narrate = !narrate; speaker.stop(); preparing = false; notice = ''; }}><Icon name="mic" size={16} />Read aloud</button>
 				{/if}
 				{#if atEnd && hasNext}
 					<button class="btn small primary" onclick={nextScene}>Next lesson<Icon name="chevron" size={16} /></button>
@@ -123,7 +129,8 @@
 	.ttl { min-width: 0; }
 	.kick { color: var(--faint); font-size: var(--fs-small); }
 	h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-	.body { flex: 1; overflow-y: auto; padding: 16px; max-width: 640px; width: 100%; margin: 0 auto; }
+	.body { flex: 1; overflow-y: auto; padding: 16px; max-width: 640px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; }
+	.inner { margin: auto 0; width: 100%; } /* centred when there is room, scrolls when there is not */
 	.stagewrap { background: var(--surface); border-radius: var(--radius-card); padding: 14px 10px; }
 	.segs { display: flex; gap: 4px; margin: 14px 0 4px; }
 	.seg { flex: 1; height: 22px; background: none; border: 0; padding: 9px 0; cursor: pointer; }
@@ -131,6 +138,7 @@
 	.seg.done::after { background: var(--accent); }
 	.cap { font-size: 17px; line-height: 1.5; margin: 12px 2px 0; min-height: 5.2em; font-weight: 500; }
 	footer { padding: 10px 16px calc(var(--safe-b) + 14px); border-top: 1px solid var(--border); display: grid; gap: 10px; max-width: 640px; width: 100%; margin: 0 auto; }
+	.note { color: var(--muted); font-size: 13px; margin: 8px 2px 0; }
 	.row { display: flex; align-items: center; justify-content: center; gap: 10px; }
 	.row.sub { gap: 8px; flex-wrap: wrap; }
 	.mid { min-width: 132px; }

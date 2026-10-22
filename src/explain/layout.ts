@@ -78,16 +78,16 @@ export function anchor(rect: Rect, toward: At): At {
 
 export function centerOf(r: Rect): At { return { x: r.x + r.w / 2, y: r.y + r.h / 2 }; }
 
-/** Lowest point any node reaches in any step (incl. moved tokens and a db's caption), so short scenes need not draw a tall empty stage. */
-export function contentBottom(scene: Scene): number {
-	let bottom = 0;
+/** Highest and lowest points any node reaches in any step (incl. moved tokens and a db's caption), so a scene draws only the height it uses. */
+export function contentBounds(scene: Scene): { top: number; bottom: number } {
+	let top = Infinity, bottom = 0;
 	for (let i = 0; i < scene.steps.length; i++) {
 		for (const n of stateAt(scene, i).values()) {
 			const r = rectOf(n);
 			if (!r) continue;
-			const extra = n.kind === 'db' && n.sub ? 18 : 0;
-			bottom = Math.max(bottom, r.y + r.h + extra);
+			top = Math.min(top, r.y);
+			bottom = Math.max(bottom, r.y + r.h + (n.kind === 'db' && n.sub ? 18 : 0));
 		}
 	}
-	return bottom;
+	return { top: Number.isFinite(top) ? top : 0, bottom };
 }

@@ -230,7 +230,7 @@ FOR UPDATE SKIP LOCKED;
 In classic replication a replica runs two threads: a **receiver (I/O) thread** copies binlog events into a local **relay log**, and an **applier (SQL) thread** executes them.
 
 - **Asynchronous by default:** the primary does not wait, so replicas lag and a crash can lose the latest commits.
-- **Semi-synchronous** replication makes the primary wait until at least one replica has received the event.
+- **Semi-synchronous** replication makes the primary wait until at least one replica has received the event. It narrows the window for losing commits but is not fully synchronous: it waits for receipt, not apply, and falls back to asynchronous if no replica answers within the timeout.
 - \`binlog_format\` defaults to **ROW**, which logs the actual row changes and is safest.
 - **GTIDs** give each transaction a global id, which makes failover and catch-up easier.
 - Replicas scale **reads**, not writes.

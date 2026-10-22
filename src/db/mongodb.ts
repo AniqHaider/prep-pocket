@@ -260,7 +260,7 @@ await session.withTransaction(async () => {
 			scenes: ['mg-replica-oplog', 'mg-election-failover'],
 			notes: `A **replica set** is a group of \`mongod\` servers that hold the same data. One member is the **primary** and takes all writes. The others are **secondaries** that copy the primary's **oplog**, an ordered log of its write operations, and replay it.
 
-If the primary stops responding, the secondaries notice through heartbeats and hold an **election**. A candidate needs votes from a **majority** of voting members. Drivers discover the new primary on their own, and retryable writes resend a failed write once.
+If the primary stops responding, the secondaries notice through heartbeats, which members send every 2 seconds, and hold an **election**. A candidate needs votes from a **majority** of voting members. Drivers discover the new primary on their own, and retryable writes resend a failed write once.
 
 Because a majority is what counts, a set with 3 voting members survives 1 failure, and a set with 4 also survives only 1. That is why odd numbers are recommended.
 
@@ -272,7 +272,7 @@ db.orders.insertOne(
 )
 \`\`\`
 
-The default **write concern** is \`majority\` since MongoDB 5.0. The default **read preference** is the primary. Reading from a secondary can return slightly stale data, because it applies the oplog a little after the primary does.
+The implicit default **write concern** is \`majority\` since MongoDB 5.0, except in sets with an arbiter where too few data-bearing members can form a majority: then it is \`w: 1\`. The default **read preference** is the primary. Reading from a secondary can return slightly stale data, because it applies the oplog a little after the primary does.
 
 **Common trap:** replication is not a backup. A bad delete is replicated to every member within moments, so you still need backups.`
 		},

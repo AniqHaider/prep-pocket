@@ -174,7 +174,7 @@ export const postgresScenes: Scene[] = [
 			{ id: 'q1', kind: 'box', x: 188, y: 20, w: 156, h: 44, label: 'WHERE cust = 2', sub: 'leading column only' },
 			{ id: 'q2', kind: 'box', x: 188, y: 82, w: 156, h: 62, label: 'WHERE cust = 2 AND placed_at > Jan 03', sub: 'equality, then a range' },
 			{ id: 'q3', kind: 'box', x: 188, y: 162, w: 156, h: 62, label: 'WHERE placed_at = Jan 05', sub: 'skips the first column' },
-			{ id: 'rule', kind: 'text', x: 16, y: 262, w: 280, size: 'sm', text: 'Rule of thumb: equality columns first, the range column last, and always filter on the leading column.' }
+			{ id: 'rule', kind: 'text', x: 16, y: 262, w: 280, size: 'sm', text: 'Rule of thumb: equality columns first, the range column last, and filter on the leading column whenever you can.' }
 		],
 		steps: [
 			{ say: 'An index on (cust, placed_at) is sorted by cust first, and by placed_at only inside each customer.', focus: ['ix'] },
@@ -193,23 +193,23 @@ export const postgresScenes: Scene[] = [
 		title: 'Reading an EXPLAIN plan',
 		blurb: 'What is the planner telling you, and in which order?',
 		nodes: [
-			{ id: 'sql', kind: 'text', x: 16, y: 20, w: 280, size: 'sm', text: 'EXPLAIN ANALYZE SELECT c.name, o.id FROM customers c JOIN orders o ON o.customer_id = c.id;', visible: true },
-			{ id: 'join', kind: 'box', x: 90, y: 64, w: 180, h: 50, label: 'Hash Join', sub: 'estimated rows 15', tone: 'accent' },
-			{ id: 'ords', kind: 'box', x: 16, y: 154, w: 150, h: 50, label: 'Seq Scan on orders', sub: 'rows 15' },
-			{ id: 'hash', kind: 'box', x: 200, y: 154, w: 144, h: 40, label: 'Hash', sub: 'in-memory table' },
-			{ id: 'cust', kind: 'box', x: 200, y: 224, w: 144, h: 50, label: 'Seq Scan on customers', sub: 'rows 8' },
+			{ id: 'sql', kind: 'text', x: 16, y: 24, w: 270, size: 'sm', text: 'EXPLAIN ANALYZE SELECT c.name, o.id\nFROM customers c JOIN orders o\nON o.customer_id = c.id;', visible: true },
+			{ id: 'join', kind: 'box', x: 100, y: 84, w: 160, h: 50, label: 'Hash Join', sub: 'produces the final rows', visible: true },
+			{ id: 'ords', kind: 'box', x: 16, y: 166, w: 124, h: 50, label: 'Seq Scan on orders', sub: 'rows 15' },
+			{ id: 'hash', kind: 'box', x: 214, y: 166, w: 130, h: 44, label: 'Hash', sub: 'in-memory table' },
+			{ id: 'cust', kind: 'box', x: 214, y: 240, w: 130, h: 56, label: 'Seq Scan on customers', sub: 'rows 8' },
 			{ id: 'e1', kind: 'edge', from: 'cust', to: 'hash' },
 			{ id: 'e2', kind: 'edge', from: 'hash', to: 'join' },
 			{ id: 'e3', kind: 'edge', from: 'ords', to: 'join' },
 			{ id: 'e4', kind: 'edge', from: 'ords', to: 'hash', label: 'probe', tone: 'accent' }
 		],
 		steps: [
-			{ say: 'EXPLAIN prints the plan Postgres chose as a tree. Read it from the innermost, most indented node outwards.', focus: ['sql'] },
-			{ say: 'First it scans customers, reading every row. The table is tiny (8 rows), so a sequential scan is the cheapest way.', show: ['cust'], focus: ['cust'], pulse: ['cust'] },
+			{ say: 'EXPLAIN prints the plan Postgres chose as a tree. The top node, Hash Join, hands back the final rows. The work happens in the nodes beneath it.', focus: ['join'] },
+			{ say: 'The innermost node runs first: a scan of customers, reading every row. The table is tiny (8 rows), so a sequential scan is the cheapest way.', show: ['cust'], focus: ['cust'], pulse: ['cust'] },
 			{ say: 'Those rows are loaded into an in-memory hash table keyed by customer id.', show: ['hash', 'e1'], focus: ['hash'] },
 			{ say: 'Then it scans orders. For each order it probes the hash table to find the matching customer.', show: ['ords', 'e4'], focus: ['ords'], pulse: ['ords'] },
-			{ say: 'The Hash Join node combines both streams into the final rows. Its cost is in planner units, not milliseconds.', show: ['join', 'e2', 'e3'], hide: ['e4'], focus: ['join'] },
-			{ say: 'ANALYZE also runs the query and adds actual rows and time. If estimated and actual rows differ wildly, statistics are stale.', set: { join: { sub: 'estimated 15 | actual 15', tone: 'accent' }, ords: { sub: 'estimated 15 | actual 15' }, cust: { sub: 'estimated 8 | actual 8' } }, focus: ['join'] }
+			{ say: 'The Hash Join node combines both streams into the final rows. Its cost is in planner units, not milliseconds.', show: ['e2', 'e3'], hide: ['e4'], set: { join: { tone: 'accent' } }, focus: ['join'] },
+			{ say: 'EXPLAIN ANALYZE also runs the query and adds actual rows and time. If estimated and actual rows differ wildly, the statistics are stale: run ANALYZE.', set: { join: { sub: 'est. 15 | actual 15' }, ords: { sub: 'est. 15 | actual 15' }, cust: { sub: 'est. 8 | actual 8' } }, focus: ['join'] }
 		]
 	},
 
@@ -246,14 +246,16 @@ export const postgresScenes: Scene[] = [
 		blurb: 'How can readers and writers work on the same row at once?',
 		nodes: [
 			{ id: 'v1', kind: 'box', x: 16, y: 40, w: 150, h: 46, label: 'price = 10', sub: 'version 1', visible: true },
-			{ id: 'v2', kind: 'box', x: 16, y: 120, w: 150, h: 46, label: 'price = 12', sub: 'version 2', tone: 'accent' },
+			{ id: 'vac', kind: 'box', x: 16, y: 120, w: 150, h: 46, label: 'VACUUM', sub: 'cleanup process', tone: 'accent' },
+			{ id: 'v2', kind: 'box', x: 16, y: 200, w: 150, h: 46, label: 'price = 12', sub: 'version 2', tone: 'accent' },
 			{ id: 'ra', kind: 'box', x: 208, y: 40, w: 136, h: 46, label: 'Old reader', sub: 'snapshot from before' },
 			{ id: 'w', kind: 'box', x: 208, y: 120, w: 136, h: 46, label: 'Writer', sub: 'UPDATE price = 12' },
 			{ id: 'rb', kind: 'box', x: 208, y: 200, w: 136, h: 46, label: 'New reader', sub: 'starts after commit' },
 			{ id: 'e1', kind: 'edge', from: 'ra', to: 'v1' },
 			{ id: 'e2', kind: 'edge', from: 'w', to: 'v2' },
 			{ id: 'e3', kind: 'edge', from: 'rb', to: 'v2' },
-			{ id: 'note', kind: 'text', x: 16, y: 264, w: 280, size: 'sm', text: 'A transaction left open for hours keeps old versions alive, and the table bloats.' }
+			{ id: 'ev', kind: 'edge', from: 'vac', to: 'v1', label: 'reclaims', tone: 'accent' },
+			{ id: 'note', kind: 'text', x: 16, y: 280, w: 328, size: 'sm', text: 'A transaction left open for hours keeps old versions alive, and the table bloats.' }
 		],
 		steps: [
 			{ say: 'A row exists as one physical version: price = 10. A reader starts a query and takes a snapshot of the data.', show: ['ra', 'e1'], focus: ['v1'] },
@@ -261,7 +263,8 @@ export const postgresScenes: Scene[] = [
 			{ say: 'Postgres does not overwrite the row. It writes a second version and marks the first one as superseded. Both exist on disk.', show: ['v2', 'e2'], set: { v1: { tone: 'warn', sub: 'version 1 (superseded)' } }, pulse: ['v2'] },
 			{ say: 'A new reader sees version 2. The old reader, whose snapshot predates the update, still sees version 1. Nobody waits for anybody.', show: ['rb', 'e3'], focus: ['rb', 'ra'] },
 			{ say: 'When the old reader finishes, no snapshot can see version 1 any more. It is now a dead tuple: garbage waiting for cleanup.', hide: ['ra', 'e1'], set: { v1: { tone: 'neg', sub: 'dead tuple' } }, focus: ['v1'] },
-			{ say: 'VACUUM reclaims dead versions so the space can be reused. It cannot remove a version that some open transaction might still need.', hide: ['v1'], show: ['note'], focus: ['note'] }
+			{ say: 'VACUUM finds dead versions and marks their space reusable. It cannot remove a version that some open transaction might still need.', show: ['vac', 'ev'], set: { v1: { tone: 'warn', sub: 'space being reclaimed' } }, focus: ['vac'] },
+			{ say: 'Version 1 is gone and its space can hold new rows. Keep transactions short, or VACUUM has nothing it is allowed to clean.', hide: ['v1', 'ev'], show: ['note'], set: { vac: { sub: 'space reusable' } }, focus: ['note'] }
 		]
 	},
 
@@ -273,22 +276,24 @@ export const postgresScenes: Scene[] = [
 		title: 'The lost update, and FOR UPDATE',
 		blurb: 'Two withdrawals ran, so why was only one applied?',
 		nodes: [
-			{ id: 'a1', kind: 'box', x: 16, y: 20, w: 150, h: 44, label: 'A reads 100' },
-			{ id: 'b1', kind: 'box', x: 194, y: 20, w: 150, h: 44, label: 'B reads 100' },
-			{ id: 'a2', kind: 'box', x: 16, y: 84, w: 150, h: 44, label: 'A writes 90' },
-			{ id: 'b2', kind: 'box', x: 194, y: 84, w: 150, h: 44, label: 'B writes 90' },
-			{ id: 'db', kind: 'box', x: 90, y: 190, w: 180, h: 56, label: 'balance = 100', sub: 'two withdrawals of 10', shape: 'pill', visible: true },
-			{ id: 'fix', kind: 'text', x: 16, y: 276, w: 280, size: 'sm', text: 'Or do the maths in SQL: UPDATE ... SET balance = balance - 10' }
+			{ id: 'phase', kind: 'text', x: 16, y: 26, w: 328, size: 'lg', text: 'Without a lock', tone: 'warn', visible: true },
+			{ id: 'a1', kind: 'box', x: 16, y: 46, w: 150, h: 44, label: 'A reads 100' },
+			{ id: 'b1', kind: 'box', x: 194, y: 46, w: 150, h: 44, label: 'B reads 100' },
+			{ id: 'a2', kind: 'box', x: 16, y: 110, w: 150, h: 44, label: 'A writes 90' },
+			{ id: 'b2', kind: 'box', x: 194, y: 110, w: 150, h: 44, label: 'B writes 90' },
+			{ id: 'db', kind: 'box', x: 90, y: 200, w: 180, h: 56, label: 'balance = 100', sub: 'two withdrawals of 10', shape: 'pill', visible: true },
+			{ id: 'fix', kind: 'text', x: 16, y: 286, w: 328, size: 'sm', text: 'Or do the maths in SQL: SET balance = balance - 10' }
 		],
 		steps: [
 			{ say: 'A balance of 100. Sessions A and B each withdraw 10. The app reads the balance, subtracts in code, then writes the result back.', focus: ['db'] },
 			{ say: 'Both read 100 at nearly the same moment. The default READ COMMITTED level does not stop this.', show: ['a1', 'b1'], focus: ['a1', 'b1'] },
 			{ say: 'A writes 100 minus 10, which is 90, and commits.', show: ['a2'], set: { db: { label: 'balance = 90' } }, pulse: ['db'] },
-			{ say: 'B also writes 90, calculated from its stale read of 100. A\'s withdrawal is lost: the balance should be 80.', show: ['b2'], set: { db: { label: 'balance = 90', sub: 'should be 80', tone: 'neg' }, b2: { tone: 'neg' } }, focus: ['db'] },
-			{ say: 'Fix: lock the row first with SELECT ... FOR UPDATE. A gets the lock and reads 100; B asks for the lock and has to wait.', hide: ['b2'], set: { a1: { label: 'A locks the row, reads 100', tone: 'accent' }, b1: { label: 'B waits for the lock', tone: 'warn' }, a2: { label: 'A writes 90, commits' }, db: { label: 'balance = 90', sub: 'A committed', tone: 'neutral' } }, focus: ['a1', 'b1'] },
-			{ say: 'When A commits, B gets the lock and reads the fresh value 90, then writes 80. Nothing is lost.', show: ['b2', 'fix'], set: { b1: { label: 'B gets the lock, reads 90', tone: 'accent' }, b2: { label: 'B writes 80', tone: 'accent' }, db: { label: 'balance = 80', sub: 'both withdrawals applied', tone: 'accent' } }, focus: ['db'] }
+			{ say: 'B also writes 90, calculated from its stale read of 100. A\'s withdrawal is lost: the balance should be 80.', show: ['b2'], set: { phase: { text: 'Lost update: B overwrote A', tone: 'neg' }, db: { label: 'balance = 90', sub: 'should be 80', tone: 'neg' }, b2: { tone: 'neg' } }, focus: ['db'] },
+			{ say: 'Now replay the race with a fix. B locks the row first with SELECT ... FOR UPDATE and reads 100. A asks for the lock and has to wait.', hide: ['a2', 'b2'], set: { phase: { text: 'Fixed: SELECT ... FOR UPDATE', tone: 'accent' }, a1: { label: 'A waits for the lock', tone: 'warn' }, b1: { label: 'B locks the row, reads 100', tone: 'accent' }, db: { label: 'balance = 100', sub: 'row locked by B', tone: 'neutral' } }, focus: ['phase', 'b1', 'a1'] },
+			{ say: 'B writes 90 and commits, which releases the lock. A now gets it and reads the fresh value 90, so it writes 80. Nothing is lost.', show: ['a2', 'b2', 'fix'], set: { a1: { label: 'A gets the lock, reads 90', tone: 'accent' }, b2: { label: '1st: B writes 90, commits', tone: 'neutral' }, a2: { label: '2nd: A writes 80', tone: 'accent' }, db: { label: 'balance = 80', sub: 'both withdrawals applied', tone: 'accent' } }, focus: ['db'] }
 		]
 	},
+
 	{
 		id: 'pg-deadlock',
 		topic: 'postgres',

@@ -17,6 +17,7 @@
   const speaker = createSpeaker();
   const ttsSupported = speaker.supported;
   let preparing = $state(false);
+  let preparingPct = $state(0);
   let notice = $state("");
   let playing = $state(false);
   let paused = $state(false);
@@ -149,7 +150,7 @@
       onWord: (i) => { highlightWord(i); wordIdx = i + 1; },
       onEnd: () => { playing = false; paused = false; preparing = false; clearHighlight(); activeWidx = -1; },
       onError: () => { playing = false; paused = false; preparing = false; },
-      onPreparing: (on) => { preparing = on; },
+      onPreparing: (on, pct) => { preparing = on; preparingPct = pct ?? 0; },
       onNotice: (m) => { notice = m; }
     });
     playing = true;
@@ -233,7 +234,7 @@
     </div>
     {#if ttsSupported}
       <div class="tts-float">
-        {#if preparing}<span class="tts-note" role="status">Preparing voice…</span>{:else if notice}<span class="tts-note" role="status">{notice}</span>{/if}
+        {#if preparing}<span class="tts-note" role="status">Preparing voice…{#if preparingPct > 0} {Math.round(preparingPct)}%{/if}</span>{:else if notice}<span class="tts-note" role="status">{notice}</span>{/if}
         {#if playing}
           <button class="tts-fab tts-fab-speed num" onclick={cycleRate} title="Reading speed" aria-label="Reading speed {rate}x">{rate}x</button>
           <button class="tts-fab" onclick={stopReading} title="Stop" aria-label="Stop reading"><Icon name="stop" size={18} /></button>

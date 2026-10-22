@@ -1,15 +1,18 @@
 <script lang="ts">
 	import type { Scene, SceneNode, EdgeNode, At } from './types';
 	import { STAGE_DEFAULT } from './types';
-	import { stateAt, rectOf, anchor, centerOf, wrapText, charsFor, contentBottom, ROW_H, HEAD_H, TITLE_H, DEF_COL_W, type NodeState } from './layout';
+	import { stateAt, rectOf, anchor, centerOf, wrapText, charsFor, contentBounds, ROW_H, HEAD_H, TITLE_H, DEF_COL_W, type NodeState } from './layout';
 
 	/** Draws one step of a scene. Everything stays mounted so CSS transitions animate show/hide/move between steps. */
 	let { scene, step }: { scene: Scene; step: number } = $props();
 
-	// the stage is cropped to what the scene actually uses (never taller than authored, never shorter than 150)
+	// The stage is cropped to what the scene actually uses, top and bottom (never taller than authored, never under 150).
 	const stage = $derived.by(() => {
 		const s = scene.stage ?? STAGE_DEFAULT;
-		return { w: s.w, h: Math.min(s.h, Math.max(150, Math.ceil(contentBottom(scene)) + 22)) };
+		const { top, bottom } = contentBounds(scene);
+		const y = Math.max(0, Math.floor(top) - 14);
+		const h = Math.min(s.h - y, Math.max(150, Math.ceil(bottom) + 22 - y));
+		return { w: s.w, y, h };
 	});
 	const st = $derived(stateAt(scene, step));
 	const cur = $derived(scene.steps[step]);
@@ -55,7 +58,7 @@
 	const size = (n: SceneNode) => (n.kind === 'text' ? (n.size === 'lg' ? 15 : n.size === 'sm' ? 10.5 : 12) : 12);
 </script>
 
-<svg class="stage" viewBox="0 0 {stage.w} {stage.h}" role="img" aria-label={scene.title} preserveAspectRatio="xMidYMid meet">
+<svg class="stage" viewBox="0 {stage.y} {stage.w} {stage.h}" role="img" aria-label={scene.title} preserveAspectRatio="xMidYMid meet">
 	<title>{scene.title}</title>
 	<defs>
 		<marker id={mid} viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">

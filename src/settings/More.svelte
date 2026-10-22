@@ -7,6 +7,7 @@
 	import { LocalTts, neuralAvailable, forgetLoaded } from '../tts/native';
 	import { VOICES, type CatalogVoice } from '../tts/catalog';
 	import { loadTtsPrefs, saveTtsPrefs } from '../tts/prefs';
+	import { speedClass, SPEED_LABEL } from '../tts/schedule';
 	import { playSample, stopSample } from '../tts/speaker';
 
 	let s = $state<TutorSettings>(loadSettings());
@@ -168,13 +169,33 @@
 		await refreshVoices();
 	}
 
+	/** 'smooth' / 'may-pause' / 'slow' for a voice, from its last measured speed on this phone (null = not measured yet). */
+	const voiceSpeed = (id: string) => (tp.speed?.[id] != null ? speedClass(tp.speed[id]) : null);
+	const speedPill = { smooth: 'pos', 'may-pause': 'warn', slow: 'neg' } as const;
+
+	// One line under the list when the chosen voice is slow on this phone and a faster one is available
+	const speedTip = $derived.by(() => {
+		if (!ttsNative || tp.voice === 'system') return '';
+		const cur = tp.speed?.[tp.voice];
+		if (cur == null || cur <= 0.7) return '';
+		const name = VOICES.find((v) => v.id === tp.voice)?.label ?? 'This voice';
+		const faster = VOICES.filter((v) => v.id !== tp.voice && vHave[v.id]?.installed && tp.speed?.[v.id] != null && tp.speed[v.id] < cur)
+			.sort((a, b) => tp.speed![a.id] - tp.speed![b.id])[0];
+		const verb = cur > 1 ? 'will pause between sentences' : 'may pause between sentences';
+		if (faster) return `${name} ${verb} on this phone. ${faster.label} is faster here (${SPEED_LABEL[speedClass(tp.speed![faster.id])].toLowerCase()}): tap Use this on it.`;
+		const unmeasured = VOICES.some((v) => v.id !== tp.voice && vHave[v.id]?.installed && tp.speed?.[v.id] == null);
+		return `${name} ${verb} on this phone. ${unmeasured ? 'Play a sample on your other downloaded voice to compare speeds.' : 'A lighter voice (Clear or Warm) reads without pauses; download one from the list.'}`;
+	});
+
 	async function sampleVoice(v: CatalogVoice) {
 		vBusy = v.id;
 		vMsg = 'Loading the voice…';
 		try {
 			const sid = v.speakers ? tp.sid : 0;
 			const r = await playSample(v.id, v.speakers && !v.speakers.some((x) => x.sid === sid) ? v.speakers[0].sid : sid);
-			vMsg = `Spoke ${r.audioSec.toFixed(1)} s of audio in ${r.synthSec.toFixed(1)} s${r.rtf > 0.9 ? '. This phone may pause between sentences with this voice.' : '.'}`;
+			tp = { ...tp, speed: { ...(tp.speed ?? {}), [v.id]: Math.round(r.rtf * 100) / 100 } };
+			saveTtsPrefs({ ...tp });
+			vMsg = `Spoke ${r.audioSec.toFixed(1)} s of audio in ${r.synthSec.toFixed(1)} s. ${SPEED_LABEL[speedClass(r.rtf)]}.`;
 		} catch (e: any) {
 			vMsg = String(e?.message ?? e);
 		} finally {
@@ -296,6 +317,7 @@
 						<div class="mhead">
 							<b>{v.label}</b>
 							{#if tp.voice === v.id}<span class="pill pos"><Icon name="check" size={12} />In use</span>{:else if h?.installed}<span class="pill">Downloaded</span>{/if}
+							{#if h?.installed}{@const sc = voiceSpeed(v.id)}{#if sc}<span class="pill {speedPill[sc]}"><Icon name={sc === 'smooth' ? 'check' : 'alert'} size={12} />{SPEED_LABEL[sc]}</span>{/if}{/if}
 						</div>
 						<div class="meta num">{fmtBytes(v.bytes)} · {v.engine === 'kokoro' ? 'Kokoro' : 'Piper'}</div>
 						<div class="hint">{v.note}</div>
@@ -323,6 +345,7 @@
 					</div>
 				{/each}
 				{#if vMsg}<p class="status" role="status">{vMsg}</p>{/if}
+				{#if speedTip}<p class="hint tip" role="note"><Icon name="alert" size={14} />{speedTip}</p>{/if}
 				<p class="hint">Voices come from the open sherpa-onnx project on GitHub and are stored privately in the app. Use Wi-Fi for the larger ones.</p>
 			{/if}
 		</div>
@@ -370,7 +393,7 @@
 	.row.tight { margin-top: 4px; }
 	.row.first { margin-top: 0; }
 	.model { background: var(--raised); border-radius: var(--radius-row); padding: 14px; margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
-	.mhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+	.mhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; row-gap: 6px; }
 	.mhead b { font-weight: 600; }
 	.meta { color: var(--muted); font-size: var(--fs-small); }
 	.hint { color: var(--muted); font-size: var(--fs-small); line-height: 1.5; margin: 12px 0 0; }
@@ -381,6 +404,8 @@
 	.status { margin: 14px 0 0; color: var(--text); font-size: var(--fs-body); word-break: break-word; }
 	code { background: var(--raised); padding: 1px 6px; border-radius: 6px; font-size: var(--fs-small); color: var(--text); }
 	.mhead .pill { gap: 4px; }
+	.tip { display: flex; gap: 8px; align-items: flex-start; color: var(--muted); }
+	.tip :global(svg) { flex: none; margin-top: 2px; color: var(--warning); }
 	.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 	.chip { min-height: 44px; padding: 0 14px; border-radius: var(--radius-control); background: transparent; border: 1px solid var(--control); color: var(--text); font-size: var(--fs-body); cursor: pointer; }
 	.chip[aria-pressed='true'] { background: var(--surface); border-color: var(--text); font-weight: 600; }
