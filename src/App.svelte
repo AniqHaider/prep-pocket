@@ -9,10 +9,32 @@
 	import Drills from './drills/Drills.svelte';
 	import More from './settings/More.svelte';
 	import Icon from './ui/Icon.svelte';
+	import Visual from './explain/Visual.svelte';
+	import Player from './explain/Player.svelte';
+	import { playlist } from './explain/nav';
+	import Database from './db/Database.svelte';
+	import { postgres } from './db/postgres';
+	import { mysql } from './db/mysql';
+	import { mongodb } from './db/mongodb';
 
-	type Tab = 'dojo' | 'prep' | 'prep2' | 'drills' | 'more';
-	const GROUPS: { title: string; items: { id: Tab; icon: 'dojo' | 'frontend' | 'react' | 'drills' | 'settings'; label: string; sub: string }[] }[] = [
-		{ title: 'Learn', items: [{ id: 'dojo', icon: 'dojo', label: 'Backend lab', sub: 'Python + SQL, XP and streaks' }] },
+	type Tab = 'dojo' | 'visual' | 'pg' | 'mysql' | 'mongo' | 'prep' | 'prep2' | 'drills' | 'more';
+	type IconName = 'dojo' | 'frontend' | 'react' | 'drills' | 'settings' | 'visual' | 'database' | 'table' | 'braces';
+	const GROUPS: { title: string; items: { id: Tab; icon: IconName; label: string; sub: string }[] }[] = [
+		{
+			title: 'Learn',
+			items: [
+				{ id: 'dojo', icon: 'dojo', label: 'Backend lab', sub: 'Python + SQL, XP and streaks' },
+				{ id: 'visual', icon: 'visual', label: 'Visual lessons', sub: 'Animated, step-by-step explainers' }
+			]
+		},
+		{
+			title: 'Databases',
+			items: [
+				{ id: 'pg', icon: 'database', label: 'PostgreSQL', sub: 'Tables, indexes, transactions' },
+				{ id: 'mysql', icon: 'table', label: 'MySQL', sub: 'InnoDB, replication, quirks' },
+				{ id: 'mongo', icon: 'braces', label: 'MongoDB', sub: 'Documents and aggregation' }
+			]
+		},
 		{
 			title: 'Frontend prep',
 			items: [
@@ -27,7 +49,8 @@
 	const TAB_IDS = new Set<string>(ALL.map((t) => t.id));
 	const stored = localStorage.getItem('prep-pocket:tab') ?? '';
 
-	let tab = $state<Tab>(TAB_IDS.has(stored) ? (stored as Tab) : 'dojo');
+	// Never open on Settings: restore the last content section, else the Backend lab.
+	let tab = $state<Tab>(TAB_IDS.has(stored) && stored !== 'more' ? (stored as Tab) : 'dojo');
 	let drawer = $state(false);
 	let assistant = $state(false); // app-level assistant sheet (every section except the Backend lab, which has its own tutor)
 	let restoring = false;
@@ -35,7 +58,7 @@
 
 	// Android's back button == history.back(). Every tab switch / Backend lab screen change pushes an entry,
 	// so Back steps through them and exits the app only from the first screen.
-	const snapshot = () => ({ tab, view: get(view), drawer, assistant });
+	const snapshot = () => ({ tab, view: get(view), drawer, assistant, play: get(playlist) });
 
 	onMount(() => {
 		history.replaceState(snapshot(), '');
@@ -43,23 +66,34 @@
 			if (restoring || !history.state) return;
 			if (JSON.stringify(history.state.view) !== JSON.stringify(get(view))) history.pushState(snapshot(), '');
 		});
+		// The scene player is a layer on top of everything: opening it pushes an entry so Back closes it first.
+		const unsubPlay = playlist.subscribe((p) => {
+			if (restoring || !history.state) return;
+			const had = !!history.state.play;
+			if (p && !had) history.pushState(snapshot(), '');
+			else if (!p && had) history.back();
+			else if (p && had && history.state.play.ids[history.state.play.i] !== p.ids[p.i]) history.replaceState(snapshot(), '');
+		});
 		const onPop = (e: PopStateEvent) => {
 			if (!e.state) return;
 			restoring = true;
 			tab = e.state.tab;
 			drawer = !!e.state.drawer;
 			assistant = !!e.state.assistant;
+			playlist.set(e.state.play ?? null);
 			view.set(e.state.view);
 			restoring = false;
 		};
 		window.addEventListener('popstate', onPop);
 		return () => {
 			unsub();
+			unsubPlay();
 			window.removeEventListener('popstate', onPop);
 		};
 	});
 
 	function persist(t: Tab) {
+		if (t === 'more') return; // Settings is a visit, not a home
 		try {
 			localStorage.setItem('prep-pocket:tab', t);
 		} catch {
@@ -86,6 +120,12 @@
 		if (assistant) history.back();
 	}
 
+	// Lock the page behind the menu / assistant sheet so it can't scroll underneath.
+	$effect(() => {
+		document.documentElement.classList.toggle('lock', drawer || assistant || !!$playlist);
+		return () => document.documentElement.classList.remove('lock');
+	});
+
 	function go(t: Tab) {
 		if (t === tab) return closeDrawer();
 		tab = t;
@@ -103,8 +143,12 @@
 </header>
 
 <div class="screen" class:pad={tab !== 'dojo'}>
-	{#if tab === 'dojo'}<Dojo />{:else if tab === 'prep'}<Prep />{:else if tab === 'prep2'}<Prep2 />{:else if tab === 'drills'}<Drills />{:else}<More />{/if}
+	{#if tab === 'dojo'}<Dojo />{:else if tab === 'visual'}<Visual />{:else if tab === 'pg'}<Database engine={postgres} />{:else if tab === 'mysql'}<Database engine={mysql} />{:else if tab === 'mongo'}<Database engine={mongodb} />{:else if tab === 'prep'}<Prep />{:else if tab === 'prep2'}<Prep2 />{:else if tab === 'drills'}<Drills />{:else}<More />{/if}
 </div>
+
+{#if $playlist}
+	<Player onclose={() => history.back()} />
+{/if}
 
 {#if tab !== 'dojo'}
 	<Assistant open={assistant} onopen={openAssistant} onclose={closeAssistant} />
@@ -141,12 +185,12 @@
 	/* the bar owns the status-bar inset, so screens must not add it again */
 	.screen { --safe-t: 0px; min-height: calc(100dvh - var(--bar-h)); padding-bottom: calc(var(--safe-b) + 84px); } /* room for the floating Ask / Ask tutor button */
 
-	.scrim { position: fixed; inset: 0; z-index: 70; background: rgba(0, 0, 0, .72); border: 0; padding: 0; animation: fade .18s; }
+	.scrim { position: fixed; inset: 0; z-index: 70; background: rgba(0, 0, 0, .72); border: 0; padding: 0; animation: fade .18s; touch-action: none; }
 	.drawer {
 		position: fixed; top: 0; bottom: 0; left: 0; z-index: 80; width: min(84vw, 320px);
 		padding: calc(var(--safe-t) + 20px) 12px calc(var(--safe-b) + 16px); overflow-y: auto;
 		background: var(--ground); border-right: 1px solid var(--border);
-		transform: translateX(-102%); transition: transform .2s ease; visibility: hidden;
+		overscroll-behavior: contain; transform: translateX(-102%); transition: transform .2s ease; visibility: hidden;
 	}
 	.drawer.open { transform: none; visibility: visible; }
 	.brand { display: flex; align-items: center; gap: 12px; padding: 0 10px 18px; }

@@ -5,6 +5,8 @@
   import ExerciseCallout from "./ExerciseCallout.svelte";
   import { onDestroy } from "svelte";
   import Icon from "../../ui/Icon.svelte";
+  import { play } from "../../explain/nav";
+  import { sceneIdsFor } from "../../explain/registry";
   import { createSpeaker } from "../../tts/speaker";
 
   let chapter = $state(null);
@@ -111,6 +113,7 @@
   let built = $derived(buildSegments(chapter?.theory_md || "", chapter?.exercises));
   let segments = $derived(built.segs);
   let words = $derived(built.words);
+  let watchIds = $derived(chapter ? sceneIdsFor("backend", chapter.id) : []);
   let hasInline = $derived(segments.some((s) => s.type === "ex"));
 
   function clearHighlight() {
@@ -196,6 +199,13 @@
     <p class="loading">Loading…</p>
   {:else}
     <span class="sr-only">{chapter.title}</span>
+    {#if watchIds.length}
+      <button class="watch" onclick={() => play(watchIds)} data-testid="watch-chapter">
+        <span class="wi"><Icon name="play" size={18} /></span>
+        <span class="wt"><b>Watch this chapter</b><small>{watchIds.length} animated {watchIds.length === 1 ? "lesson" : "lessons"}, the same ideas step by step</small></span>
+        <Icon name="chevron" size={16} />
+      </button>
+    {/if}
     <div class="layout">
       <article class="theory" bind:this={articleEl}>
         {#each segments as seg}
@@ -240,6 +250,13 @@
   .lesson { max-width: 1100px; }
   .back { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: var(--fs-body); margin: -8px 0 4px -6px; padding: 0 12px 0 6px; border-radius: var(--radius-control); }
   .back:active { color: var(--text); background: var(--surface); }
+  .watch { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; min-height: 64px; padding: 10px 16px 10px 12px; margin: 0 0 18px; background: var(--surface); border: 0; border-radius: var(--radius-card); color: var(--text); }
+  .watch:active { background: var(--raised); }
+  .wi { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--raised); color: var(--accent); flex: none; }
+  .wt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .wt b { font-size: 15px; font-weight: 600; }
+  .wt small { color: var(--muted); font-size: 13px; }
+  .watch > :global(svg:last-child) { color: var(--faint); flex: none; }
   .layout { display: grid; grid-template-columns: 1fr 300px; gap: 24px; align-items: start; }
   .tts-float {
     /* Floats left of the Ask button; both are fixed to the bottom edge. */

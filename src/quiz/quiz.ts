@@ -1,7 +1,7 @@
-import type { Level, Question, Topic } from './types';
+import type { Level, Question } from './types';
 
 export interface Config {
-	topic: Topic | 'all';
+	topic: string; // a topic id or 'all'
 	level: Level | 'all';
 	mode: 'practice' | 'exam';
 	count: number; // 0 = all

@@ -4,6 +4,20 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [1.4.0] — 2026-10-23
+Animated lessons, three database sections, and a calmer start.
+
+### Added
+- **Visual lessons** (new menu item): 109 short animated walk-throughs where you watch data move, step by step. Play, pause, step, speed 1x/1.5x/2x, and an optional **Read aloud** that uses your narration voice. Back closes the player. Lessons you finished get a check.
+- **Backend lab, watch version:** every chapter has a "Watch this chapter" button (59 animated lessons across the 12 chapters), as an alternative to reading.
+- **PostgreSQL, MySQL and MongoDB sections** (new "Databases" menu group). Each has 12 topics with short notes and animated lessons (15 / 17 / 18), and an 80-question quiz with explanations (basic to advanced). Quiz progress and missed questions are kept per database.
+- **Playgrounds:** real PostgreSQL (in the app, via PGlite) and a MongoDB shell-style playground over one sample shop (customers, products, orders), with example queries, schema reference, `EXPLAIN`, and a Reset button. Every topic's "Try it" button opens the playground with that query filled in. MySQL has no playground because it cannot run inside a phone WebView.
+
+### Changed
+- The app no longer opens on Settings: it restores your last content section, else the Backend lab.
+- The page behind the menu, the assistant sheet and the lesson player no longer scrolls.
+- The React / Next.js / TypeScript quiz now runs on a shared quiz component (same behaviour, same saved progress).
+
 ## [1.3.0] — 2026-10-22
 Kata is now **Preppy**, with a new look, a new logo and a natural narration voice. The package id is unchanged, so this installs over 1.2.0 and keeps your progress.
 
