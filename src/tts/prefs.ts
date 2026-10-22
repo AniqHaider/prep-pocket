@@ -4,6 +4,8 @@ export interface TtsPrefs {
 	voice: string;
 	/** Speaker id for multi-speaker voices (Kokoro). */
 	sid: number;
+	/** Last measured real-time factor per voice on THIS phone (synthesis seconds per audio second), from samples and real reading. */
+	speed?: Record<string, number>;
 }
 
 const KEY = 'prep-pocket:tts:v1';
@@ -25,4 +27,11 @@ export function saveTtsPrefs(p: TtsPrefs) {
 	} catch {
 		/* ignore */
 	}
+}
+
+/** Remembers how fast a voice runs on this phone. Reads fresh prefs first so it never overwrites a voice choice made meanwhile. */
+export function saveVoiceSpeed(voice: string, rtf: number) {
+	if (!Number.isFinite(rtf) || rtf <= 0) return;
+	const p = loadTtsPrefs();
+	saveTtsPrefs({ ...p, speed: { ...(p.speed ?? {}), [voice]: Math.round(rtf * 100) / 100 } });
 }

@@ -4,6 +4,18 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [1.5.0] — 2026-10-23
+Follow-ups to 1.4: narration that no longer stutters, calmer lesson screens, and a content polish pass.
+
+### Changed
+- **Narration waits until it can play smoothly.** The neural voices now measure how fast this phone synthesizes speech and buffer enough audio before starting (and after any catch-up), instead of pausing mid-sentence. The first words arrive sooner (about 1 to 3 seconds on the test device). If a voice is too slow for the phone, the app says so and names a lighter one. In Settings → Narration voice each downloaded voice shows how it runs on this phone ("Smooth on this phone", "May pause", "Too slow, will pause") after you play its sample, and "Preparing voice…" shows a percentage.
+- **Animated lessons use their space better:** each scene is cropped to the area it actually uses, and the animation and caption sit centred on screen. "Read aloud" in the lesson player shows when the voice is preparing.
+- **PostgreSQL playground:** the sample shop is analyzed after loading, so `EXPLAIN` shows realistic row estimates (15 rows, not an invented 1130), and PostgreSQL starts warming up in the background as soon as you open its section.
+- **Database content polish after the independent fact-check:**
+  - PostgreSQL: more precise wording on index column order and `LIKE 'abc%'`, a clearer composite-index question, a real `NULL` demo, a self-contained `xmin`/`ctid` demo that shows a new row version, and clearer EXPLAIN, MVCC and lost-update lessons.
+  - MySQL: the ON vs WHERE lesson now shows the right table at each step; precise semi-sync, durability and clustered-key wording.
+  - MongoDB: the real `explain` field names, the exact default write-concern rule (including the arbiter case), the 2-second heartbeat, and two quiz questions reworked from recall into scenarios.
+
 ## [1.4.0] — 2026-10-23
 Animated lessons, three database sections, and a calmer start.
 

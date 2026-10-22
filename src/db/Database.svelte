@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { marked } from 'marked';
 	import type { DbEngine } from './types';
 	import QuizView from '../quiz/QuizView.svelte';
@@ -9,6 +10,14 @@
 	import { publish } from '../assistant/context';
 
 	let { engine }: { engine: DbEngine } = $props();
+
+	// Start PostgreSQL in the background while the learner reads, so the playground is warm when they get there
+	// (first boot takes a few seconds on a phone).
+	onMount(() => {
+		if (engine.playground !== 'sql') return;
+		const t = setTimeout(() => import('./playground/sqlEngine').then((m) => m.sqlEngine.warm()).catch(() => {}), 1500);
+		return () => clearTimeout(t);
+	});
 
 	type Tab = 'learn' | 'quiz' | 'play';
 	// svelte-ignore state_referenced_locally

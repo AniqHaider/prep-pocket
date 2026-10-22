@@ -277,9 +277,9 @@ ix.add('mid', 'composite',
 	"There is an index on (customer_id, placed_at). Which filter can use it most effectively?",
 	"WHERE customer_id = 7 AND placed_at > '2025-01-01'",
 	["WHERE placed_at = '2025-01-01' on its own, which is just as fast as filtering by customer",
-	 "WHERE placed_at > '2025-01-01' AND customer_id > 0, since both columns are present",
+	 "WHERE customer_id + 0 = 7 AND placed_at > '2025-01-01', since it names the same two columns",
 	 "None of them, because composite indexes only work for ORDER BY"],
-	"A B-tree index is sorted by the first column, then by the second inside each first-column value. An equality on the leading column plus a range on the next reads one tight slice. A filter on the second column alone cannot jump anywhere, so it is far less efficient. Put equality columns first and the range column last.");
+	"A B-tree index is sorted by the first column, then by the second inside each first-column value. An equality on the leading column plus a range on the next reads one tight slice. A filter on the second column alone cannot jump anywhere, so it is far less efficient. Wrapping a column in an expression such as customer_id + 0 hides it from the index. Put equality columns first and the range column last.");
 
 ix.add('mid', 'expression',
 	"An index exists on users(email), but WHERE lower(email) = 'a@b.com' still scans the table. What fixes it?",

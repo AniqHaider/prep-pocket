@@ -280,7 +280,7 @@ add(T5, 'mid', 'hidden-row-id',
 add(T5, 'advanced', 'uuid-pk',
 	'A team switches from AUTO_INCREMENT ids to random UUIDv4 values as the InnoDB primary key. What is a likely effect on write-heavy workloads?',
 	'More page splits and fragmentation, because new rows land at random places in the clustered index',
-	['Faster inserts, because random keys spread writes evenly across every page of the table instead of one hot page',
+	['Fewer page splits, because inserting into random pages keeps every page of the clustered index only partly full and ready for new rows',
 	 'No effect, because InnoDB always stores rows in insertion order regardless of the key',
 	 'Smaller secondary indexes, because UUIDs compress well inside the index pages'],
 	'Rows are stored in primary key order, so ascending ids append to the last page while random UUIDs insert into the middle of already full pages, causing splits and a larger, more fragmented table. A 16-byte key also makes every secondary index bigger. Time-ordered ids such as UUIDv7 or a binary-stored ordered UUID avoid most of the cost.');
@@ -397,7 +397,7 @@ add(T7, 'advanced', 'optimizer',
 	['MySQL ignores indexes whenever the table has more than one index',
 	 'Indexes only apply to the primary key, so a secondary index can never be chosen by the optimizer in any plan',
 	 'The optimizer picks the plan at random and may choose a scan on any given run'],
-	'MySQL picks plans by estimated cost using table statistics. When a predicate returns a big fraction of rows (say 30 percent or more), random row fetches via a secondary index cost more than reading sequentially. Stale statistics can also mislead it, which is what ANALYZE TABLE refreshes. The choice is deterministic for given statistics, not random.');
+	'MySQL picks plans by estimated cost using table statistics. When a predicate returns a big fraction of the rows (a rule of thumb is a sizeable share of the table, often quoted somewhere around a fifth to a third; there is no documented threshold, because it depends on the statistics and the cost model), random row fetches via a secondary index cost more than reading sequentially. Stale statistics can also mislead it, which is what ANALYZE TABLE refreshes. The choice is deterministic for given statistics, not random.');
 
 add(T7, 'advanced', 'filesort',
 	'EXPLAIN shows Using filesort in the Extra column. What does it indicate?',
@@ -472,7 +472,7 @@ add(T8, 'advanced', 'durability',
 	['Every commit also copies the changed data pages to the table files before returning',
 	 'Commits are batched and flushed once per second, so a crash or power failure may lose a second of recent data',
 	 'The undo log is flushed at each commit so that rollbacks stay fast'],
-	'With 1, InnoDB makes the redo log durable before reporting success, giving full ACID durability; data pages can be written later and recovered from the log. Setting 2 or 0 trades durability for speed by flushing about once per second. Undo logs support rollback and consistent reads, not durability.');
+	'With 1, InnoDB makes the redo log durable before reporting success, giving full ACID durability; data pages can be written later and recovered from the log. The other settings trade durability for speed: with 2, InnoDB writes the log at every commit but flushes it to disk only about once per second, so a mysqld crash loses nothing but an operating-system crash or power failure can lose about a second of commits; with 0, it both writes and flushes about once per second, so even a mysqld crash can lose about a second. Undo logs support rollback and consistent reads, not durability.');
 
 add(T8, 'mid', 'for-update',
 	'What does SELECT ... FOR UPDATE do inside a transaction?',
@@ -586,11 +586,11 @@ add(T10, 'advanced', 'binlog-format',
 
 add(T10, 'advanced', 'semi-sync',
 	'What does semi-synchronous replication add compared with asynchronous replication?',
-	'The source waits until at least one replica has acknowledged receiving the transaction before it commits',
+	'The source waits for at least one replica to acknowledge that it received the transaction, but falls back to asynchronous replication if none answers within the timeout',
 	['The source waits until every replica has applied the transaction and its data is queryable on all of them',
 	 'The replicas wait for the source to confirm each of their reads',
 	 'Commits are written to two tables on the source instead of one'],
-	'With semi-sync, a commit returns after one replica confirms it has the event in its relay log, which means the transaction exists on a second machine and a source crash is much less likely to lose it. It does not wait for apply, so the replica can still lag, and it does not wait for all replicas.');
+	'With semi-sync, the source waits until one replica confirms it received the event (it is written to the replica\'s relay log), so the transaction exists on a second machine and a source crash is much less likely to lose it. The wait has a timeout (rpl_semi_sync_source_timeout, 10 seconds by default); if no replica acknowledges in time, the source falls back to asynchronous replication, so the guarantee is bounded, not absolute. It does not wait for the replica to apply the event, so the replica can still lag, and it does not wait for all replicas.');
 
 add(T10, 'mid', 'read-scaling',
 	'Adding more read replicas to a MySQL setup improves which kind of load?',

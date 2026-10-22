@@ -194,8 +194,8 @@ export const mongodbScenes: Scene[] = [
 		blurb: 'How do you tell whether a query is slow because of a missing index?',
 		nodes: [
 			{ id: 'cmd', kind: 'text', x: 10, y: 18, w: 340, text: 'db.orders.find({ customerId: 42 }).explain("executionStats")', visible: true },
-			{ id: 'b', kind: 'doc', x: 10, y: 56, w: 160, title: 'before: no index', lines: ['stage: COLLSCAN', 'docsExamined: 10000', 'nReturned: 12', 'executionMillis: 48'] },
-			{ id: 'a', kind: 'doc', x: 190, y: 56, w: 160, title: 'after: with index', lines: ['stage: IXSCAN', 'keysExamined: 12', 'docsExamined: 12', 'nReturned: 12', 'executionMillis: 1'] },
+			{ id: 'b', kind: 'doc', x: 10, y: 56, w: 168, title: 'before: no index', lines: ['stage: COLLSCAN', 'totalKeysExamined: 0', 'totalDocsExamined: 10000', 'nReturned: 12', 'executionTimeMillis: 48'] },
+			{ id: 'a', kind: 'doc', x: 184, y: 56, w: 168, title: 'after: with index', lines: ['stage: IXSCAN', 'totalKeysExamined: 12', 'totalDocsExamined: 12', 'nReturned: 12', 'executionTimeMillis: 1'] },
 			{ id: 'rb', kind: 'text', x: 10, y: 188, w: 160, text: 'examined / returned = about 833', tone: 'warn', size: 'sm' },
 			{ id: 'idx', kind: 'text', x: 10, y: 238, w: 340, text: 'db.orders.createIndex({ customerId: 1 })' },
 			{ id: 'ra', kind: 'text', x: 190, y: 188, w: 160, text: 'examined / returned = 1', tone: 'accent', size: 'sm' }
@@ -203,7 +203,7 @@ export const mongodbScenes: Scene[] = [
 		steps: [
 			{ say: 'explain with executionStats runs the query and reports what the engine really did.', focus: ['cmd'] },
 			{ say: 'With no index the plan is COLLSCAN: the server looked at every document in the collection.', show: ['b'] },
-			{ say: 'It examined 10000 documents to return only 12. That gap is the warning sign.', set: { b: { hl: [1, 2] } } },
+			{ say: 'It examined 10000 documents to return only 12. That gap is the warning sign.', set: { b: { hl: [2, 3] } } },
 			{ say: 'About 833 documents read for every one returned. Slow today, much slower as the data grows.', show: ['rb'] },
 			{ say: 'Add an index on the field the query filters on.', show: ['idx'], focus: ['idx'] },
 			{ say: 'Same query, new plan: IXSCAN. It reads 12 index keys and 12 documents.', show: ['a'] },
@@ -337,7 +337,7 @@ export const mongodbScenes: Scene[] = [
 			{ say: 'The primary applies the write and records it in its oplog, an ordered log of every change.', show: ['oplog'], pulse: ['p', 'oplog'] },
 			{ say: 'Each secondary reads that log and replays the same changes in the same order.', show: ['e2', 'e3'], pulse: ['s1', 's2'] },
 			{ say: 'Now all three hold the same data. Secondaries trail the primary by a little, so reads from them can be slightly stale.', set: { s1: { sub: 'in sync', tone: 'accent' }, s2: { sub: 'in sync', tone: 'accent' } } },
-			{ say: 'Write concern majority tells your app "done" only once most members have the write. It is the default since MongoDB 5.0.', focus: ['p', 's1', 's2'] }
+			{ say: 'Write concern majority tells your app "done" only once most members have the write. It is the default since 5.0 (w: 1 if arbiters leave too few data members).', focus: ['p', 's1', 's2'] }
 		]
 	},
 	{
@@ -356,7 +356,7 @@ export const mongodbScenes: Scene[] = [
 			{ id: 'vote', kind: 'text', x: 180, y: 278, w: 240, text: '', anchor: 'middle', size: 'md' }
 		],
 		steps: [
-			{ say: 'Three members, one primary. They exchange heartbeats every couple of seconds to check each other is alive.', show: ['h1', 'h2', 'h3'] },
+			{ say: 'Three members, one primary. Every 2 seconds they send each other a heartbeat to check that everyone is alive.', show: ['h1', 'h2', 'h3'] },
 			{ say: 'The primary crashes. The secondaries stop hearing from it.', set: { p: { tone: 'neg', sub: 'down' } }, pulse: ['p'] },
 			{ say: 'After about 10 seconds of silence (electionTimeoutMillis), a secondary calls an election.', show: ['vote'], set: { vote: { text: 'Secondary 1 asks for votes' } }, focus: ['s1'] },
 			{ say: 'A candidate wins with votes from a majority of voting members. Here that is 2 of 3: its own and Secondary 2.', set: { vote: { text: 'Secondary 1 gets 2 of 3 votes', tone: 'accent' } }, focus: ['s1', 's2'] },
@@ -412,7 +412,7 @@ export const mongodbScenes: Scene[] = [
 		],
 		steps: [
 			{ say: 'The collection is sharded on _id. Each shard owns a range of keys: shard 1 the oldest, shard 3 the newest.', show: ['s1', 's2', 's3'], focus: ['key'] },
-			{ say: 'A new document gets an ObjectId that is bigger than every earlier one.', show: ['t1'] },
+			{ say: 'A new document gets an ObjectId with a newer timestamp, so it sorts after the older ones.', show: ['t1'] },
 			{ say: 'So it belongs in the highest range. It is routed to shard 3.', move: { t1: { x: 300, y: 136 } }, focus: ['s3'] },
 			{ say: 'Every new insert does the same: one shard takes all the writes while the others sit idle.', set: { s3: { tone: 'warn', sub: 'all new writes' }, s1: { sub: 'idle' }, s2: { sub: 'idle' } } },
 			{ say: 'A hashed shard key fixes this: MongoDB hashes the _id first, so consecutive ids scatter across shards.', set: { key: { text: 'shard key: { _id: "hashed" }' }, s1: { sub: 'hash range 1' }, s2: { sub: 'hash range 2' }, s3: { sub: 'hash range 3', tone: 'neutral' } } },

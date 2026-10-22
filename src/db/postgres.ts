@@ -60,7 +60,7 @@ const topics: DbTopic[] = [
 		try: [
 			{ label: 'NULL is not equal to NULL', code: `SELECT NULL = NULL AS equals, NULL IS NULL AS is_null;` },
 			{ label: 'Latest paid orders', code: `SELECT id, status, placed_at FROM orders WHERE status IN ('paid', 'shipped') ORDER BY placed_at DESC LIMIT 5;` },
-			{ label: 'Customers with a city', code: `SELECT name, city FROM customers WHERE city IS NOT NULL ORDER BY name LIMIT 5;` }
+			{ label: 'IS NULL vs = NULL on real data', code: `SELECT count(*) AS rows_total,\n       count(*) FILTER (WHERE o.id IS NULL) AS customers_without_orders,\n       count(*) FILTER (WHERE o.id = NULL) AS equals_null_matches\nFROM customers c LEFT JOIN orders o ON o.customer_id = c.id;` }
 		]
 	},
 	{
@@ -127,7 +127,7 @@ const topics: DbTopic[] = [
 		summary: 'Know what an index is, which queries can use it, and what it costs.',
 		scenes: ['pg-index-vs-scan', 'pg-leftmost-prefix'],
 		notes: md(
-			'An index is a sorted structure kept beside the table, so Postgres can jump to matching rows instead of reading every one. The default is a **B-tree**: it handles `=`, ranges, `ORDER BY` and prefix matches.',
+			'An index is a sorted structure kept beside the table, so Postgres can jump to matching rows instead of reading every one. The default is a **B-tree**: it handles `=`, ranges and `ORDER BY`, and it can serve `LIKE \'abc%\'` prefix matches, but only under the C collation or with a `text_pattern_ops` index.',
 			'',
 			'```sql',
 			'CREATE INDEX orders_customer_idx',
@@ -135,7 +135,7 @@ const topics: DbTopic[] = [
 			'```',
 			'',
 			'- A `PRIMARY KEY` or `UNIQUE` constraint builds an index for you. A **foreign key does not**: index the child column yourself.',
-			'- In a composite index, put equality columns first and the range column last. The leading column must appear in the filter.',
+			'- In a composite index, put equality columns first and the range column last. An index helps most when the filter constrains its leading column(s). Postgres can sometimes still scan the whole index, and newer versions can sometimes skip, but a tight slice is what you want.',
 			'- A function on the column (`lower(email)`) needs an **expression index** on that same function.',
 			'- A **partial index** (`WHERE status = \'pending\'`) is small, and `INCLUDE` adds payload columns for index-only scans.',
 			'',
@@ -214,7 +214,7 @@ const topics: DbTopic[] = [
 		summary: 'See how Postgres lets readers and writers work together using row versions.',
 		scenes: ['pg-mvcc-versions'],
 		notes: md(
-			'Postgres uses **MVCC** (multi-version concurrency control). An `UPDATE` never edits a row in place: it writes a **new version** and leaves the old one for transactions whose snapshot still needs it. That is why a plain `SELECT` never blocks an `UPDATE`, and the other way round.',
+			'Postgres uses **MVCC** (multi-version concurrency control). An `UPDATE` never edits a row in place: it writes a **new version** and leaves the old one for transactions whose snapshot still needs it. That is why a plain `SELECT` never blocks an `UPDATE`, and the other way round. An updated row is a new version at a new physical position (`ctid`), stamped with the `xmin` of the transaction that wrote it. In the demo below, the table is created and then updated in two separate transactions: the updated row gets a new `xmin` and a new `ctid`, while the other rows keep theirs.',
 			'',
 			'Dead versions are cleaned up by `VACUUM`. A transaction left open for hours holds back that cleanup, and the table bloats.',
 			'',
@@ -231,7 +231,7 @@ const topics: DbTopic[] = [
 			'**Common trap:** assuming the default level protects a read-then-write sequence. It does not; use `FOR UPDATE` or do the arithmetic inside the `UPDATE`.'
 		),
 		try: [
-			{ label: 'See row versions (xmin / xmax)', code: `SELECT xmin, xmax, id, status FROM orders ORDER BY id LIMIT 5;` },
+			{ label: 'See row versions (xmin / ctid)', code: `BEGIN;\nCREATE TEMP TABLE t AS SELECT id, name FROM customers ORDER BY id LIMIT 3;\nCOMMIT;\nSELECT xmin, ctid, * FROM t ORDER BY id;\nBEGIN;\nUPDATE t SET name = name || '!' WHERE id = (SELECT min(id) FROM t);\nCOMMIT;\nSELECT xmin, ctid, * FROM t ORDER BY id;` },
 			{ label: 'Default isolation', code: `SELECT current_setting('default_transaction_isolation') AS level;` }
 		]
 	},

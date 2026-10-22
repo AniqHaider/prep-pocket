@@ -96,8 +96,8 @@ export const mysqlScenes: Scene[] = [
 			{ say: 'Goal: all customers, plus only their paid orders. First the join runs and keeps every customer, even Ben with NULLs.', focus: ['t'] },
 			{ say: "Then WHERE o.status = 'paid' is applied to the joined rows, one by one.", set: { t: { hl: [0, 3] } } },
 			{ say: "Ben's status is NULL, which is not equal to 'paid', so his row is thrown away. The LEFT JOIN has quietly become an inner join.", show: ['why'], set: { t: { rows: [['Asha', '10', 'paid'], ['Chen', '12', 'paid']], hl: [] } }, pulse: ['why'] },
-			{ say: "The fix: move the condition into ON, so it decides which orders match instead of which rows survive.", hide: ['why'], set: { q: { text: "... LEFT JOIN orders o ON o.customer_id = c.id AND o.status = 'paid'" }, t: { rows: [['Asha', '10', 'paid'], ['Asha', '11', 'open'], ['Ben', 'NULL', 'NULL'], ['Chen', '12', 'paid']], hl: [] } }, focus: ['q'] },
-			{ say: 'Now the open order simply does not match. Asha keeps only the paid one, and Ben stays with NULLs.', set: { t: { rows: [['Asha', '10', 'paid'], ['Ben', 'NULL', 'NULL'], ['Chen', '12', 'paid']], hl: [1] } } },
+			{ say: "The fix: move the condition into ON, so it decides which orders match instead of which rows survive. Run the join again.", hide: ['why'], set: { q: { text: "... LEFT JOIN orders o ON o.customer_id = c.id AND o.status = 'paid'" }, t: { rows: [['Asha', '10', 'paid'], ['Ben', 'NULL', 'NULL'], ['Chen', '12', 'paid']], hl: [] } }, focus: ['q', 't'] },
+			{ say: 'The open order simply never matched, so Asha keeps only the paid one, and Ben stays in the result with NULLs.', set: { t: { hl: [1] } }, focus: ['t'] },
 			{ say: 'Rule of thumb: for the optional side of a LEFT JOIN, filter in ON. Filter in WHERE only when you want rows removed.', show: ['ok'], focus: ['ok'] }
 		]
 	},
