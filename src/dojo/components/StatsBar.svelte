@@ -1,6 +1,6 @@
 <script>
   import { progress } from "../lib/stores.js";
-  import { goDashboard } from "../lib/stores.js";
+  import Icon from "../../ui/Icon.svelte";
 
   // XP needed for next level uses the same curve as the backend: 100 * n*(n-1)/2
   const threshold = (lvl) => (100 * (lvl - 1) * lvl) / 2;
@@ -9,59 +9,47 @@
   let pct = $derived(Math.min(100, Math.round((($progress.xp - cur) / (next - cur)) * 100)));
 </script>
 
-<header class="bar">
-  <button class="brand" onclick={goDashboard}>
-    <span class="logo">⛩️</span> Backend&nbsp;Dojo
-  </button>
-
-  <div class="stats">
-    <div class="stat level">
-      <span class="ring">Lv {$progress.level}</span>
-      <div class="xpwrap">
-        <div class="xpbar"><div class="xpfill" style="width:{pct}%"></div></div>
-        <span class="xptext">{$progress.xp} XP</span>
-      </div>
-    </div>
-    <div class="stat streak" title="Day streak">
-      🔥 <b>{$progress.current_streak}</b>
-    </div>
-    <div class="stat solved" title="Exercises solved">
-      ✅ <b>{$progress.solved_count}</b>
-    </div>
+<!-- The app bar already names the section, so this is a single divided stats strip, label over value. -->
+<header class="strip" aria-label="Your progress">
+  <div class="cell lvl">
+    <span class="lbl">Level</span>
+    <span class="val num">{$progress.level}</span>
+  </div>
+  <div class="cell">
+    <span class="lbl">XP</span>
+    <span class="val num">{$progress.xp}<small> / {next}</small></span>
+  </div>
+  <div class="cell" title="Day streak">
+    <span class="lbl">Streak</span>
+    <span class="val num"><span class="ico"><Icon name="flame" size={16} /></span>{$progress.current_streak}<small> {$progress.current_streak === 1 ? "day" : "days"}</small></span>
+  </div>
+  <div class="cell" title="Exercises solved">
+    <span class="lbl">Solved</span>
+    <span class="val num">{$progress.solved_count}</span>
+  </div>
+  <div class="xpbar" role="progressbar" aria-label="Progress to level {$progress.level + 1}" aria-valuemin="0" aria-valuemax="100" aria-valuenow={pct}>
+    <div class="xpfill" style="width:{pct}%"></div>
   </div>
 </header>
 
 <style>
-  .bar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 22px; background: #11161f; border-bottom: 1px solid #1f2735;
+  .strip {
+    display: grid; grid-template-columns: .8fr 1.3fr 1.2fr .9fr;
+    margin: 0; background: var(--surface);
     position: sticky; top: var(--bar-top, 0px); z-index: 20;
   }
-  .brand {
-    background: none; border: none; color: #e8eef6; font-size: 18px; font-weight: 800;
-    cursor: pointer; letter-spacing: -0.3px; display: flex; align-items: center; gap: 8px;
-  }
-  .logo { font-size: 22px; }
-  .stats { display: flex; align-items: center; gap: 18px; }
-  .stat { display: flex; align-items: center; gap: 8px; color: #c4d0e0; font-size: 14px; }
-  .ring {
-    background: linear-gradient(135deg, #2f6df6, #7a3af0); color: #fff; font-weight: 700;
-    padding: 4px 10px; border-radius: 20px; font-size: 13px;
-  }
-  .xpwrap { display: flex; align-items: center; gap: 8px; }
-  .xpbar { width: 140px; height: 8px; background: #1f2735; border-radius: 6px; overflow: hidden; }
-  .xpfill { height: 100%; background: linear-gradient(90deg, #2f6df6, #58c6ff); transition: width .5s ease; }
-  .xptext { font-size: 12px; color: #8aa0bd; }
-  .streak b, .solved b { color: #fff; }
+  .cell { display: flex; flex-direction: column; justify-content: flex-start; gap: 2px; padding: 12px 14px 14px; min-width: 0; }
+  .cell:first-child { padding-left: 20px; }
+  .cell + .cell { border-left: 1px solid var(--border); }
+  .lbl { color: var(--muted); font-size: var(--fs-small); }
+  .val { display: inline-flex; align-items: baseline; gap: 4px; color: var(--text); font-size: var(--fs-section); font-weight: 600; white-space: nowrap; }
+  .val small { color: var(--faint); font-size: var(--fs-small); font-weight: 400; margin-left: 0; }
+  .ico { color: var(--accent); align-self: center; display: inline-flex; margin-right: 2px; }
+  .xpbar { grid-column: 1 / -1; height: 3px; background: var(--raised); overflow: hidden; }
+  .xpfill { height: 100%; background: var(--accent); transition: width .5s ease; }
 
-  @media (max-width: 640px) {
-    .bar { padding: 8px 12px; padding-top: calc(8px + var(--safe-t)); }
-    .brand { font-size: 15px; gap: 5px; }
-    .logo { font-size: 18px; }
-    .stats { gap: 10px; }
-    .xpbar { width: 64px; }
-    .xptext { display: none; }
-    .ring { padding: 3px 8px; font-size: 12px; white-space: nowrap; }
-    .brand { white-space: nowrap; }
+  @media (min-width: 641px) {
+    .strip { grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 0 calc(50% - 600px); }
+    .cell { padding: 14px 24px; }
   }
 </style>

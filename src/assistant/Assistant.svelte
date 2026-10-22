@@ -4,6 +4,7 @@
 	import { appContext } from './context';
 	import { askAssistant, type Turn } from './assistant';
 	import { loadSettings } from '../settings/settings';
+	import Icon from '../ui/Icon.svelte';
 
 	let { open, onopen, onclose }: { open: boolean; onopen: () => void; onclose: () => void } = $props();
 
@@ -100,28 +101,28 @@
 </script>
 
 {#if !open}
-	<button class="fab" onclick={onopen} aria-label="Open AI assistant" data-testid="assistant-fab">✨</button>
+	<button class="fab btn primary" onclick={onopen} aria-label="Open AI assistant" data-testid="assistant-fab"><Icon name="sparkle" size={18} />Ask</button>
 {/if}
 
-<section class="sheet" class:open aria-hidden={!open} inert={!open} aria-label="AI assistant" data-testid="assistant">
+<div class="sheet" class:open aria-hidden={!open} inert={!open} role="dialog" aria-modal="true" aria-label="Ask Preppy" data-testid="assistant">
 	<header>
 		<div class="ht">
-			<b>✨ Assistant</b>
-			<small>{ctx ? 'Looking at: ' + ctx.label : 'Ask me anything about the app’s topics'}</small>
+			<h2>Ask Preppy</h2>
+			<small>{ctx ? 'Looking at: ' + ctx.label : 'Ask about any topic in the app'}</small>
 		</div>
-		<button class="hb" onclick={clear} disabled={!turns.length || busy}>Clear</button>
-		<button class="hb x" onclick={onclose} aria-label="Close assistant" data-testid="assistant-close">✕</button>
+		<button class="hb" onclick={clear} disabled={!turns.length || busy} aria-label="Clear conversation"><Icon name="trash" size={18} /></button>
+		<button class="hb" onclick={onclose} aria-label="Close assistant" data-testid="assistant-close"><Icon name="close" size={20} /></button>
 	</header>
 
 	<div class="list" bind:this={listEl} onscroll={onListScroll}>
 		{#if noModel}
 			<div class="note">
-				No AI model is set up yet. Open the ☰ menu → <b>More → AI models</b> and pick a model on this phone (offline), Gemini, Claude or a local server. The same model also powers the Dojo tutor.
+				No AI model is set up yet. Open the menu, then <b>Settings → AI models</b>, and pick a model on this phone (offline), Gemini, Claude or a local server. The same model also powers the Backend lab tutor.
 			</div>
 		{/if}
 		{#if !turns.length}
 			<div class="hello">
-				<p>I can see what you’re looking at — the quiz question, theory section or drill — so you can just ask “why?” or “give me a hint”.</p>
+				<p>I can see what you’re looking at (the quiz question, theory section or drill), so you can just ask “why?” or “give me a hint”.</p>
 				<div class="chips">
 					{#each SUGGESTIONS as s}<button class="chip" onclick={() => send(s)} disabled={busy}>{s}</button>{/each}
 				</div>
@@ -134,59 +135,58 @@
 				{:else if t.text}
 					<div class="md">{@html render(t.text)}</div>
 				{:else}
-					<span class="dots">thinking…</span>
+					<span class="dots">Thinking…</span>
 				{/if}
 			</div>
 		{/each}
 	</div>
+	<div class="sr" role="status" aria-live="polite">{busy ? 'Assistant is replying' : ''}</div>
 
 	<footer>
-		<textarea bind:value={input} onkeydown={onKey} rows="1" placeholder="Ask…" enterkeyhint="send" data-testid="assistant-input"></textarea>
+		<textarea bind:value={input} onkeydown={onKey} rows="1" placeholder="Ask a question" aria-label="Your question" enterkeyhint="send" data-testid="assistant-input"></textarea>
 		{#if busy}
-			<button class="send stop" onclick={stop}>Stop</button>
+			<button class="btn stop" onclick={stop}>Stop</button>
 		{:else}
-			<button class="send" onclick={() => send()} disabled={!input.trim()} data-testid="assistant-send">Send</button>
+			<button class="btn primary send" onclick={() => send()} disabled={!input.trim()} aria-label="Send" data-testid="assistant-send"><Icon name="send" size={20} /></button>
 		{/if}
 	</footer>
-</section>
+</div>
 
 <style>
-	.fab {
-		position: fixed; right: 14px; bottom: calc(var(--safe-b) + 16px); z-index: 40;
-		width: 52px; height: 52px; border-radius: 50%; border: 0; font-size: 23px;
-		background: linear-gradient(135deg, #7a3af0, #2f6df6); box-shadow: 0 6px 20px rgba(47, 109, 246, .45);
-	}
-	.fab:active { transform: scale(.94); }
+	.fab { position: fixed; right: 16px; bottom: calc(var(--safe-b) + 16px); z-index: 40; padding: 0 18px 0 14px; }
 	.sheet {
-		position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; background: #0b0f16;
+		position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; background: var(--ground);
 		padding-top: var(--safe-t); transform: translateY(102%); transition: transform .22s ease; visibility: hidden;
 	}
 	.sheet.open { transform: none; visibility: visible; }
-	header { display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 14px; border-bottom: 1px solid #1f2735; background: #0f141d; }
+	header { display: flex; align-items: center; gap: 2px; padding: 4px 6px 4px 18px; border-bottom: 1px solid var(--border); }
 	.ht { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-	.ht b { font-size: 16px; }
-	.ht small { color: #7f90a8; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-	.hb { background: none; border: 1px solid #2a3344; border-radius: 9px; color: #c4d0e0; padding: 7px 12px; font-size: 13px; }
-	.hb:disabled { opacity: .4; }
-	.hb.x { border: 0; font-size: 18px; padding: 6px 10px; }
-	.list { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; overscroll-behavior: contain; }
-	.note { background: #2a1f0d; border: 1px solid #5a4318; color: #f1d9a6; border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.5; }
-	.hello { color: #9fb0c8; font-size: 14.5px; line-height: 1.5; }
-	.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-	.chip { background: #121a2b; border: 1px solid #2a3b5c; color: #bcd2ff; border-radius: 999px; padding: 8px 14px; font-size: 13.5px; }
+	.ht h2 { margin: 0; font-size: var(--fs-section); font-weight: 600; }
+	.ht small { color: var(--muted); font-size: var(--fs-small); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.hb { width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; border-radius: 50%; color: var(--text); }
+	.hb:active { background: var(--surface); }
+	.hb:disabled { color: var(--faint); opacity: .6; }
+	.list { flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; overscroll-behavior: contain; }
+	.note { background: var(--pill-warning-bg); color: var(--pill-warning-ink); border-radius: var(--radius-row); padding: 12px 14px; font-size: var(--fs-body); line-height: 1.5; }
+	.hello { color: var(--muted); font-size: 15px; line-height: 1.55; }
+	.hello p { margin: 0; }
+	.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+	.chip { min-height: 44px; background: none; border: 1px solid var(--control); color: var(--text); border-radius: var(--radius-control); padding: 0 16px; font-size: var(--fs-body); }
+	.chip:active { background: var(--surface); }
 	.chip:disabled { opacity: .5; }
-	.msg { max-width: 92%; padding: 10px 13px; border-radius: 14px; font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; }
-	.msg.you { align-self: flex-end; background: #1e3a6d; color: #fff; border-bottom-right-radius: 4px; }
-	.msg.ai { align-self: flex-start; background: #141b27; border: 1px solid #1f2735; color: #dbe5f3; border-bottom-left-radius: 4px; white-space: normal; }
-	.dots { color: #7f90a8; font-style: italic; }
-	.md :global(p) { margin: 0 0 8px; } .md :global(p:last-child) { margin-bottom: 0; }
-	.md :global(pre) { background: #0a0e15; border: 1px solid #1f2735; border-radius: 9px; padding: 10px; overflow-x: auto; font-size: 13px; margin: 8px 0; }
-	.md :global(code) { font-family: ui-monospace, Menlo, monospace; font-size: 13px; background: #0e1420; padding: 1px 5px; border-radius: 5px; color: #9fd4ff; }
-	.md :global(pre code) { background: none; padding: 0; color: #d6e2f2; }
-	.md :global(ul), .md :global(ol) { margin: 4px 0 8px; padding-left: 20px; }
-	footer { display: flex; gap: 8px; align-items: flex-end; padding: 8px 10px calc(var(--safe-b) + 8px); border-top: 1px solid #1f2735; background: #0f141d; }
-	textarea { flex: 1; resize: none; max-height: 120px; background: #0b0f16; border: 1px solid #232d3e; border-radius: 12px; color: #e8eef6; padding: 10px 12px; font: inherit; font-size: 16px; }
-	.send { background: #2f6df6; color: #fff; border: 0; border-radius: 12px; padding: 11px 16px; font-weight: 700; }
-	.send:disabled { opacity: .4; }
-	.send.stop { background: #8a2f3f; }
+	.msg { overflow-wrap: anywhere; white-space: pre-wrap; font-size: 15px; line-height: 1.55; }
+	.msg.you { align-self: flex-end; max-width: 88%; background: var(--raised); color: var(--text); padding: 10px 14px; border-radius: var(--radius-card); border-bottom-right-radius: 6px; }
+	.msg.ai { align-self: stretch; color: var(--text); white-space: normal; }
+	.dots { color: var(--faint); }
+	.md :global(p) { margin: 0 0 10px; } .md :global(p:last-child) { margin-bottom: 0; }
+	.md :global(pre) { background: var(--surface); border-radius: var(--radius-row); padding: 12px; overflow-x: auto; font-size: 13px; margin: 10px 0; }
+	.md :global(code) { font-family: var(--mono); font-size: 13px; background: var(--surface); padding: 1px 5px; border-radius: 6px; color: var(--text); }
+	.md :global(pre code) { background: none; padding: 0; }
+	.md :global(ul), .md :global(ol) { margin: 4px 0 10px; padding-left: 20px; }
+	footer { display: flex; gap: 8px; align-items: flex-end; padding: 8px 12px calc(var(--safe-b) + 8px); border-top: 1px solid var(--border); }
+	textarea { flex: 1; resize: none; max-height: 120px; min-height: 44px; background: var(--surface); border: 1px solid var(--control); border-radius: 22px; color: var(--text); padding: 11px 16px; font: inherit; font-size: 16px; }
+	textarea::placeholder { color: var(--faint); }
+	.send { width: 44px; padding: 0; flex: none; }
+	.stop { flex: none; }
+	.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 </style>

@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
 	appId: 'com.aniqhaider.preppocket',
-	appName: 'Kata',
+	appName: 'Preppy',
 	webDir: 'dist',
 	backgroundColor: '#0b0f16',
 	server: {

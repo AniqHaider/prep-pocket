@@ -8,19 +8,20 @@
 	import Assistant from './assistant/Assistant.svelte';
 	import Drills from './drills/Drills.svelte';
 	import More from './settings/More.svelte';
+	import Icon from './ui/Icon.svelte';
 
 	type Tab = 'dojo' | 'prep' | 'prep2' | 'drills' | 'more';
-	const GROUPS: { title: string; items: { id: Tab; icon: string; label: string; sub: string }[] }[] = [
-		{ title: 'Backend', items: [{ id: 'dojo', icon: '⛩️', label: 'Dojo', sub: 'Python + SQL, XP & streaks' }] },
+	const GROUPS: { title: string; items: { id: Tab; icon: 'dojo' | 'frontend' | 'react' | 'drills' | 'settings'; label: string; sub: string }[] }[] = [
+		{ title: 'Learn', items: [{ id: 'dojo', icon: 'dojo', label: 'Backend lab', sub: 'Python + SQL, XP and streaks' }] },
 		{
 			title: 'Frontend prep',
 			items: [
-				{ id: 'prep', icon: '🧠', label: 'Svelte + TypeScript', sub: '100 MCQs + theory scripts' },
-				{ id: 'prep2', icon: '⚛️', label: 'React + Next + TS', sub: '500 MCQs · React 19, Next 16' }
+				{ id: 'prep', icon: 'frontend', label: 'Svelte + TypeScript', sub: '100 MCQs + theory scripts' },
+				{ id: 'prep2', icon: 'react', label: 'React + Next + TS', sub: '500 MCQs · React 19, Next 16' }
 			]
 		},
-		{ title: 'Practice', items: [{ id: 'drills', icon: '⌨️', label: 'Drills', sub: 'debounce, LRU, promise pool…' }] },
-		{ title: 'App', items: [{ id: 'more', icon: '⚙️', label: 'More', sub: 'Tutor, models, progress' }] }
+		{ title: 'Practice', items: [{ id: 'drills', icon: 'drills', label: 'Drills', sub: 'debounce, LRU, promise pool…' }] },
+		{ title: 'App', items: [{ id: 'more', icon: 'settings', label: 'Settings', sub: 'AI models, progress, backup' }] }
 	];
 	const ALL = GROUPS.flatMap((g) => g.items);
 	const TAB_IDS = new Set<string>(ALL.map((t) => t.id));
@@ -28,11 +29,11 @@
 
 	let tab = $state<Tab>(TAB_IDS.has(stored) ? (stored as Tab) : 'dojo');
 	let drawer = $state(false);
-	let assistant = $state(false); // app-level ✨ assistant sheet (every section except the Dojo, which has its own tutor)
+	let assistant = $state(false); // app-level assistant sheet (every section except the Backend lab, which has its own tutor)
 	let restoring = false;
 	const current = $derived(ALL.find((t) => t.id === tab)!);
 
-	// Android's back button == history.back(). Every tab switch / Dojo screen change pushes an entry,
+	// Android's back button == history.back(). Every tab switch / Backend lab screen change pushes an entry,
 	// so Back steps through them and exits the app only from the first screen.
 	const snapshot = () => ({ tab, view: get(view), drawer, assistant });
 
@@ -97,10 +98,7 @@
 </script>
 
 <header class="appbar">
-	<button class="menu" onclick={openDrawer} aria-label="Open menu" aria-expanded={drawer} data-testid="menu">
-		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
-	</button>
-	<span class="ico">{current.icon}</span>
+	<button class="menu" onclick={openDrawer} aria-label="Open menu" aria-expanded={drawer} data-testid="menu"><Icon name="menu" size={22} /></button>
 	<span class="ttl" data-testid="title">{current.label}</span>
 </header>
 
@@ -116,12 +114,15 @@
 	<button class="scrim" onclick={closeDrawer} aria-label="Close menu" tabindex="-1"></button>
 {/if}
 <nav class="drawer" class:open={drawer} aria-label="Main" aria-hidden={!drawer} inert={!drawer}>
-	<div class="brand"><span class="logo">⛩️</span><div><b>Kata</b><small>pocket dev dojo</small></div></div>
+	<div class="brand">
+		<svg class="mark" width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><path d="M9 25V5h6.5a5.75 5.75 0 0 1 0 11.5H9" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" /><circle cx="21.5" cy="23.5" r="2.4" fill="currentColor" /></svg>
+		<div><b>Preppy</b><small>Study offline. Keep the streak.</small></div>
+	</div>
 	{#each GROUPS as g}
 		<div class="grp">{g.title}</div>
 		{#each g.items as t}
 			<button class="item" class:on={tab === t.id} onclick={() => go(t.id)} aria-current={tab === t.id ? 'page' : undefined} data-testid="nav-{t.id}">
-				<span class="i">{t.icon}</span>
+				<span class="i"><Icon name={t.icon} size={20} /></span>
 				<span class="tx"><b>{t.label}</b><small>{t.sub}</small></span>
 			</button>
 		{/each}
@@ -130,38 +131,37 @@
 
 <style>
 	.appbar {
-		position: sticky; top: 0; z-index: 45; display: flex; align-items: center; gap: 10px;
-		height: var(--bar-top); padding: var(--safe-t) 12px 0 6px;
-		background: #0f141d; border-bottom: 1px solid #1f2735;
+		position: sticky; top: 0; z-index: 45; display: flex; align-items: center; gap: 4px;
+		height: var(--bar-top); padding: var(--safe-t) 8px 0 4px;
+		background: var(--ground); border-bottom: 1px solid var(--border);
 	}
-	.menu { width: 40px; height: 40px; display: grid; place-items: center; background: none; border: 0; border-radius: 10px; color: #e8eef6; }
-	.menu:active { background: #1a2230; }
-	.ico { font-size: 18px; }
-	.ttl { font-weight: 700; font-size: 16px; letter-spacing: -.01em; }
+	.menu { width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; border-radius: 50%; color: var(--text); }
+	.menu:active { background: var(--surface); }
+	.ttl { margin: 0; font-weight: 600; font-size: 17px; letter-spacing: -.01em; }
 	/* the bar owns the status-bar inset, so screens must not add it again */
-	.screen { --safe-t: 0px; min-height: calc(100dvh - var(--bar-h)); padding-bottom: var(--safe-b); }
-	.screen.pad { padding-bottom: calc(var(--safe-b) + 76px); } /* room for the floating ✨ button */
+	.screen { --safe-t: 0px; min-height: calc(100dvh - var(--bar-h)); padding-bottom: calc(var(--safe-b) + 84px); } /* room for the floating Ask / Ask tutor button */
 
-	.scrim { position: fixed; inset: 0; z-index: 70; background: rgba(3, 6, 12, .6); border: 0; padding: 0; animation: fade .18s; }
+	.scrim { position: fixed; inset: 0; z-index: 70; background: rgba(0, 0, 0, .72); border: 0; padding: 0; animation: fade .18s; }
 	.drawer {
-		position: fixed; top: 0; bottom: 0; left: 0; z-index: 80; width: min(82vw, 320px);
-		padding: calc(var(--safe-t) + 16px) 12px calc(var(--safe-b) + 16px); overflow-y: auto;
-		background: #0f141d; border-right: 1px solid #1f2735; box-shadow: 8px 0 32px rgba(0, 0, 0, .45);
+		position: fixed; top: 0; bottom: 0; left: 0; z-index: 80; width: min(84vw, 320px);
+		padding: calc(var(--safe-t) + 20px) 12px calc(var(--safe-b) + 16px); overflow-y: auto;
+		background: var(--ground); border-right: 1px solid var(--border);
 		transform: translateX(-102%); transition: transform .2s ease; visibility: hidden;
 	}
 	.drawer.open { transform: none; visibility: visible; }
-	.brand { display: flex; align-items: center; gap: 12px; padding: 4px 8px 14px; }
-	.brand .logo { font-size: 30px; }
-	.brand b { display: block; font-size: 20px; letter-spacing: -.02em; }
-	.brand small { color: #7f90a8; font-size: 12px; }
-	.grp { color: #6b7d96; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 14px 10px 6px; }
-	.item { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; background: none; border: 0; border-radius: 12px; padding: 10px; color: #c4d0e0; }
-	.item:active { background: #1a2230; }
-	.item.on { background: #16315a; color: #fff; }
-	.item .i { font-size: 22px; width: 30px; text-align: center; }
+	.brand { display: flex; align-items: center; gap: 12px; padding: 0 10px 18px; }
+	.brand .mark { color: var(--accent); flex: none; }
+	.brand b { display: block; font-size: 18px; font-weight: 600; letter-spacing: -.02em; }
+	.brand small { color: var(--faint); font-size: var(--fs-small); }
+	.grp { color: var(--faint); font-size: var(--fs-small); font-weight: 500; padding: 22px 10px 6px; }
+	.item { width: 100%; min-height: 52px; display: flex; align-items: center; gap: 14px; text-align: left; background: none; border: 0; border-radius: var(--radius-row); padding: 6px 10px; color: #bbb; }
+	.item:active { background: var(--surface); }
+	.item .i { width: 24px; display: grid; place-items: center; flex: none; }
 	.item .tx { display: flex; flex-direction: column; min-width: 0; }
-	.item b { font-size: 15px; }
-	.item small { color: #7f90a8; font-size: 12px; }
-	.item.on small { color: #a9c1e6; }
+	.item b { font-size: 15px; font-weight: 500; }
+	.item small { color: var(--faint); font-size: var(--fs-small); }
+	/* active = label goes #bbb → #fff (+ heavier weight so it isn't brightness alone) */
+	.item.on { color: #fff; background: var(--surface); }
+	.item.on b { font-weight: 600; }
 	@keyframes fade { from { opacity: 0; } }
 </style>

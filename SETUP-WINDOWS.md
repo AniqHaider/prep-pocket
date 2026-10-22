@@ -1,6 +1,6 @@
-# Kata (prep-pocket) — Windows setup
+# Preppy (prep-pocket) — Windows setup
 
-Everything you need to run, test and build the **Kata** Android app from a Windows 10/11 PC. Written so you can
+Everything you need to run, test and build the **Preppy** Android app from a Windows 10/11 PC. Written so you can
 follow it without Claude or the original Mac.
 
 > **Status of these instructions.** The app and every command's *logic* were built and tested on macOS (including
@@ -38,8 +38,8 @@ Choose a **short folder** for the project (long paths break the Android native b
 
 ```powershell
 mkdir C:\dev ; cd C:\dev
-git clone https://github.com/AniqHaider/prep-pocket.git kata
-cd kata
+git clone https://github.com/AniqHaider/prep-pocket.git preppy
+cd preppy
 ```
 
 Turn on long-path support once (run **PowerShell as Administrator**), then reboot or sign out/in:
@@ -54,7 +54,7 @@ git config --system core.longpaths true
 ## Part A — run it in the browser
 
 ```powershell
-cd C:\dev\kata
+cd C:\dev\preppy
 bun install
 bun run dev
 ```
@@ -67,18 +67,18 @@ What runs where (nothing needs a server or database):
 
 | Tab | Engine |
 |---|---|
-| ⛩️ Dojo | Python in **Pyodide** (WebAssembly), SQL on real Postgres compiled to WASM (**PGlite**) |
-| 🧠 Svelte + TypeScript | Svelte/TypeScript quiz + theory |
-| ⚛️ React + Next + TS | 500-question React/Next.js/TypeScript quiz |
-| ⌨️ Drills | TypeScript compiled in-browser with sucrase, run in a Web Worker |
-| ⚙️ More | Tutor settings (see below) |
+| Backend lab | Python in **Pyodide** (WebAssembly), SQL on real Postgres compiled to WASM (**PGlite**) |
+| Svelte + TypeScript | Svelte/TypeScript quiz + theory |
+| React + Next + TS | 500-question React/Next.js/TypeScript quiz |
+| Drills | TypeScript compiled in-browser with sucrase, run in a Web Worker |
+| Settings | AI models, progress (see below) |
 
 On the phone all sections are reached from the **☰ menu** (top-left), not a bottom bar.
 
 Useful commands:
 
 ```powershell
-bun run verify     # runs all 147 Dojo reference solutions + 9 drills through the in-browser engines
+bun run verify     # runs all 147 Backend lab reference solutions + 9 drills through the in-browser engines
 bun run check      # svelte-check (type checking)
 bun run build      # production build into dist\
 bun run preview    # serve dist\ on http://localhost:5180
@@ -87,7 +87,7 @@ bun run preview    # serve dist\ on http://localhost:5180
 `bun run verify` should end with `PASS 147  FAIL 0` and nine `✓` lines. (If Bun misbehaves running the WASM engines on
 your machine, try Node 22+: `npx tsx scripts/verify-dojo.ts` — not tested.)
 
-**On-device LLM tutor** only works in the Android app. In the browser, use *More → Dojo tutor* with a Gemini/Claude
+**On-device LLM tutor** only works in the Android app. In the browser, use *Settings → AI models* with a Gemini/Claude
 API key or a local Ollama server (`OLLAMA_HOST=0.0.0.0 OLLAMA_ORIGINS=*`, URL `http://<ip>:11434/v1`).
 
 ---
@@ -138,7 +138,7 @@ Open a **new** PowerShell and check `java -version` (21) and `adb version`.
 Android only lets an APK **update** an installed app if both are signed with the **same key**. Debug builds are signed
 with `~/.android/debug.keystore`, which is different on every computer. If you build on Windows with a fresh key and
 try `adb install -r` over the Mac-built app you'll get `INSTALL_FAILED_UPDATE_INCOMPATIBLE` — and uninstalling first
-**erases your Dojo progress**.
+**erases your Backend lab progress**.
 
 To avoid that, copy the keystore from the Mac **before your first Windows build**:
 
@@ -152,7 +152,7 @@ If you no longer have the Mac, a fresh install is fine — you just start with e
 The on-device LLM compiles llama.cpp into the APK. Fetch the exact commit the app was tested against:
 
 ```powershell
-cd C:\dev\kata
+cd C:\dev\preppy
 .\scripts\fetch-llama.ps1
 ```
 
@@ -162,7 +162,7 @@ run `scripts/fetch-llama.sh`.) It should print `llama.cpp @ 4413a19`.
 ### B5. Build
 
 ```powershell
-cd C:\dev\kata
+cd C:\dev\preppy
 bun install
 bun run build                  # web app -> dist\
 bunx cap sync android          # copies dist\ into the Android project
@@ -196,14 +196,14 @@ Or copy the APK to the phone (Drive, Nearby Share, cable) and open it; allow *In
 
 ## Tutor models on the phone
 
-*More → Dojo tutor → On this phone* downloads a GGUF model (0.5–2.1 GB) once; after that it's offline. Nothing to
+*Settings → AI models → On this phone* downloads a GGUF model (0.5–2.1 GB) once; after that it's offline. Nothing to
 install on the PC. For a OnePlus Nord 4 (12 GB RAM) start with **Qwen2.5 1.5B**, try **3B** for better answers.
 
 ## Where things live
 
 | Path | What |
 |---|---|
-| `src/dojo/` | Backend Dojo UI + `engine/` (grading, Pyodide/PGlite workers, XP/streak/diagram ports) |
+| `src/dojo/` | Backend lab UI + `engine/` (grading, Pyodide/PGlite workers, XP/streak/diagram ports) |
 | `src/prep/` | Svelte/TypeScript quiz + theory |
 | `src/prep2/` | React / Next.js / TypeScript quiz (copy of the `react-next-typescript-prep` question bank + a Svelte UI) |
 | `src/drills/` | JS/TS drills + in-browser test runner |
@@ -218,7 +218,7 @@ install on the PC. For a OnePlus Nord 4 (12 GB RAM) start with **Qwen2.5 1.5B**,
 |---|---|
 | `bun` / `node` / `adb` "not recognized" | Close and reopen PowerShell (PATH refresh); re-check B2. |
 | `bun run dev` fails at `copy-pyodide` | Make sure you're on the latest commit (older versions used a Unix-only path API). |
-| `Filename longer than 260 characters` / CMake or Ninja path errors | Clone to a short path (`C:\dev\kata`) and enable long paths (section 0). |
+| `Filename longer than 260 characters` / CMake or Ninja path errors | Clone to a short path (`C:\dev\preppy`) and enable long paths (section 0). |
 | `JAVA_HOME is not set` / wrong Java version | Re-do B2; run `java -version` (must be 21). |
 | `NDK ... not found` / `CMake 3.31.6 was not found` | SDK Manager → install the **exact** versions in B1. |
 | `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | Different signing key — see B3 (or `adb uninstall com.aniqhaider.preppocket`, which erases progress). |
