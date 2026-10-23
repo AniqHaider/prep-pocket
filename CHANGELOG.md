@@ -4,6 +4,14 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [1.6.2] — 2026-10-23
+### Fixed
+- **The screen no longer goes off while a lesson is playing.** It stays on while an animated lesson plays (including the short pause between lessons) and while a chapter is read aloud, and sleeps normally again when you pause, reach the end of the playlist, or close the player.
+- **Moving to the next lesson could leave it on its last step.** The next lesson now always starts from its first step.
+
+### Changed
+- **"Play all" and "Watch this chapter" now play through.** At the end of a lesson the next one starts by itself after a few seconds ("Next lesson starts in a moment", with a "Stay here" button to stop it).
+
 ## [1.6.1] — 2026-10-23
 Faster narration on slow phones, and a sharp logo at launch. (Version 1.6.0 was skipped; this is the release.)
 

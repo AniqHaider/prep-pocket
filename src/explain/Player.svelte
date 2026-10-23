@@ -5,6 +5,7 @@
 	import { playlist, stop, markWatched } from './nav';
 	import { sceneById, captionMs, TOPIC_LABEL } from './registry';
 	import { createSpeaker } from '../tts/speaker';
+	import { holdAwake } from '../ui/keepAwake';
 
 	/** Full-screen scene player. Autoplays; pause, step, speed and "read aloud" are all optional. */
 	let { onclose }: { onclose: () => void } = $props();
@@ -18,6 +19,8 @@
 	let preparing = $state(false); // the neural voice is buffering enough audio to play without pauses
 	let preparingPct = $state(0);
 	let notice = $state('');
+	let autoNext = $state(true); // a playlist rolls on to its next lesson by itself, until the learner stays on one
+	let upNext = $state(false); // the short pause between two lessons
 	const last = $derived(scene ? scene.steps.length - 1 : 0);
 	const atEnd = $derived(step >= last);
 	const hasNext = $derived(!!list && list.i < list.ids.length - 1);
@@ -63,16 +66,34 @@
 		return () => speaker.cancelPrefetch();
 	});
 
+	// After the last step of a lesson in a playlist, continue to the next one after a short pause.
+	$effect(() => {
+		if (!(scene && atEnd && hasNext && autoNext)) { upNext = false; return; }
+		upNext = true;
+		const t = setTimeout(() => { upNext = false; nextScene(); }, 3500);
+		return () => clearTimeout(t);
+	});
+
+	// The screen stays on while a lesson is playing and in the pause before the next one; it may sleep again on pause,
+	// at the end of the playlist, or when the player is closed.
+	$effect(() => (scene && (playing || upNext) ? holdAwake('player') : undefined));
+
 	onDestroy(() => { clearTimeout(timer); speaker.stop(); speaker.cancelPrefetch(); });
 
 	const SPEEDS = [1, 1.5, 2];
 	const cycleSpeed = () => (speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]);
 	function toggle() {
-		if (atEnd) { step = 0; playing = true; return; }
+		if (atEnd) { step = 0; playing = true; autoNext = true; return; }
 		playing = !playing;
 	}
-	function go(n: number) { speaker.stop(); step = Math.max(0, Math.min(last, n)); }
-	function nextScene() { if (list && hasNext) playlist.set({ ids: list.ids, i: list.i + 1 }); }
+	function go(n: number) { if (atEnd && n < step) autoNext = false; speaker.stop(); step = Math.max(0, Math.min(last, n)); }
+	function nextScene() {
+		if (!(list && hasNext)) return;
+		autoNext = true; upNext = false;
+		step = 0; playing = true; // start the next lesson from its first step, in the same tick
+		playlist.set({ ids: list.ids, i: list.i + 1 });
+	}
+	function stay() { autoNext = false; upNext = false; }
 
 	function onKey(e: KeyboardEvent) {
 		if (!scene) return;
@@ -105,7 +126,7 @@
 			</div>
 
 			<p class="cap" role="status" aria-live="polite" data-testid="caption">{scene.steps[step].say}</p>
-			{#if narrate && preparing}<p class="note" role="status">Preparing voice…{#if preparingPct > 0} {Math.round(preparingPct)}%{/if}</p>{:else if narrate && notice}<p class="note" role="status">{notice}</p>{/if}
+			{#if upNext}<p class="note" role="status">Next lesson starts in a moment.</p>{:else if narrate && preparing}<p class="note" role="status">Preparing voice…{#if preparingPct > 0} {Math.round(preparingPct)}%{/if}</p>{:else if narrate && notice}<p class="note" role="status">{notice}</p>{/if}
 			</div>
 		</div>
 
@@ -123,6 +144,7 @@
 					<button class="btn small" class:on={narrate} aria-pressed={narrate} onclick={() => { narrate = !narrate; speaker.stop(); preparing = false; notice = ''; }}><Icon name="mic" size={16} />Read aloud</button>
 				{/if}
 				{#if atEnd && hasNext}
+					{#if upNext}<button class="btn small" onclick={stay}>Stay here</button>{/if}
 					<button class="btn small primary" onclick={nextScene}>Next lesson<Icon name="chevron" size={16} /></button>
 				{:else if atEnd}
 					<button class="btn small" onclick={onclose}>Done</button>
