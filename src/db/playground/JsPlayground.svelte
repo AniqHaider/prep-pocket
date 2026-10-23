@@ -78,6 +78,7 @@
 		{/each}
 	</div>
 
+	<div class="colin">
 	<label class="lbl" for="js-editor">{isTs ? 'TypeScript' : 'JavaScript'}</label>
 	<textarea
 		id="js-editor"
@@ -100,7 +101,9 @@
 		{#if running}<button class="btn" onclick={() => jsEngine.stop()} data-testid="pg-stop"><Icon name="stop" size={18} />Stop</button>{/if}
 		<button class="btn" onclick={clearOutput} disabled={running || !ran} data-testid="pg-clear"><Icon name="trash" size={18} />Clear output</button>
 	</div>
+	</div>
 
+	<div class="colout">
 	<div class="out" aria-live="polite" aria-atomic="true">
 		{#if running}
 			<p class="status" data-testid="pg-status">{summary}</p>
@@ -129,6 +132,7 @@
 			{#each result.notes as n}<li>{n}</li>{/each}
 		</ul>
 	{/if}
+	</div>
 </div>
 
 <style>
@@ -161,4 +165,14 @@
 	.ln.info .tx, .ln.debug .tx { color: var(--muted); }
 	.notes { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
 	.notes li { color: var(--muted); font-size: var(--fs-small); }
+	/* Landscape phones are short: the editor and its buttons on the left, the output on the right, so nothing needs scrolling past the editor. */
+	@media (orientation: landscape) and (max-height: 560px) {
+		.pg { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); column-gap: 16px; align-items: start; }
+		.examples { grid-column: 1 / -1; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+		.examples :global(.chip) { flex: none; }
+		.colin, .colout { display: grid; gap: 10px; min-width: 0; }
+		.colin textarea { height: clamp(96px, calc(100dvh - 318px), 220px); }
+		.colin .hint { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } /* still read by screen readers via aria-describedby */
+		.colout { max-height: calc(100dvh - 150px); overflow-y: auto; }
+	}
 </style>

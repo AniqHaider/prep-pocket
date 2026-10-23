@@ -4,7 +4,7 @@
 
 *A pocket study app for software engineers. (repo: `prep-pocket`; called Kata before 1.3.0)*
 
-[![Download APK](https://img.shields.io/badge/Download-Preppy%20v1.7.0%20APK-3DDC84?logo=android&logoColor=white)](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Preppy-v1.7.0.apk)
+[![Download APK](https://img.shields.io/badge/Download-Preppy%20v1.7.1%20APK-3DDC84?logo=android&logoColor=white)](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Preppy-v1.7.1.apk)
 
 > Changes per version: **[CHANGELOG.md](CHANGELOG.md)** · Design rules: **[docs/design.md](docs/design.md)**
 
@@ -29,8 +29,8 @@ Copied from `backend-dojo`, `svelte-typescript-prep`, `react-next-typescript-pre
 The Backend lab's old FastAPI/Postgres/`claude`-CLI backend is replaced by on-device ports (`src/dojo/engine/`): same grading, XP, streak and diagram-unlock rules.
 
 ## Install on your phone
-Download **[Preppy-v1.7.0.apk](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Preppy-v1.7.0.apk)** (≈50 MB, debug-signed, arm64) from the [latest release](https://github.com/AniqHaider/prep-pocket/releases/latest), then:
-- **USB:** enable *Developer options → USB debugging*, then `adb install -r Preppy-v1.7.0.apk`
+Download **[Preppy-v1.7.1.apk](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Preppy-v1.7.1.apk)** (≈50 MB, debug-signed, arm64) from the [latest release](https://github.com/AniqHaider/prep-pocket/releases/latest), then:
+- **USB:** enable *Developer options → USB debugging*, then `adb install -r Preppy-v1.7.1.apk`
 - **File transfer:** send the APK to the phone (Drive, Telegram, WhatsApp "document", Nearby Share, cable), open it, allow *Install unknown apps* for that app. Play Protect may warn about an unknown developer — that's expected for a self-built APK.
 
 ## AI (optional)

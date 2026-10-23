@@ -193,14 +193,14 @@
 <style>
 	.appbar {
 		position: sticky; top: 0; z-index: 45; display: flex; align-items: center; gap: 4px;
-		height: var(--bar-top); padding: var(--safe-t) 8px 0 4px;
+		height: var(--bar-top); padding: var(--safe-t) max(8px, env(safe-area-inset-right)) 0 max(4px, env(safe-area-inset-left));
 		background: var(--ground); border-bottom: 1px solid var(--border);
 	}
 	.menu { width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; border-radius: 50%; color: var(--text); }
 	.menu:active { background: var(--surface); }
 	.ttl { margin: 0; font-weight: 600; font-size: 17px; letter-spacing: -.01em; }
 	/* the bar owns the status-bar inset, so screens must not add it again */
-	.screen { --safe-t: 0px; min-height: calc(100dvh - var(--bar-h)); padding-bottom: calc(var(--safe-b) + 84px); } /* room for the floating Ask / Ask tutor button */
+	.screen { --safe-t: 0px; padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); min-height: calc(100dvh - var(--bar-h)); padding-bottom: calc(var(--safe-b) + 84px); } /* room for the floating Ask / Ask tutor button */
 
 	.scrim { position: fixed; inset: 0; z-index: 70; background: rgba(0, 0, 0, .72); border: 0; padding: 0; animation: fade .18s; touch-action: none; }
 	.drawer {

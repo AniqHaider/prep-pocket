@@ -4,6 +4,17 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [1.7.1] — 2026-10-24
+Landscape finally works properly, and the lesson player no longer jumps around.
+
+### Fixed
+- **Landscape on a phone.** The animated-lesson player has a real landscape layout: the animation on the left, and the progress, caption and controls on the right, with no scrolling in the middle of a lesson. The status bar (notification bar) now hides in landscape, and a swipe from the top edge brings it back. Section pages show topics in two columns with a compact header; quiz answers sit in two columns so a question and its options fit on screen; the playgrounds put the editor on the left and the output on the right; the Visual lessons hub has a single scrolling row of topic chips and two columns of lessons; the Backend lab stats strip scrolls away with the page instead of staying pinned.
+- **Layout jumps in the lesson player.** The animation box is a fixed size and everything under it (progress, caption, buttons) stays put on every step and every lesson, including while "Preparing voice…" appears (its space is always reserved) and at the end of a lesson (the forward button becomes "Next lesson" or "Done" in the same slot). Measured on a phone-sized screen: identical positions across seven different lessons and a layout-shift total of 0.001.
+- **Stuck on the second lesson.** The top bar now has Previous lesson and Next lesson buttons whenever you play more than one lesson ("Play all", "Watch this chapter", a section's lessons).
+
+### Changed
+- **Read aloud is on by default** in the animated lessons (it only does something when a voice is available). Turn it off once and it stays off.
+
 ## [1.7.0] — 2026-10-23
 Six new sections, a JavaScript and TypeScript playground, and lessons that keep the screen on and play through.
 

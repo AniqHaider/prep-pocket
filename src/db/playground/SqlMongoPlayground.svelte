@@ -144,6 +144,7 @@
 		{/each}
 	</div>
 
+	<div class="colin">
 	<label class="lbl" for="pg-editor">{isSql ? 'SQL' : 'MongoDB shell'}</label>
 	<textarea
 		id="pg-editor"
@@ -163,7 +164,9 @@
 		<button class="btn primary run" onclick={run} disabled={running || !query.trim()} data-testid="pg-run"><Icon name="play" size={18} />{running ? 'Running' : 'Run'}</button>
 		<button class="btn" onclick={reset} disabled={running} data-testid="pg-reset"><Icon name="replay" size={18} />Reset data</button>
 	</div>
+	</div>
 
+	<div class="colout">
 	<div class="out" aria-live="polite" aria-atomic="false">
 		{#if booting}
 			<p class="status" data-testid="pg-status">Starting PostgreSQL… the first start takes a few seconds.</p>
@@ -237,6 +240,7 @@
 		</div>
 		<p class="hint">8 customers, 10 products, 15 orders. One customer has never ordered and one product has never been ordered, so joins and anti-joins have something to find.</p>
 	</details>
+	</div>
 </div>
 
 <style>
@@ -281,4 +285,14 @@
 	.reft b { font-family: var(--mono); font-size: 13px; }
 	.reft ul { list-style: none; margin: 6px 0 0; padding: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
 	.ref .hint { padding-bottom: 14px; }
+	/* Landscape phones are short: the editor and its buttons on the left, the output on the right, so nothing needs scrolling past the editor. */
+	@media (orientation: landscape) and (max-height: 560px) {
+		.pg { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); column-gap: 16px; align-items: start; }
+		.examples { grid-column: 1 / -1; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+		.examples :global(.chip) { flex: none; }
+		.colin, .colout { display: grid; gap: 10px; min-width: 0; }
+		.colin textarea { height: clamp(96px, calc(100dvh - 318px), 220px); }
+		.colin .hint { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } /* still read by screen readers via aria-describedby */
+		.colout { max-height: calc(100dvh - 150px); overflow-y: auto; }
+	}
 </style>

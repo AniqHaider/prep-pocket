@@ -48,6 +48,12 @@
   .xpbar { grid-column: 1 / -1; height: 3px; background: var(--raised); overflow: hidden; }
   .xpfill { height: 100%; background: var(--accent); transition: width .5s ease; }
 
+  /* Landscape phones are short: the strip scrolls away with the page instead of pinning 70px under the app bar. */
+  @media (orientation: landscape) and (max-height: 560px) {
+    .strip { position: static; }
+    .cell { padding-top: 8px; padding-bottom: 10px; }
+  }
+
   @media (min-width: 641px) {
     .strip { grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 0 calc(50% - 600px); }
     .cell { padding: 14px 24px; }
