@@ -254,4 +254,12 @@
 	.good-t { color: var(--accent); font-weight: 500; }
 	.why-t { color: var(--muted); }
 	.faint-pill { color: var(--muted); }
+
+	/* Landscape phones are short: answers in two columns so a question and its options fit without scrolling. */
+	@media (orientation: landscape) and (max-height: 560px) {
+		.prep { max-width: 1000px; padding-top: 8px; padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+		h2.q { margin: 10px 0 8px; }
+		.opts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+		.opt { align-self: stretch; }
+	}
 </style>

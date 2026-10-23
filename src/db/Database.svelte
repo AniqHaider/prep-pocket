@@ -148,4 +148,15 @@
 	.notes :global(li) { margin: 4px 0; }
 	.try { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 	.small { min-height: 44px; padding: 0 14px; font-size: 13px; }
+
+	/* Landscape phones are short: drop the tagline, tighten the header and list topics in two columns (an open topic spans both). */
+	@media (orientation: landscape) and (max-height: 560px) {
+		.db { max-width: 1100px; padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); padding-top: 8px; }
+		header .muted { display: none; }
+		.stats { margin-top: 4px; }
+		.tabs { margin: 8px 0 10px; }
+		.topics { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+		.topic.open { grid-column: 1 / -1; }
+		.notes { max-width: 70ch; }
+	}
 </style>

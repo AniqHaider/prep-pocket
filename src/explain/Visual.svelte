@@ -91,4 +91,14 @@
 	.tx b { font-size: 15px; font-weight: 600; }
 	.tx small { color: var(--muted); font-size: 13px; line-height: 1.4; }
 	.dur { color: var(--faint); font-size: var(--fs-small); flex: none; text-align: right; max-width: 80px; }
+
+	/* Landscape phones are short: one scrolling row of topic chips and two columns of lessons, so lessons start high on screen. */
+	@media (orientation: landscape) and (max-height: 560px) {
+		.vis { max-width: 1100px; padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+		header p { display: none; }
+		.chips { flex-wrap: nowrap; overflow-x: auto; margin: 10px 0; padding-bottom: 4px; scrollbar-width: none; }
+		.chip { flex: none; }
+		ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+		h2 { grid-column: 1 / -1; }
+	}
 </style>

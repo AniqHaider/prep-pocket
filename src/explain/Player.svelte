@@ -15,13 +15,21 @@
 	let step = $state(0);
 	let playing = $state(true);
 	let speed = $state(1);
-	let narrate = $state(false);
+	// Read aloud is on by default (it only does anything when a voice is available); turning it off is remembered.
+	const NARRATE_KEY = 'preppy:player:narrate';
+	let narrate = $state((() => { try { return localStorage.getItem(NARRATE_KEY) !== '0'; } catch { return true; } })());
+	const setNarrate = (on: boolean) => {
+		narrate = on;
+		try { localStorage.setItem(NARRATE_KEY, on ? '1' : '0'); } catch { /* ignore */ }
+	};
 	let preparing = $state(false); // the neural voice is buffering enough audio to play without pauses
 	let preparingPct = $state(0);
 	let notice = $state('');
 	let autoNext = $state(true); // a playlist rolls on to its next lesson by itself, until the learner stays on one
 	let upNext = $state(false); // the short pause between two lessons
 	const last = $derived(scene ? scene.steps.length - 1 : 0);
+	// The caption area is at least four lines, and as tall as this scene's longest caption (about 34 characters a line on a phone), so changing steps never moves anything.
+	const capLines = $derived(scene ? Math.max(4, ...scene.steps.map((s) => Math.ceil(s.say.length / 34))) : 2);
 	const atEnd = $derived(step >= last);
 	const hasNext = $derived(!!list && list.i < list.ids.length - 1);
 
@@ -93,6 +101,11 @@
 		step = 0; playing = true; // start the next lesson from its first step, in the same tick
 		playlist.set({ ids: list.ids, i: list.i + 1 });
 	}
+	function prevScene() {
+		if (!(list && list.i > 0)) return;
+		upNext = false; step = 0; playing = true;
+		playlist.set({ ids: list.ids, i: list.i - 1 });
+	}
 	function stay() { autoNext = false; upNext = false; }
 
 	function onKey(e: KeyboardEvent) {
@@ -113,6 +126,13 @@
 				<span class="kick">{TOPIC_LABEL[scene.topic]}{list && list.ids.length > 1 ? ` · ${list.i + 1} of ${list.ids.length}` : ''}</span>
 				<h2>{scene.title}</h2>
 			</div>
+			{#if list && list.ids.length > 1}
+				<!-- jump between the lessons of this playlist from the top bar, at any time -->
+				<div class="lessonnav" role="group" aria-label="Lessons">
+					<button class="ib" onclick={prevScene} disabled={list.i === 0} aria-label="Previous lesson"><Icon name="back" size={20} /></button>
+					<button class="ib" onclick={nextScene} disabled={!hasNext} aria-label="Next lesson"><Icon name="chevron" size={20} /></button>
+				</div>
+			{/if}
 		</header>
 
 		<div class="body">
@@ -125,30 +145,34 @@
 				{/each}
 			</div>
 
-			<p class="cap" role="status" aria-live="polite" data-testid="caption">{scene.steps[step].say}</p>
-			{#if upNext}<p class="note" role="status">Next lesson starts in a moment.</p>{:else if narrate && preparing}<p class="note" role="status">Preparing voice…{#if preparingPct > 0} {Math.round(preparingPct)}%{/if}</p>{:else if narrate && notice}<p class="note" role="status">{notice}</p>{/if}
+			<div class="capwrap">
+			<p class="cap" role="status" aria-live="polite" data-testid="caption" style="--cap-lines: {capLines}">{scene.steps[step].say}</p>
+			<p class="note" role="status" aria-live="polite">{#if upNext}Next lesson starts in a moment.{:else if narrate && preparing}Preparing voice…{#if preparingPct > 0} {Math.round(preparingPct)}%{/if}{:else if narrate && notice}{notice}{/if}</p>
+			</div>
 			</div>
 		</div>
 
 		<footer>
-			<div class="row">
+			<div class="row main">
 				<button class="btn round" onclick={() => go(step - 1)} disabled={step === 0} aria-label="Previous step"><Icon name="back" size={18} /></button>
 				<button class="btn primary mid" onclick={toggle} data-testid="toggle">
 					<Icon name={atEnd ? 'replay' : playing ? 'pause' : 'play'} size={18} />{atEnd ? 'Replay' : playing ? 'Pause' : 'Play'}
 				</button>
-				<button class="btn round" onclick={() => go(step + 1)} disabled={atEnd} aria-label="Next step"><Icon name="chevron" size={18} /></button>
+				<!-- the forward slot is the same size on every step: it becomes "Next lesson" or "Done" at the end, so the footer never changes height -->
+				{#if atEnd && hasNext}
+					<button class="btn fwd" onclick={nextScene}>Next lesson<Icon name="chevron" size={16} /></button>
+				{:else if atEnd}
+					<button class="btn fwd" onclick={onclose}>Done</button>
+				{:else}
+					<button class="btn round" onclick={() => go(step + 1)} aria-label="Next step"><Icon name="chevron" size={18} /></button>
+				{/if}
 			</div>
 			<div class="row sub">
 				<button class="btn small" onclick={cycleSpeed} aria-label="Speed {speed} times">{speed}×</button>
 				{#if speaker.supported}
-					<button class="btn small" class:on={narrate} aria-pressed={narrate} onclick={() => { narrate = !narrate; speaker.stop(); preparing = false; notice = ''; }}><Icon name="mic" size={16} />Read aloud</button>
+					<button class="btn small" class:on={narrate} aria-pressed={narrate} onclick={() => { setNarrate(!narrate); speaker.stop(); preparing = false; notice = ''; }}><Icon name="mic" size={16} />Read aloud</button>
 				{/if}
-				{#if atEnd && hasNext}
-					{#if upNext}<button class="btn small" onclick={stay}>Stay here</button>{/if}
-					<button class="btn small primary" onclick={nextScene}>Next lesson<Icon name="chevron" size={16} /></button>
-				{:else if atEnd}
-					<button class="btn small" onclick={onclose}>Done</button>
-				{/if}
+				{#if upNext}<button class="btn small" onclick={stay}>Stay here</button>{/if}
 			</div>
 		</footer>
 	</div>
@@ -160,23 +184,49 @@
 	header { display: flex; align-items: center; gap: 4px; padding: 6px 8px 6px 4px; border-bottom: 1px solid var(--border); }
 	.ib { width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; border-radius: 50%; color: var(--text); flex: none; }
 	.ib:active { background: var(--surface); }
-	.ttl { min-width: 0; }
+	.ttl { min-width: 0; flex: 1; }
+	.lessonnav { display: flex; gap: 2px; flex: none; }
+	.ib:disabled { opacity: .35; }
 	.kick { color: var(--faint); font-size: var(--fs-small); }
 	h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	.body { flex: 1; overflow-y: auto; padding: 16px; max-width: 640px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; }
-	.inner { margin: auto 0; width: 100%; } /* centred when there is room, scrolls when there is not */
-	.stagewrap { background: var(--surface); border-radius: var(--radius-card); padding: 14px 10px; }
+	.inner { margin: 0; width: 100%; } /* top-aligned: nothing here moves between steps or between lessons */
+	.stagewrap { background: var(--surface); border-radius: var(--radius-card); padding: 10px; aspect-ratio: 360 / 330; display: flex; align-items: center; justify-content: center; overflow: hidden; } /* a fixed-size box: the scene is centred inside it, so the box never changes size */
+	.stagewrap :global(svg.stage) { max-height: 100%; width: 100%; }
 	.segs { display: flex; gap: 4px; margin: 14px 0 4px; }
 	.seg { flex: 1; height: 22px; background: none; border: 0; padding: 9px 0; cursor: pointer; }
 	.seg::after { content: ''; display: block; height: 4px; border-radius: 2px; background: var(--raised); transition: background .3s; }
 	.seg.done::after { background: var(--accent); }
-	.cap { font-size: 17px; line-height: 1.5; margin: 12px 2px 0; min-height: 5.2em; font-weight: 500; }
+	.cap { font-size: 17px; line-height: 1.5; margin: 12px 2px 0; min-height: calc(var(--cap-lines, 3) * 1.5em); font-weight: 500; }
 	footer { padding: 10px 16px calc(var(--safe-b) + 14px); border-top: 1px solid var(--border); display: grid; gap: 10px; max-width: 640px; width: 100%; margin: 0 auto; }
-	.note { color: var(--muted); font-size: 13px; margin: 8px 2px 0; }
+	.note { color: var(--muted); font-size: 13px; line-height: 20px; min-height: 20px; margin: 8px 2px 0; } /* always there, so it appearing never shifts the layout */
 	.row { display: flex; align-items: center; justify-content: center; gap: 10px; }
 	.row.sub { gap: 8px; flex-wrap: wrap; }
 	.mid { min-width: 132px; }
 	.round { width: 48px; padding: 0; }
+	.row.main { min-height: 48px; display: grid; grid-template-columns: 48px 132px 148px; justify-content: center; gap: 10px; }
+	.row.main .mid { min-width: 0; width: 100%; }
+	.row.sub { min-height: 44px; }
+	.fwd { min-height: 48px; padding: 0 14px; width: 100%; }
 	.small { min-height: 44px; padding: 0 14px; font-size: 13px; }
 	.small.on { background: var(--raised); border-color: var(--text); }
+
+	/* Landscape phones are short: put the animation on the left and the caption + controls on the right, nothing scrolls. */
+	@media (orientation: landscape) and (max-height: 560px) {
+		.player {
+			display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto;
+			grid-template-areas: "head head" "stage segs" "stage cap" "stage foot";
+			column-gap: 16px; padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px);
+		}
+		header { grid-area: head; padding-top: 0; padding-bottom: 0; }
+		.body, .inner { display: contents; }
+		.stagewrap { grid-area: stage; min-height: 0; margin: 10px 0 10px 16px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+		.stagewrap :global(svg.stage) { max-height: 100%; width: 100%; }
+		.segs { grid-area: segs; margin: 10px 16px 0 0; }
+		.capwrap { grid-area: cap; min-height: 0; overflow-y: auto; margin-right: 16px; align-self: start; }
+		.cap { font-size: 18px; line-height: 1.45; min-height: 0; margin: 6px 0 0; }
+		footer { grid-area: foot; max-width: none; margin: 0; border-top: 0; padding: 6px 16px calc(var(--safe-b) + 8px) 0; gap: 6px; }
+		footer .row, footer .row.sub { justify-content: flex-start; }
+		footer .row.main { justify-content: start; }
+	}
 </style>
