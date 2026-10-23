@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import android.content.Context;
 import android.util.Base64;
+import android.view.WindowManager;
 
 /**
  * "LocalTts" Capacitor plugin: downloads a sherpa-onnx voice (Kokoro / Piper .tar.bz2) into app-private storage,
@@ -367,5 +368,20 @@ public class LocalTtsPlugin extends Plugin {
         if (f != null) for (long x : f) mhz.put(x / 1000);
         call.resolve(new JSObject().put("cores", Runtime.getRuntime().availableProcessors()).put("performance", TtsEngine.performanceCores())
                 .put("freqsMhz", mhz).put("freqsKnown", f != null).put("defaultThreads", TtsEngine.defaultThreads()));
+    }
+
+    /**
+     * Keep the screen on while a lesson or narration is playing (FLAG_KEEP_SCREEN_ON on the app window). The flag only
+     * applies while this app is in front, and is cleared when playback stops, so the screen sleeps normally again.
+     */
+    @PluginMethod
+    public void keepAwake(PluginCall call) {
+        final boolean on = Boolean.TRUE.equals(call.getBoolean("on", false));
+        if (getActivity() == null) { call.resolve(); return; }
+        getActivity().runOnUiThread(() -> {
+            if (on) getActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            else getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            call.resolve();
+        });
     }
 }

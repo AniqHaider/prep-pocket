@@ -6,6 +6,7 @@
   import { onDestroy } from "svelte";
   import Icon from "../../ui/Icon.svelte";
   import { play } from "../../explain/nav";
+  import { holdAwake } from "../../ui/keepAwake";
   import { sceneIdsFor } from "../../explain/registry";
   import { createSpeaker } from "../../tts/speaker";
 
@@ -115,6 +116,8 @@
   let segments = $derived(built.segs);
   let words = $derived(built.words);
   let watchIds = $derived(chapter ? sceneIdsFor("backend", chapter.id) : []);
+  // keep the screen on while the chapter is being read aloud (not while paused)
+  $effect(() => (playing && !paused ? holdAwake("lesson-tts") : undefined));
   let hasInline = $derived(segments.some((s) => s.type === "ex"));
 
   function clearHighlight() {

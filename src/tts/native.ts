@@ -46,6 +46,7 @@ export interface LocalTtsPlugin {
 	setCacheLimit(o: { mb?: number; bytes?: number }): Promise<CacheStats>;
 	cancelPrefetch(): Promise<void>;
 	cpuInfo(): Promise<CpuInfo>;
+	keepAwake(o: { on: boolean }): Promise<void>;
 	addListener(event: 'downloadProgress', fn: (e: { id: string; phase: 'download' | 'extract'; received: number; total: number }) => void): Promise<PluginListenerHandle>;
 }
 
