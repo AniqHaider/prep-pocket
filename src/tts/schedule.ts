@@ -40,13 +40,15 @@ export const marginSeconds = (rtf: number) => 0.3 + 1.2 * Math.min(1, Math.max(0
  * consumed that many seconds minus nothing, and has been handed L0..L(j-1) in between. So the buffer needed is
  *   max over j of [ rtf * sum(L0..Lj) - sum(L0..L(j-1)) ]  + margin.
  * For rtf < 1 this is about rtf * (the next sentence); for rtf > 1 it grows with the remaining text (and the wait cap takes over).
+ * `free[k]` marks chunks already in the persistent cache: they take no synthesis time, so they add nothing to the wait.
  */
-export function requiredBuffer(rtf: number, upcoming: number[], margin = marginSeconds(rtf)): number {
+export function requiredBuffer(rtf: number, upcoming: number[], margin = marginSeconds(rtf), free: boolean[] = []): number {
 	let worst = 0;
 	let synth = 0;
 	let given = 0;
-	for (const L of upcoming) {
-		synth += rtf * L;
+	for (let k = 0; k < upcoming.length; k++) {
+		const L = upcoming[k];
+		synth += free[k] ? 0 : rtf * L; // a sentence already in the cache costs no synthesis
 		worst = Math.max(worst, synth - given);
 		given += L;
 	}
@@ -94,7 +96,14 @@ export class PlaybackModel {
 	/** Peak seconds of synthesized audio held in memory (pending + scheduled but not yet played). */
 	peakRetained = 0;
 
-	constructor(private readonly chunkChars: number[]) {}
+	/**
+	 * `cached[i]` = chunk i is already in the audio cache (known up front), so it is treated as free.
+	 * `priorRtf` = the speed last measured for this voice on this phone: planning starts from it instead of a guess, so a slow voice does
+	 * not have to re-learn its speed at every new caption (a prior is not a measurement: the slow-voice notice still needs fresh ones).
+	 */
+	constructor(private readonly chunkChars: number[], private readonly cached: boolean[] = [], priorRtf?: number) {
+		if (priorRtf && Number.isFinite(priorRtf) && priorRtf > 0) this.rtf.value = Math.min(4, Math.max(0.05, priorRtf));
+	}
 
 	get total() { return this.chunkChars.length; }
 	get synthesized() { return this.produced; }
@@ -104,13 +113,16 @@ export class PlaybackModel {
 	private estimate(i: number) { return this.chunkChars[i] * this.secPerChar; }
 	private upcoming() { return this.chunkChars.slice(this.produced).map((_, k) => this.estimate(this.produced + k)); }
 	/** Audio seconds that must be buffered before (re)starting. */
-	private target(now: number) { return Math.min(requiredBuffer(this.rtf.value, this.upcoming()), this.reachable(now)); }
+	private target(now: number) { return Math.min(requiredBuffer(this.rtf.value, this.upcoming(), undefined, this.cached.slice(this.produced)), this.reachable(now)); }
 	/** The most audio we could possibly accumulate within the wait cap (cap / rtf), so the target and the percentage stay honest. */
 	private reachable(_now: number) { return Math.max(1, CAP_WAIT_S / Math.max(this.rtf.value, 0.05)); }
 
-	/** Record that chunk `i` finished synthesizing: `audioSec` of audio produced in `synthSec` of CPU time. */
-	onChunk(i: number, audioSec: number, synthSec: number, chars = this.chunkChars[i]) {
-		this.rtf.add(synthSec, audioSec);
+	/**
+	 * Record that chunk `i` is ready: `audioSec` of audio, produced in `synthSec` of CPU time. A chunk served from the cache
+	 * (`cached`) says nothing about how fast this phone synthesizes, so it never feeds the real-time factor.
+	 */
+	onChunk(i: number, audioSec: number, synthSec: number, chars = this.chunkChars[i], cached = false) {
+		if (!cached) this.rtf.add(synthSec, audioSec);
 		if (chars > 0 && audioSec > 0.05) {
 			// running average of seconds of audio per character, used to estimate chunks not yet synthesized
 			const w = Math.min(0.5, 0.2 + this.measuredChars / 4000);

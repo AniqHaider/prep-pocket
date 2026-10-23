@@ -4,7 +4,8 @@
 	import { onMount } from 'svelte';
 	import Icon from '../ui/Icon.svelte';
 	import { LocalLlm, MODEL_CATALOG, fmtBytes, onDeviceAvailable, type LocalModel } from './localllm';
-	import { LocalTts, neuralAvailable, forgetLoaded } from '../tts/native';
+	import { LocalTts, neuralAvailable, forgetLoaded, getCpuInfo, type CpuInfo, type CacheStats } from '../tts/native';
+	import { tuneVoice } from '../tts/tune';
 	import { VOICES, type CatalogVoice } from '../tts/catalog';
 	import { loadTtsPrefs, saveTtsPrefs } from '../tts/prefs';
 	import { speedClass, SPEED_LABEL } from '../tts/schedule';
@@ -127,8 +128,59 @@
 		vHave = Object.fromEntries(r.voices.map((v) => [v.id, v]));
 	}
 
+	// ---- thread tuning + narration cache ----
+	let cpu = $state<CpuInfo | null>(null);
+	let tune = $state<{ id: string; text: string; pct: number } | null>(null);
+	let tuneCancel = false;
+	let cache = $state<CacheStats | null>(null);
+	const CAPS = [100, 200, 500];
+	const plural = (n: number) => `${n}\u00A0thread${n === 1 ? '' : 's'}`; // no line break between the number and the word
+	const x2 = (r: number) => r.toFixed(2) + 'x';
+	/** Small cache sizes in KB so "38 KB" does not read as "0 MB". */
+	const cacheSize = (b: number) => (b < 1048576 ? `${Math.round(b / 1024)} KB` : `${(b / 1048576).toFixed(b < 10485760 ? 1 : 0)} MB`);
+	/** "35 MB · Piper · 0.20x real time · 4 threads (tuned)": built as one string so every separator keeps its spaces. */
+	const voiceMeta = (v: CatalogVoice, installed: boolean) => {
+		const parts = [fmtBytes(v.bytes), v.engine === 'kokoro' ? 'Kokoro' : 'Piper'];
+		if (installed) {
+			if (tp.speed?.[v.id] != null) parts.push(`${x2(tp.speed[v.id])} real time`);
+			if (tp.threads?.[v.id]) parts.push(`${plural(tp.threads[v.id].threads)} (tuned)`);
+			else if (cpu) parts.push(`${plural(cpu.defaultThreads)} (default)`);
+		}
+		return parts.join(' · ');
+	};
+
+	async function refreshCache() {
+		if (!ttsNative) return;
+		try { cache = await LocalTts.cacheStats(); } catch { /* older build */ }
+	}
+	async function setCap(mb: number) {
+		try { cache = await LocalTts.setCacheLimit({ mb }); } catch (e: any) { vMsg = String(e?.message ?? e); }
+	}
+	async function clearCacheNow() {
+		try { await LocalTts.clearCache(); await refreshCache(); vMsg = 'Narration cache cleared. The next listen of each sentence is a little slower.'; } catch (e: any) { vMsg = String(e?.message ?? e); }
+	}
+
+	async function tuneNow(v: CatalogVoice) {
+		vMsg = '';
+		vBusy = v.id;
+		tuneCancel = false;
+		tune = { id: v.id, text: 'Starting…', pct: 0 };
+		try {
+			const sid = v.speakers ? (v.speakers.some((x) => x.sid === tp.sid) ? tp.sid : v.speakers[0].sid) : 0;
+			const r = await tuneVoice(v.id, sid, (p) => (tune = { id: v.id, ...p }), () => tuneCancel);
+			tp = loadTtsPrefs();
+			vMsg = r.cancelled ? 'Cancelled. The previous setting is kept.' : `Done: ${plural(r.best!)} is fastest here (${x2(r.bestRtf!)} real time).`;
+		} catch (e: any) {
+			vMsg = String(e?.message ?? e);
+		} finally {
+			tune = null;
+			vBusy = null;
+		}
+	}
+
 	onMount(() => {
 		refreshVoices();
+		if (ttsNative) { getCpuInfo().then((c) => (cpu = c)).catch(() => {}); refreshCache(); }
 		let off: (() => void) | undefined;
 		if (ttsNative) LocalTts.addListener('downloadProgress', (e) => (vProg[e.id] = { phase: e.phase, received: e.received, total: e.total })).then((h) => (off = () => h.remove()));
 		return () => { off?.(); stopSample(); };
@@ -319,7 +371,7 @@
 							{#if tp.voice === v.id}<span class="pill pos"><Icon name="check" size={12} />In use</span>{:else if h?.installed}<span class="pill">Downloaded</span>{/if}
 							{#if h?.installed}{@const sc = voiceSpeed(v.id)}{#if sc}<span class="pill {speedPill[sc]}"><Icon name={sc === 'smooth' ? 'check' : 'alert'} size={12} />{SPEED_LABEL[sc]}</span>{/if}{/if}
 						</div>
-						<div class="meta num">{fmtBytes(v.bytes)} · {v.engine === 'kokoro' ? 'Kokoro' : 'Piper'}</div>
+						<div class="meta num">{voiceMeta(v, !!h?.installed)}</div>
 						<div class="hint">{v.note}</div>
 						{#if p}
 							{@const pct = p.total > 0 ? Math.round((p.received / p.total) * 100) : 0}
@@ -337,14 +389,36 @@
 							<div class="row tight">
 								<button class="btn primary" disabled={vBusy !== null || tp.voice === v.id} onclick={() => pickVoice(v.id)}>{tp.voice === v.id ? 'In use' : 'Use this'}</button>
 								<button class="btn" disabled={vBusy !== null} onclick={() => sampleVoice(v)}>Play sample</button>
+								<button class="btn" disabled={vBusy !== null} onclick={() => tuneNow(v)}>Find fastest setting</button>
 								<button class="btn danger" disabled={vBusy !== null} onclick={() => removeVoice(v)}>Delete</button>
 							</div>
+							{#if tune?.id === v.id}
+								<div class="bar" role="progressbar" aria-label="Finding the fastest setting for {v.label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow={tune.pct}><div style="width:{tune.pct}%"></div></div>
+								<div class="meta num" role="status">{tune.text} · {tune.pct}%</div>
+								<div class="row tight"><button class="btn" onclick={() => (tuneCancel = true)}>Cancel</button></div>
+							{:else if tp.threads?.[v.id]}
+								{@const t = tp.threads[v.id]}
+								<div class="hint num">{t.tried.map((x) => `${plural(x.n)}\u00A0${x2(x.rtf)}`).join(' · ')} · using {plural(t.threads)}</div>
+							{/if}
 						{:else}
 							<div class="row tight"><button class="btn primary" disabled={vBusy !== null} onclick={() => downloadVoice(v)}>{h?.partialBytes ? `Resume download (${fmtBytes(h.partialBytes)})` : 'Download'}</button></div>
 						{/if}
 					</div>
 				{/each}
+				<div class="model">
+					<div class="mhead"><b>Narration cache</b></div>
+					<div class="meta num">{cache ? `Using ${cacheSize(cache.bytes)} of ${cacheSize(cache.limitBytes)} · ${cache.files} ${cache.files === 1 ? 'sentence' : 'sentences'}` : 'Reading the cache…'}</div>
+					<div class="hint">Sentences you have heard are kept on the phone, so hearing them again is instant, even with the heavier voices. Lessons also prepare their later sentences in the background.</div>
+					<div class="chips" role="group" aria-label="Cache size limit">
+						{#each CAPS as mb}
+							<button class="chip" aria-pressed={cache ? Math.round(cache.limitBytes / 1048576) === mb : false} onclick={() => setCap(mb)}>{mb} MB</button>
+						{/each}
+					</div>
+					<div class="row tight"><button class="btn" disabled={!cache || cache.files === 0} onclick={clearCacheNow}>Clear cache</button></div>
+					<div class="hint">Clearing only makes the next listen slower. Nothing else is lost.</div>
+				</div>
 				{#if vMsg}<p class="status" role="status">{vMsg}</p>{/if}
+				<p class="hint">Under 1x keeps up with speech; lower is faster.</p>
 				{#if speedTip}<p class="hint tip" role="note"><Icon name="alert" size={14} />{speedTip}</p>{/if}
 				<p class="hint">Voices come from the open sherpa-onnx project on GitHub and are stored privately in the app. Use Wi-Fi for the larger ones.</p>
 			{/if}
