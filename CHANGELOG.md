@@ -4,6 +4,19 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [1.8.0] — 2026-10-24
+AWS lessons, and the animated-lesson player is now a video-style player.
+
+### Added
+- **AWS** (new menu item, under Learn): the services a web engineer meets most, with written notes, animated lessons, an 80-question quiz and a few runnable toy models. Know well: S3 (presigned URLs, bucket policies, CORS, lifecycle), CloudFront (cache keys, TTLs, stale-while-revalidate, invalidation), IAM (roles, policies, default deny and explicit deny) and Route 53 with ACM. Know next: RDS and Aurora, ElastiCache, containers (ECR, ECS Fargate, EKS), Lambda with API Gateway, SQS and SNS. Know the idea: MSK, SES, CloudWatch and X-Ray, Secrets Manager and SSM, WAF and Shield.
+- **Settings → Lesson subtitles:** choose how solid the subtitle background is (Clear, Light, Medium or Solid) with a live preview. It applies to the subtitle on top of the picture in landscape.
+
+### Changed
+- **Video-style player.** The picture scales to fit the whole screen in either orientation, so no lesson is ever cut off or needs scrolling (tall ones, like "Reading an agent trace", used to run off the bottom in landscape).
+- **Subtitles instead of a caption block.** The narration is a light subtitle under the picture (upright) or on top of it (landscape, where the picture then gets the full height).
+- **Tap the screen to show or hide the controls.** They appear for a few seconds when a lesson starts or when you tap, fade away while it plays, and stay up while it is paused or finished. A thin progress line stays visible. Upright, the top bar and the controls have their own bands above and below the picture, so nothing covers the data; in landscape they overlay the picture and the control bar is one slim row. Controls: play/pause, previous/next step, tappable progress segments, speed, Read aloud, and Next lesson / Done at the end. Pressing Tab on a keyboard also brings them back.
+- "Preparing voice…" and "Next lesson starts in a moment · Stay here" float over the picture instead of pushing things around.
+
 ## [1.7.1] — 2026-10-24
 Landscape finally works properly, and the lesson player no longer jumps around.
 

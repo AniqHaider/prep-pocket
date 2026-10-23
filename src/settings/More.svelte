@@ -10,7 +10,10 @@
 	import { loadTtsPrefs, saveTtsPrefs } from '../tts/prefs';
 	import { speedClass, SPEED_LABEL } from '../tts/schedule';
 	import { playSample, stopSample } from '../tts/speaker';
+	import { SUB_LEVELS, loadSubLevel, saveSubLevel, subAlpha, type SubLevel } from '../explain/subtitle';
 
+	let subLevel = $state<SubLevel>(loadSubLevel());
+	const pickSub = (id: SubLevel) => { subLevel = id; saveSubLevel(id); };
 	let s = $state<TutorSettings>(loadSettings());
 	let status = $state('');
 	let testing = $state(false);
@@ -427,8 +430,28 @@
 
 	<section>
 		<div class="lab">
+			<h2>Lesson subtitles</h2>
+			<p>In the animated lessons the narration shows as a subtitle. Held sideways it sits on top of the picture, which then gets the whole screen. Choose how solid its background is.</p>
+			<p class="now">Now: {SUB_LEVELS.find((l) => l.id === subLevel)?.label}</p>
+		</div>
+		<div class="panel">
+			<div class="chips" role="radiogroup" aria-label="Subtitle background">
+				{#each SUB_LEVELS as l}
+					<button class="chip" role="radio" aria-checked={subLevel === l.id} onclick={() => pickSub(l.id)}>{l.label}</button>
+				{/each}
+			</div>
+			<p class="hint">{SUB_LEVELS.find((l) => l.id === subLevel)?.hint}</p>
+			<div class="subprev" aria-hidden="true">
+				<div class="sp-a"></div><div class="sp-b"></div><div class="sp-c"></div>
+				<span class="sp-cap" class:clear={subAlpha(subLevel) < 0.2} style="--sub-bg: rgba(0, 0, 0, {subAlpha(subLevel)})">Every pass of the loop leaves a trace.</span>
+			</div>
+		</div>
+	</section>
+
+	<section>
+		<div class="lab">
 			<h2>About</h2>
-			<p>Preppy bundles the Backend lab (Python via Pyodide, SQL via real Postgres-in-WASM), the Svelte/TypeScript and React/Next/TypeScript quizzes, theory and the JS/TS drills, all offline. The AI assistant is optional.</p>
+			<p>Preppy bundles the Backend lab (Python via Pyodide, SQL via real Postgres-in-WASM), computer science, AI, JavaScript, TypeScript, React, Next.js and database lessons with animated explainers, quizzes, playgrounds and drills, all offline. The AI assistant is optional.</p>
 		</div>
 	</section>
 
@@ -482,5 +505,13 @@
 	.tip :global(svg) { flex: none; margin-top: 2px; color: var(--warning); }
 	.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 	.chip { min-height: 44px; padding: 0 14px; border-radius: var(--radius-control); background: transparent; border: 1px solid var(--control); color: var(--text); font-size: var(--fs-body); cursor: pointer; }
-	.chip[aria-pressed='true'] { background: var(--surface); border-color: var(--text); font-weight: 600; }
+		.chip[aria-pressed='true'], .chip[aria-checked='true'] { background: var(--surface); border-color: var(--text); font-weight: 600; }
+	/* a tiny picture with the subtitle on it, so the choice can be judged at once */
+	.subprev { position: relative; margin-top: 10px; height: 96px; border-radius: var(--radius-row); background: var(--ground); border: 1px solid var(--rule); overflow: hidden; }
+	.sp-a, .sp-b, .sp-c { position: absolute; border-radius: 8px; background: var(--raised); }
+	.sp-a { left: 12px; top: 12px; width: 96px; height: 34px; }
+	.sp-b { left: 124px; top: 12px; width: 70px; height: 34px; background: var(--pill-warning-bg); border: 1.5px solid var(--warning); }
+	.sp-c { left: 12px; top: 58px; width: 150px; height: 28px; }
+	.sp-cap { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); white-space: nowrap; padding: 4px 12px; border-radius: 9px; font-size: 13px; background: var(--sub-bg); color: var(--text); }
+	.sp-cap.clear { text-shadow: 0 1px 4px rgba(0, 0, 0, .95), 0 0 2px #000; } /* taste-skill-ignore: same as the player */
 </style>

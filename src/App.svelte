@@ -18,13 +18,14 @@
 	import { mongodb } from './db/mongodb';
 	import { cs } from './db/cs';
 	import { ai } from './db/ai';
+	import { aws } from './db/aws';
 	import { javascript } from './db/javascript';
 	import { typescript } from './db/typescript';
 	import { react } from './db/react';
 	import { nextjs } from './db/nextjs';
 
-	type Tab = 'dojo' | 'visual' | 'cs' | 'ai' | 'js' | 'ts' | 'react' | 'next' | 'pg' | 'mysql' | 'mongo' | 'prep' | 'prep2' | 'drills' | 'more';
-	type IconName = 'dojo' | 'frontend' | 'react' | 'drills' | 'settings' | 'visual' | 'database' | 'table' | 'braces' | 'cpu' | 'bot' | 'js' | 'shield' | 'component' | 'next';
+	type Tab = 'dojo' | 'visual' | 'cs' | 'ai' | 'aws' | 'js' | 'ts' | 'react' | 'next' | 'pg' | 'mysql' | 'mongo' | 'prep' | 'prep2' | 'drills' | 'more';
+	type IconName = 'dojo' | 'frontend' | 'react' | 'drills' | 'settings' | 'visual' | 'database' | 'table' | 'braces' | 'cpu' | 'bot' | 'cloud' | 'js' | 'shield' | 'component' | 'next';
 	const GROUPS: { title: string; items: { id: Tab; icon: IconName; label: string; sub: string }[] }[] = [
 		{
 			title: 'Learn',
@@ -32,6 +33,7 @@
 				{ id: 'dojo', icon: 'dojo', label: 'Backend lab', sub: 'Python + SQL, XP and streaks' },
 				{ id: 'cs', icon: 'cpu', label: 'Computer science', sub: 'Data structures, algorithms, memory' },
 				{ id: 'ai', icon: 'bot', label: 'AI and agents', sub: 'Models, RAG, agents, harnesses' },
+				{ id: 'aws', icon: 'cloud', label: 'AWS', sub: 'S3, CloudFront, IAM, Lambda, queues' },
 				{ id: 'visual', icon: 'visual', label: 'Visual lessons', sub: 'Animated, step-by-step explainers' }
 			]
 		},
@@ -160,7 +162,7 @@
 </header>
 
 <div class="screen" class:pad={tab !== 'dojo'}>
-	{#if tab === 'dojo'}<Dojo />{:else if tab === 'visual'}<Visual />{:else if tab === 'cs'}<Database engine={cs} />{:else if tab === 'ai'}<Database engine={ai} />{:else if tab === 'js'}<Database engine={javascript} />{:else if tab === 'ts'}<Database engine={typescript} />{:else if tab === 'react'}<Database engine={react} />{:else if tab === 'next'}<Database engine={nextjs} />{:else if tab === 'pg'}<Database engine={postgres} />{:else if tab === 'mysql'}<Database engine={mysql} />{:else if tab === 'mongo'}<Database engine={mongodb} />{:else if tab === 'prep'}<Prep />{:else if tab === 'prep2'}<Prep2 />{:else if tab === 'drills'}<Drills />{:else}<More />{/if}
+	{#if tab === 'dojo'}<Dojo />{:else if tab === 'visual'}<Visual />{:else if tab === 'cs'}<Database engine={cs} />{:else if tab === 'ai'}<Database engine={ai} />{:else if tab === 'aws'}<Database engine={aws} />{:else if tab === 'js'}<Database engine={javascript} />{:else if tab === 'ts'}<Database engine={typescript} />{:else if tab === 'react'}<Database engine={react} />{:else if tab === 'next'}<Database engine={nextjs} />{:else if tab === 'pg'}<Database engine={postgres} />{:else if tab === 'mysql'}<Database engine={mysql} />{:else if tab === 'mongo'}<Database engine={mongodb} />{:else if tab === 'prep'}<Prep />{:else if tab === 'prep2'}<Prep2 />{:else if tab === 'drills'}<Drills />{:else}<More />{/if}
 </div>
 
 {#if $playlist}
