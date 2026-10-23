@@ -6,6 +6,8 @@ export interface TtsPrefs {
 	sid: number;
 	/** Last measured real-time factor per voice on THIS phone (synthesis seconds per audio second), from samples and real reading. */
 	speed?: Record<string, number>;
+	/** Result of "Find fastest setting" per voice: the thread count to use, its real-time factor, and everything that was tried. */
+	threads?: Record<string, { threads: number; rtf: number; tried: { n: number; rtf: number }[] }>;
 }
 
 const KEY = 'prep-pocket:tts:v1';
@@ -34,4 +36,14 @@ export function saveVoiceSpeed(voice: string, rtf: number) {
 	if (!Number.isFinite(rtf) || rtf <= 0) return;
 	const p = loadTtsPrefs();
 	saveTtsPrefs({ ...p, speed: { ...(p.speed ?? {}), [voice]: Math.round(rtf * 100) / 100 } });
+}
+
+/** Saves the thread count chosen for a voice (and the speed it reached, which also refreshes the speed pill). */
+export function saveVoiceThreads(voice: string, threads: number, rtf: number, tried: { n: number; rtf: number }[]) {
+	const p = loadTtsPrefs();
+	saveTtsPrefs({
+		...p,
+		threads: { ...(p.threads ?? {}), [voice]: { threads, rtf: Math.round(rtf * 100) / 100, tried } },
+		speed: { ...(p.speed ?? {}), [voice]: Math.round(rtf * 100) / 100 }
+	});
 }

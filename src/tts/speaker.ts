@@ -4,6 +4,7 @@ import { LocalTts, ensureLoaded, neuralAvailable, wavToBuffer, type SynthResult 
 import { loadTtsPrefs, saveVoiceSpeed } from './prefs';
 import { PlaybackModel, type Plan } from './schedule';
 import { SAMPLE_TEXT } from './catalog';
+import { cacheKey } from './cacheKey';
 
 export interface SpeakHooks {
 	/** The word with this index is being spoken now. */
@@ -21,7 +22,18 @@ export interface Speaker {
 	pause(): void;
 	resume(): void;
 	stop(): void;
+	/**
+	 * Synthesizes these texts into the on-phone audio cache in the background (one sentence at a time, never ahead of what is being
+	 * spoken), so they start instantly when their turn comes. A no-op for the system voice. Replaces any earlier prefetch.
+	 */
+	prefetch(texts: string[], rate: number): void;
+	/** Stops background prefetch (does not touch narration that is playing). */
+	cancelPrefetch(): void;
 }
+
+let narrating = false;
+/** True while a neural voice is narrating or the system voice is speaking: speed tests must not run then. */
+export const isNarrating = () => narrating || (typeof window !== 'undefined' && 'speechSynthesis' in window && speechSynthesis.speaking);
 
 const systemSupported = () => typeof window !== 'undefined' && 'speechSynthesis' in window;
 
@@ -55,6 +67,12 @@ class SystemSpeaker {
 
 // ---------- neural voice ----------
 interface Chunk { from: number; to: number }
+
+/** The sentence-sized texts that speakFrom synthesizes for a caption (same split, so prefetch fills exactly the cache keys speakFrom looks up). */
+export function chunkTexts(text: string): string[] {
+	const words = text.split(/\s+/);
+	return chunkWords(words, 0).map((c) => words.slice(c.from, c.to).join(' '));
+}
 
 const ABBREV = new Set(['e.g.', 'i.e.', 'vs.', 'etc.', 'mr.', 'mrs.', 'dr.', 'no.']);
 const SENTENCE_END = /[.!?…]["'”’)\]]*$/;
@@ -98,6 +116,10 @@ class NeuralSpeaker {
 	private token = 0;
 	private sources: AudioBufferSourceNode[] = [];
 	private tick: number | undefined;
+	private pfToken = 0;
+	/** A foreground synthesis is running, or playback is waiting for audio: background prefetch stays out of its way. */
+	private fgBusy = false;
+	private fgBuffering = false;
 
 	private audio() {
 		if (!this.ctx) this.ctx = new AudioContext();
@@ -105,6 +127,9 @@ class NeuralSpeaker {
 	}
 
 	private clear() {
+		narrating = false;
+		this.fgBusy = false;
+		this.fgBuffering = false;
 		if (this.tick !== undefined) { clearInterval(this.tick); this.tick = undefined; }
 		for (const s of this.sources) { s.onended = null; try { s.stop(); } catch { /* not started */ } }
 		this.sources = [];
@@ -127,8 +152,20 @@ class NeuralSpeaker {
 		await ensureLoaded(voice);
 		if (!alive()) return;
 
-		const chars = chunks.map((c) => words.slice(c.from, c.to).join(' ').length);
-		const model = new PlaybackModel(chars);
+		const texts = chunks.map((c) => words.slice(c.from, c.to).join(' '));
+		const chars = texts.map((t) => t.length);
+		// which sentences are already in the audio cache: they cost no synthesis, so the model need not wait for them
+		let keys: string[] = [];
+		let cachedFlags: boolean[] = [];
+		try {
+			keys = await Promise.all(texts.map((t) => cacheKey(voice, sid, rate, t)));
+			cachedFlags = (await LocalTts.cacheHas({ keys })).has;
+		} catch {
+			keys = []; cachedFlags = []; // no cache this time; everything is synthesized
+		}
+		if (!alive()) return;
+		narrating = true;
+		const model = new PlaybackModel(chars, cachedFlags, loadTtsPrefs().speed?.[voice]);
 		const decoded = new Map<number, AudioBuffer>(); // synthesized, waiting to be scheduled
 		const timeline: { t: number; idx: number }[] = [];
 		let cursor = 0;
@@ -174,6 +211,7 @@ class NeuralSpeaker {
 			while (cursor < timeline.length && timeline[cursor].t <= now) hit = timeline[cursor++].idx;
 			if (hit >= 0) h.onWord(hit);
 			apply(model.step(now));
+			this.fgBuffering = model.isBuffering;
 		}, 50);
 
 		try {
@@ -181,12 +219,18 @@ class NeuralSpeaker {
 				while (alive() && !wantSynth) await new Promise((r) => setTimeout(r, 80));
 				if (!alive()) return;
 				const c = chunks[i];
-				const r = await LocalTts.synthesize({ text: words.slice(c.from, c.to).join(' '), sid, speed: rate });
+				this.fgBusy = true;
+				let r;
+				try {
+					r = await LocalTts.synthesize({ text: texts[i], sid, speed: rate, voice, key: keys[i] });
+				} finally {
+					this.fgBusy = false;
+				}
 				if (!alive()) return;
-				const buf = await ctx.decodeAudioData(wavToBuffer(r.wav));
+				const buf = await ctx.decodeAudioData(wavToBuffer(r.wav!));
 				if (!alive()) return;
 				decoded.set(i, buf);
-				model.onChunk(i, buf.duration, r.synthSec, chars[i]);
+				model.onChunk(i, buf.duration, r.synthSec, chars[i], r.cached);
 				apply(model.step(ctx.currentTime));
 			}
 			if (model.rtf.n >= 1) saveVoiceSpeed(voice, model.rtf.value);
@@ -195,6 +239,37 @@ class NeuralSpeaker {
 			this.clear();
 			h.onPreparing(false);
 			throw e;
+		}
+	}
+
+	cancelPrefetch() {
+		this.pfToken++;
+		if (neuralAvailable()) void LocalTts.cancelPrefetch().catch(() => {});
+	}
+
+	/** Best effort: a sentence that fails here is simply synthesized when it is needed. Never starts a job while the learner is waiting. */
+	async prefetch(texts: string[], rate: number, voice: string, sid: number) {
+		this.cancelPrefetch();
+		const my = this.pfToken;
+		const alive = () => my === this.pfToken;
+		const items = texts.flatMap(chunkTexts);
+		if (items.length === 0) return;
+		const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+		try {
+			await sleep(1200); // let the sentence being spoken take the first turn
+			if (!alive()) return;
+			await ensureLoaded(voice);
+			if (!alive()) return;
+			const keys = await Promise.all(items.map((t) => cacheKey(voice, sid, rate, t)));
+			const has = (await LocalTts.cacheHas({ keys })).has;
+			for (let i = 0; i < items.length; i++) {
+				if (has[i]) continue;
+				while (alive() && (this.fgBusy || this.fgBuffering)) await sleep(150);
+				if (!alive()) return;
+				await LocalTts.synthesize({ text: items[i], sid, speed: rate, voice, key: keys[i], noAudio: true, low: true });
+			}
+		} catch {
+			/* best effort */
 		}
 	}
 
@@ -246,7 +321,12 @@ export function createSpeaker(): Speaker {
 			if (systemSupported()) sys.stop();
 			neural.stop(hooks ?? undefined);
 			active = null;
-		}
+		},
+		prefetch(texts, rate) {
+			const prefs = loadTtsPrefs();
+			if (prefs.voice !== 'system' && neuralAvailable()) void neural.prefetch(texts, rate, prefs.voice, prefs.sid);
+		},
+		cancelPrefetch() { neural.cancelPrefetch(); }
 	};
 }
 
@@ -260,10 +340,10 @@ export interface SampleReport { audioSec: number; synthSec: number; rtf: number;
 export async function playSample(voice: string, sid: number): Promise<SampleReport> {
 	stopSample();
 	await ensureLoaded(voice);
-	const r = await LocalTts.synthesize({ text: SAMPLE_TEXT, sid, speed: 1 });
+	const r = await LocalTts.synthesize({ text: SAMPLE_TEXT, sid, speed: 1, nocache: true }); // a speed test: never from the cache
 	sampleCtx = sampleCtx ?? new AudioContext();
 	await sampleCtx.resume();
-	const buf = await sampleCtx.decodeAudioData(wavToBuffer(r.wav));
+	const buf = await sampleCtx.decodeAudioData(wavToBuffer(r.wav!));
 	const src = sampleCtx.createBufferSource();
 	src.buffer = buf;
 	src.connect(sampleCtx.destination);

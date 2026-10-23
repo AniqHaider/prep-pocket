@@ -6,7 +6,8 @@ system (docs/design.md). Everything is drawn at 4x and downsampled for clean edg
 Outputs
   mipmap-*/ic_launcher_{background,foreground,monochrome}.png   Android adaptive icon layers (foreground kept in the 66dp safe zone)
   mipmap-*/ic_launcher{,_round}.png                              legacy launchers
-  drawable*/splash.png                                           pre-Android-12 splash (black, mark centred)
+  drawable/ic_splash_mark.xml                                    vector launch-screen icon (crisp at any size)
+  drawable/ic_launcher_fg.xml, ic_launcher_mono.xml              vector adaptive-icon layers used by mipmap-anydpi-v26
   assets/icon.png                                                512px preview used by the README
 Usage: python3 scripts/make-icons.py   (needs `pip install pillow`)
 """
@@ -81,25 +82,46 @@ for name, k in dens.items():
     ImageDraw.Draw(rm).ellipse([0, 0, leg - 1, leg - 1], fill=255); rd.putalpha(rm)
     save(os.path.join(base, 'ic_launcher_round.png'), rd)
 
+# --- vector versions of the mark: the launch screen and the adaptive icon use these so they stay sharp at any density
+# (a raster foreground is upscaled by the system splash screen and looks blurred).
+# Geometry in design units (P is 115 tall incl. caps): stem, bowl and the full stop, all one stroke width.
+MARK_PATHS = (
+    '<path android:pathData="M0,0 L0,100" android:strokeColor="{c}" android:strokeWidth="15" android:strokeLineCap="round"/>'
+    '<path android:pathData="M0,0 H16 A21.5,21.5 0 0 1 16,43 H0" android:strokeColor="{c}" android:strokeWidth="15" '
+    'android:strokeLineCap="round" android:strokeLineJoin="round"/>'
+    '<path android:pathData="M29.5,99 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0" android:fillColor="{c}"/>'
+)
+
+def vector(viewport, mark_dp, colour):
+    sc = mark_dp / 115.0
+    tx, ty = viewport / 2 - 19.5 * sc, viewport / 2 - 50 * sc  # centre the mark's bounding box (x -7.5..46.5, y -7.5..107.5)
+    return f'''<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="{viewport}dp" android:height="{viewport}dp" android:viewportWidth="{viewport}" android:viewportHeight="{viewport}">
+    <group android:translateX="{tx:.2f}" android:translateY="{ty:.2f}" android:scaleX="{sc:.4f}" android:scaleY="{sc:.4f}">
+        {MARK_PATHS.format(c=colour)}
+    </group>
+</vector>
+'''
+
+def write(path, text):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w') as fh:
+        fh.write(text)
+
+write(os.path.join(RES, 'drawable', 'ic_launcher_fg.xml'), vector(108, 43.2, '#C6F24E'))      # 40% of the 108dp canvas, inside the 66dp safe zone
+write(os.path.join(RES, 'drawable', 'ic_launcher_mono.xml'), vector(108, 43.2, '#FFFFFF'))
+write(os.path.join(RES, 'drawable', 'ic_splash_mark.xml'), vector(288, 84, '#C6F24E'))        # splash icon area is 288dp, visible circle 192dp
+
 adaptive = '''<?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@mipmap/ic_launcher_background"/>
-    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
-    <monochrome android:drawable="@mipmap/ic_launcher_monochrome"/>
+    <foreground android:drawable="@drawable/ic_launcher_fg"/>
+    <monochrome android:drawable="@drawable/ic_launcher_mono"/>
 </adaptive-icon>
 '''
 for f in ('ic_launcher.xml', 'ic_launcher_round.xml'):
-    with open(os.path.join(RES, 'mipmap-anydpi-v26', f), 'w') as fh:
-        fh.write(adaptive)
-
-# pre-Android-12 splash screens: same size as the existing files, black with the mark centred
-for path in glob.glob(os.path.join(RES, 'drawable*', 'splash.png')):
-    w, h = Image.open(path).size
-    img = Image.new('RGBA', (w, h), BG + (255,))
-    s = int(min(w, h) * 0.30)
-    m = layer(s, LIME, 0.62)
-    img.alpha_composite(m, ((w - s) // 2, (h - s) // 2))
-    img.convert('RGB').save(path)
+    write(os.path.join(RES, 'mipmap-anydpi-v26', f), adaptive)
 
 # README preview: the adaptive icon with a rounded mask at 512px
 big = flat(512)

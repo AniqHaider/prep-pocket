@@ -51,7 +51,19 @@
 		return () => clearTimeout(timer);
 	});
 
-	onDestroy(() => { clearTimeout(timer); speaker.stop(); });
+	// With a downloaded voice and Read aloud on, synthesize the captions still to come (and the first two of the next lesson) into the
+	// on-phone audio cache in the background, one at a time and never ahead of the caption being spoken, so later steps start instantly.
+	// Re-runs on every step (what is already cached is skipped) and stops when narration is turned off or the player closes.
+	$effect(() => {
+		if (!scene || !narrate || !speaker.supported) { speaker.cancelPrefetch(); return; }
+		const later = scene.steps.slice(step + 1).map((s) => s.say);
+		const nextId = list && list.i < list.ids.length - 1 ? list.ids[list.i + 1] : null;
+		const upNext = (nextId ? sceneById(nextId) : undefined)?.steps.slice(0, 2).map((s) => s.say) ?? [];
+		speaker.prefetch([...later, ...upNext], speed);
+		return () => speaker.cancelPrefetch();
+	});
+
+	onDestroy(() => { clearTimeout(timer); speaker.stop(); speaker.cancelPrefetch(); });
 
 	const SPEEDS = [1, 1.5, 2];
 	const cycleSpeed = () => (speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length]);

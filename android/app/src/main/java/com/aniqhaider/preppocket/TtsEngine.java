@@ -1,7 +1,5 @@
 package com.aniqhaider.preppocket;
 
-import android.util.Base64;
-
 import com.k2fsa.sherpa.onnx.GeneratedAudio;
 import com.k2fsa.sherpa.onnx.OfflineTts;
 import com.k2fsa.sherpa.onnx.OfflineTtsConfig;
@@ -19,24 +17,66 @@ import java.nio.ByteOrder;
  * Synthesis is blocking; the plugin calls it from a single worker thread.
  */
 class TtsEngine {
-    static final int NUM_THREADS = 4;
-
     static class Result {
-        String wavBase64; int sampleRate; double audioSec; double synthSec; double rms;
+        byte[] wav; int sampleRate; double audioSec; double synthSec; double rms;
     }
 
     private OfflineTts tts;
-    private String loadedId;
-    private int numSpeakers;
+    // volatile and read without the engine lock: a synthesis in progress holds the lock for seconds, and the plugin must be able to
+    // check which voice is loaded without waiting for it
+    private volatile String loadedId;
+    private volatile int loadedThreads;
+    private volatile int numSpeakers;
 
-    synchronized String loadedId() { return loadedId; }
-    synchronized int numSpeakers() { return numSpeakers; }
+    String loadedId() { return loadedId; }
+    int loadedThreads() { return loadedThreads; }
+    int numSpeakers() { return numSpeakers; }
 
     synchronized void unload() {
         if (tts != null) { tts.release(); tts = null; }
         loadedId = null;
+        loadedThreads = 0;
         numSpeakers = 0;
     }
+
+    /**
+     * CPU topology from sysfs: max frequency of each core (kHz), or null when it cannot be read (newer Android may hide it).
+     * "Performance" cores are those within 75% of the fastest; phones mix fast and efficiency cores, and a thread landing on an
+     * efficiency core can hold up the whole synthesis.
+     */
+    static long[] coreMaxFreqs() {
+        int n = Runtime.getRuntime().availableProcessors();
+        long[] f = new long[n];
+        for (int i = 0; i < n; i++) {
+            f[i] = readLong("/sys/devices/system/cpu/cpu" + i + "/cpufreq/cpuinfo_max_freq");
+            if (f[i] <= 0) f[i] = readLong("/sys/devices/system/cpu/cpu" + i + "/cpufreq/scaling_max_freq");
+            if (f[i] < 100_000) return null; // under 100 MHz is not a real reading (some devices and emulators report 0 or garbage)
+        }
+        return f;
+    }
+
+    private static long readLong(String path) {
+        try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader(path))) {
+            String l = r.readLine();
+            return l == null ? -1 : Long.parseLong(l.trim());
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    static int performanceCores() {
+        long[] f = coreMaxFreqs();
+        int n = Runtime.getRuntime().availableProcessors();
+        if (f == null) return n;
+        long max = 0;
+        for (long x : f) max = Math.max(max, x);
+        int perf = 0;
+        for (long x : f) if (x >= 0.75 * max) perf++;
+        return Math.max(1, perf);
+    }
+
+    /** Threads used when a voice has never been tuned: the performance cores, at most 4, at least 2. */
+    static int defaultThreads() { return Math.max(2, Math.min(4, performanceCores())); }
 
     private static File find(File dir, String suffix, String... mustNotContain) {
         File[] fs = dir.listFiles();
@@ -52,14 +92,15 @@ class TtsEngine {
     }
 
     /** Loads the voice in `dir`. Returns null on success or a human-readable error. */
-    synchronized String load(File dir, String id) {
-        if (id.equals(loadedId) && tts != null) return null;
+    synchronized String load(File dir, String id, int threads) {
+        threads = Math.max(1, Math.min(8, threads));
+        if (id.equals(loadedId) && threads == loadedThreads && tts != null) return null;
         unload();
         try {
             File tokens = new File(dir, "tokens.txt");
             File espeak = new File(dir, "espeak-ng-data");
             File voices = new File(dir, "voices.bin");
-            OfflineTtsModelConfig.Builder mb = OfflineTtsModelConfig.builder().setNumThreads(NUM_THREADS).setDebug(false).setProvider("cpu");
+            OfflineTtsModelConfig.Builder mb = OfflineTtsModelConfig.builder().setNumThreads(threads).setDebug(false).setProvider("cpu");
             if (voices.exists()) { // Kokoro
                 File model = find(dir, ".onnx");
                 File lex = new File(dir, "lexicon-us-en.txt");
@@ -79,6 +120,7 @@ class TtsEngine {
             tts = new OfflineTts(OfflineTtsConfig.builder().setModel(mb.build()).setMaxNumSentences(1).build());
             numSpeakers = tts.getNumSpeakers();
             loadedId = id;
+            loadedThreads = threads;
             return null;
         } catch (Throwable t) {
             unload();
@@ -86,7 +128,7 @@ class TtsEngine {
         }
     }
 
-    /** Generates one chunk of speech and returns it as a base64 16-bit mono WAV plus timing/level stats. */
+    /** Generates one chunk of speech as a 16-bit mono WAV (bytes) plus timing/level stats. */
     synchronized Result synthesize(String text, int sid, float speed) {
         if (tts == null) return null;
         long t0 = System.nanoTime();
@@ -101,7 +143,7 @@ class TtsEngine {
         double sum = 0;
         for (float v : s) sum += v * v;
         r.rms = s.length == 0 ? 0 : Math.sqrt(sum / s.length);
-        r.wavBase64 = Base64.encodeToString(wav16(s, sr), Base64.NO_WRAP);
+        r.wav = wav16(s, sr);
         return r;
     }
 

@@ -4,6 +4,21 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [1.6.1] — 2026-10-23
+Faster narration on slow phones, and a sharp logo at launch. (Version 1.6.0 was skipped; this is the release.)
+
+### Added
+- **Narration audio cache:** every sentence a neural voice speaks is saved on the phone, so the second listen is instant even with the heaviest voice (Natural: 913 ms to synthesize, 30 ms from the cache, byte-identical audio, measured on the test device). In the animated-lesson player, with Read aloud on, the rest of the lesson's captions (and the first two of the next lesson) are prepared in the background while step 1 plays. Settings → Narration voice has a "Narration cache" row: size used, a 100 / 200 / 500 MB limit (least recently used sentences go first), and Clear cache.
+- **Find fastest setting:** a per-voice button that tries 1 to 4 threads (and your phone's fast-core count), measures each, and keeps the quickest, because on phones with fast and slow cores more threads can be slower. It shows the result ("2 threads 0.92x, 3 threads 0.71x, 4 threads 0.85x, using 3 threads").
+- Each downloaded voice now shows its measured speed as a number ("0.71x real time"; under 1x keeps up with speech, lower is faster) next to its Smooth / May pause / Too slow label.
+
+### Fixed
+- **Blurry logo on launch.** The launch screen and the home-screen icon used a small raster image that Android scaled up. Both are now vector drawables drawn from the same logo geometry, so they are sharp on any screen. The launch screen is also pure black now (it was showing a leftover stretched splash image and a navy flash).
+- A voice's saved speed is used from the first sentence, so each caption in the player no longer re-learns a slow voice's speed.
+
+### Notes
+- Natural (Kokoro) barely speeds up with more threads on the test device, so for that voice the cache is the main fix: the first listen of a lesson can still pause; repeats will not.
+
 ## [1.5.0] — 2026-10-23
 Follow-ups to 1.4: narration that no longer stutters, calmer lesson screens, and a content polish pass.
 

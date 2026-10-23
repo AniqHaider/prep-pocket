@@ -21,9 +21,18 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+
+import android.content.Context;
+import android.util.Base64;
 
 /**
  * "LocalTts" Capacitor plugin: downloads a sherpa-onnx voice (Kokoro / Piper .tar.bz2) into app-private storage,
@@ -36,8 +45,26 @@ public class LocalTtsPlugin extends Plugin {
 
     private final TtsEngine engine = new TtsEngine();
     private final ExecutorService io = Executors.newSingleThreadExecutor();     // download / extract
-    private final ExecutorService synth = Executors.newSingleThreadExecutor();  // load / synthesize
+    private final ExecutorService cacheIo = Executors.newSingleThreadExecutor(); // cache lookups never wait behind a synthesis
     private final AtomicBoolean cancel = new AtomicBoolean(false);
+    private TtsCache cache;
+
+    // load / synthesize run on ONE thread, but as a priority queue: what the learner is hearing (priority 0) always goes before
+    // background prefetch of later sentences (priority 1). A prefetch that is already running finishes first (at most one sentence).
+    private static final AtomicLong SEQ = new AtomicLong();
+    private static class Job implements Runnable, Comparable<Job> {
+        final int prio; final long seq = SEQ.getAndIncrement(); final Runnable r;
+        Job(int prio, Runnable r) { this.prio = prio; this.r = r; }
+        @Override public void run() { r.run(); }
+        @Override public int compareTo(Job o) { return prio != o.prio ? Integer.compare(prio, o.prio) : Long.compare(seq, o.seq); }
+    }
+    private final ThreadPoolExecutor synth = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new PriorityBlockingQueue<Runnable>());
+    private final AtomicLong prefetchEpoch = new AtomicLong();
+
+    private synchronized TtsCache cache() {
+        if (cache == null) cache = new TtsCache(getContext().getFilesDir(), getContext().getSharedPreferences("tts", Context.MODE_PRIVATE));
+        return cache;
+    }
 
     private File root() {
         File d = new File(getContext().getFilesDir(), "tts");
@@ -203,33 +230,142 @@ public class LocalTtsPlugin extends Plugin {
     public void load(PluginCall call) {
         final String id = call.getString("id");
         if (!okId(id) || !marker(id).exists()) { call.reject("Voice not downloaded yet."); return; }
-        synth.execute(() -> { // same thread as synthesize(), so a load always finishes before the first sentence and never waits behind a download
-            String err = engine.load(voiceDir(id), id);
-            if (err == null) call.resolve(new JSObject().put("loaded", id).put("speakers", engine.numSpeakers()));
+        final int threads = call.getInt("threads", TtsEngine.defaultThreads());
+        synth.execute(new Job(0, () -> { // same queue as synthesize(), so a load always finishes before the next sentence and never waits behind a download
+            String err = engine.load(voiceDir(id), id, threads);
+            if (err == null) call.resolve(new JSObject().put("loaded", id).put("speakers", engine.numSpeakers()).put("threads", engine.loadedThreads()));
             else call.reject(err);
-        });
+        }));
     }
 
     @PluginMethod
     public void unload(PluginCall call) { engine.unload(); call.resolve(); }
 
-    /** Returns one chunk of speech as base64 WAV plus {audioSec, synthSec, rms} so JS can pipeline and report speed. */
+    /** Audio length, sample rate and RMS level from a WAV written by TtsEngine.wav16 (used for cache hits, where no synthesis ran). */
+    private static double[] wavStats(byte[] wav) {
+        ByteBuffer bb = ByteBuffer.wrap(wav).order(ByteOrder.LITTLE_ENDIAN);
+        int rate = bb.getInt(24), data = bb.getInt(40);
+        int n = data / 2;
+        double sum = 0;
+        for (int i = 0; i < n; i++) { double v = bb.getShort(44 + i * 2) / 32768.0; sum += v * v; }
+        return new double[]{rate, n / (double) rate, n == 0 ? 0 : Math.sqrt(sum / n)};
+    }
+
+    private static JSObject audioResult(byte[] wav, int sampleRate, double audioSec, double synthSec, double rms, boolean cached, boolean noAudio) {
+        JSObject o = new JSObject().put("sampleRate", sampleRate).put("audioSec", audioSec).put("synthSec", synthSec).put("rms", rms).put("cached", cached);
+        if (!noAudio) o.put("wav", Base64.encodeToString(wav, Base64.NO_WRAP));
+        return o;
+    }
+
+    private static JSObject fromCache(byte[] hit, boolean noAudio) {
+        double[] st = wavStats(hit);
+        return audioResult(hit, (int) st[0], st[1], 0, st[2], true, noAudio);
+    }
+
+    /**
+     * One chunk of speech as base64 WAV plus {audioSec, synthSec, rms, cached}. With a `key` (SHA-256 hex from JS) the persistent cache is
+     * consulted first (a hit costs no synthesis and reports synthSec 0 and cached true, so it never counts as a speed measurement) and
+     * a fresh result is stored. `voice` makes a stale request (the voice changed meanwhile) fail instead of caching the wrong voice
+     * under the right key. `nocache` bypasses the cache (speed tests), `noAudio` skips returning the audio (prefetch), `low` queues behind
+     * anything the learner is waiting for.
+     */
     @PluginMethod
     public void synthesize(PluginCall call) {
         final String text = call.getString("text", "");
         final int sid = call.getInt("sid", 0);
         final float speed = call.getFloat("speed", 1.0f);
+        final String voice = call.getString("voice");
+        final String key = call.getString("key");
+        final boolean noCache = Boolean.TRUE.equals(call.getBoolean("nocache", false));
+        final boolean noAudio = Boolean.TRUE.equals(call.getBoolean("noAudio", false));
+        final boolean low = Boolean.TRUE.equals(call.getBoolean("low", false));
+        final boolean useCache = !noCache && TtsCache.okKey(key);
         if (engine.loadedId() == null) { call.reject("No voice loaded."); return; }
+        if (voice != null && !voice.equals(engine.loadedId())) { call.reject("The voice changed."); return; }
         if (text.trim().isEmpty()) { call.reject("Nothing to say."); return; }
-        synth.execute(() -> {
+        final long epoch = prefetchEpoch.get();
+
+        final Runnable synthJob = () -> {
             try {
+                if (low && epoch != prefetchEpoch.get()) { call.reject("cancelled"); return; }
+                if (voice != null && !voice.equals(engine.loadedId())) { call.reject("The voice changed."); return; }
+                if (useCache) { // another request may have produced it while this one waited
+                    byte[] hit = cache().get(key);
+                    if (hit != null) { call.resolve(fromCache(hit, noAudio)); return; }
+                }
                 TtsEngine.Result r = engine.synthesize(text, sid, speed);
                 if (r == null) { call.reject("No voice loaded."); return; }
-                call.resolve(new JSObject().put("wav", r.wavBase64).put("sampleRate", r.sampleRate).put("audioSec", r.audioSec)
-                        .put("synthSec", r.synthSec).put("rms", r.rms));
+                call.resolve(audioResult(r.wav, r.sampleRate, r.audioSec, r.synthSec, r.rms, false, noAudio));
+                if (useCache) cache().put(key, r.wav); // after resolving: storing must never delay the audio
             } catch (Throwable t) {
                 call.reject("Speech failed (" + t.getMessage() + ").");
             }
+        };
+        if (useCache) {
+            cacheIo.execute(() -> {
+                byte[] hit = cache().get(key);
+                if (hit != null) { call.resolve(fromCache(hit, noAudio)); return; }
+                synth.execute(new Job(low ? 1 : 0, synthJob));
+            });
+        } else {
+            synth.execute(new Job(low ? 1 : 0, synthJob));
+        }
+    }
+
+    /** Which of these cache keys are already stored: lets the player treat those sentences as free when planning playback. */
+    @PluginMethod
+    public void cacheHas(PluginCall call) {
+        final JSArray keys = call.getArray("keys");
+        cacheIo.execute(() -> {
+            JSArray has = new JSArray();
+            try {
+                if (keys != null) for (int i = 0; i < keys.length(); i++) {
+                    String k = keys.getString(i);
+                    has.put(TtsCache.okKey(k) && cache().has(k));
+                }
+            } catch (Exception e) { /* report what we have */ }
+            call.resolve(new JSObject().put("has", has));
         });
+    }
+
+    @PluginMethod
+    public void cacheStats(PluginCall call) {
+        cacheIo.execute(() -> {
+            long[] st = cache().stats();
+            call.resolve(new JSObject().put("bytes", st[0]).put("files", st[1]).put("limitBytes", cache().limit()));
+        });
+    }
+
+    @PluginMethod
+    public void clearCache(PluginCall call) {
+        cacheIo.execute(() -> { cache().clear(); call.resolve(); });
+    }
+
+    /** `mb` for the app, or `bytes` for tests (a tiny cap to watch eviction). */
+    @PluginMethod
+    public void setCacheLimit(PluginCall call) {
+        // read the raw JSON numbers: PluginCall.getLong() only accepts values that arrived as Long, and JS integers arrive as Integer
+        final JSObject data = call.getData();
+        final long limit = data.has("bytes") ? data.optLong("bytes", TtsCache.DEFAULT_LIMIT)
+                : data.has("mb") ? data.optLong("mb", 200) * 1024L * 1024L : TtsCache.DEFAULT_LIMIT;
+        cacheIo.execute(() -> {
+            cache().setLimit(limit);
+            long[] st = cache().stats();
+            call.resolve(new JSObject().put("bytes", st[0]).put("files", st[1]).put("limitBytes", cache().limit()));
+        });
+    }
+
+    /** Drops queued background prefetch jobs (the one already running finishes). */
+    @PluginMethod
+    public void cancelPrefetch(PluginCall call) { prefetchEpoch.incrementAndGet(); call.resolve(); }
+
+    /** CPU layout for choosing a thread count: the performance cores, all core frequencies (MHz) when readable, and the default. */
+    @PluginMethod
+    public void cpuInfo(PluginCall call) {
+        long[] f = TtsEngine.coreMaxFreqs();
+        JSArray mhz = new JSArray();
+        if (f != null) for (long x : f) mhz.put(x / 1000);
+        call.resolve(new JSObject().put("cores", Runtime.getRuntime().availableProcessors()).put("performance", TtsEngine.performanceCores())
+                .put("freqsMhz", mhz).put("freqsKnown", f != null).put("defaultThreads", TtsEngine.defaultThreads()));
     }
 }
