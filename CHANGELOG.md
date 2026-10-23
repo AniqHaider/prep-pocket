@@ -4,13 +4,23 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
-## [1.6.2] — 2026-10-23
-### Fixed
-- **The screen no longer goes off while a lesson is playing.** It stays on while an animated lesson plays (including the short pause between lessons) and while a chapter is read aloud, and sleeps normally again when you pause, reach the end of the playlist, or close the player.
-- **Moving to the next lesson could leave it on its last step.** The next lesson now always starts from its first step.
+## [1.7.0] — 2026-10-23
+Six new sections, a JavaScript and TypeScript playground, and lessons that keep the screen on and play through.
+
+### Added
+- **Computer science** (new menu item): 15 topics, 28 animated lessons and an 80-question quiz. Bits and text (binary, UTF-8), Big-O, arrays and memory, linked lists, stacks and queues, hash tables, trees, heaps, graphs (BFS/DFS), sorting and searching, recursion and dynamic programming, stack vs heap and garbage collection, processes and threads, networking (TCP, DNS, TLS), the memory hierarchy, and how compilers and runtimes work.
+- **AI and agents:** 16 topics, 23 animated lessons and an 80-question quiz. How language models work, tokens and context, prompting, embeddings and search, RAG, tool use, the agent loop, harnesses, context engineering, MCP, multi-agent patterns, evals, safety, cost and caching, fine-tuning vs RAG vs prompting, and on-device models.
+- **JavaScript** (14 topics, 21 lessons, 80 questions), **TypeScript** (15 topics, 18 lessons), **React** (13 topics, 25 lessons) and **Next.js** (13 topics, 24 lessons), each with written notes and animated lessons. The TypeScript, React and Next.js quizzes reuse the existing 100 / 200 / 200 questions, regrouped to match the topics, so saved progress is kept.
+- **JavaScript / TypeScript playground** for the Computer science, AI, JavaScript and TypeScript sections: every topic has runnable "Try it" snippets (170 in total). Code runs in a sandboxed worker with real event-loop ordering, console output, a 5-second guard against endless loops, and no network. TypeScript has its types stripped, not checked.
+- The Visual lessons hub now covers 248 lessons across nine topics.
 
 ### Changed
-- **"Play all" and "Watch this chapter" now play through.** At the end of a lesson the next one starts by itself after a few seconds ("Next lesson starts in a moment", with a "Stay here" button to stop it).
+- **Menu regrouped:** Learn (Backend lab, Computer science, AI and agents, Visual lessons), Frontend (JavaScript, TypeScript, React, Next.js), Databases, Practice (Svelte + TypeScript, the 500-question Frontend quiz, Drills), App.
+- **"Play all" and "Watch this chapter" now play through:** the next lesson starts by itself after a few seconds ("Next lesson starts in a moment", with a "Stay here" button).
+
+### Fixed
+- **The screen no longer goes off while a lesson is playing.** It stays on while an animated lesson plays (including the pause between lessons) and while a chapter is read aloud, and sleeps normally again when you pause, reach the end, or close the player.
+- **Moving to the next lesson could leave it on its last step.** The next lesson now always starts from its first step.
 
 ## [1.6.1] — 2026-10-23
 Faster narration on slow phones, and a sharp logo at launch. (Version 1.6.0 was skipped; this is the release.)

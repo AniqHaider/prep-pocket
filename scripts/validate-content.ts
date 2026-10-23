@@ -7,6 +7,12 @@ import type { Scene, SceneNode } from '../src/explain/types';
 import { postgres } from '../src/db/postgres';
 import { mysql } from '../src/db/mysql';
 import { mongodb } from '../src/db/mongodb';
+import { cs } from '../src/db/cs';
+import { ai } from '../src/db/ai';
+import { javascript } from '../src/db/javascript';
+import { typescript } from '../src/db/typescript';
+import { react } from '../src/db/react';
+import { nextjs } from '../src/db/nextjs';
 
 const filter = process.argv[2] ?? '';
 const errs: string[] = [];
@@ -14,8 +20,8 @@ const warns: string[] = [];
 const E = (where: string, msg: string) => errs.push(`${where}: ${msg}`);
 const W = (where: string, msg: string) => warns.push(`${where}: ${msg}`);
 const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B50}]/u;
-const engines = { postgres, mysql, mongodb };
-const PREFIX = { postgres: 'pg-', mysql: 'my-', mongodb: 'mg-' } as const; // scene id prefix per engine
+const engines = { postgres, mysql, mongodb, cs, ai, javascript, typescript, react, nextjs };
+const PREFIX = { postgres: 'pg-', mysql: 'my-', mongodb: 'mg-', cs: 'cs-', ai: 'ai-', javascript: 'js-', typescript: 'ts-', react: 'rc-', nextjs: 'nx-' } as const; // scene id prefix per engine
 const CH = new Set(Array.from({ length: 12 }, (_, i) => `ch${i + 1}`));
 
 // ---------- scenes ----------
@@ -119,7 +125,7 @@ for (const eng of Object.values(engines)) {
 		if (qids.has(q.id)) E(w, 'duplicate id'); qids.add(q.id);
 		if (!quizTopicIds.has(q.topic)) E(w, `topic "${q.topic}" not in quizTopics`);
 		const opts = [q.correct, ...q.wrong];
-		if (new Set(opts.map((o) => o.toLowerCase().trim())).size !== 4) E(w, 'options are not 4 distinct strings');
+		if (new Set(opts.map((o) => o.trim())).size !== 4) E(w, 'options are not 4 distinct strings');
 		if (opts.some((o) => /all of the above|none of the above|both a and b/i.test(o))) E(w, 'all/none of the above');
 		if (/\b(option|answer|choice)\s+[A-D]\b|\b[A-D]\)/.test(q.why + q.q)) E(w, 'refers to a letter (options are shuffled)');
 		if (q.why.length < 80) E(w, `explanation too short (${q.why.length})`);

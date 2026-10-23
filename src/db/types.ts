@@ -11,19 +11,22 @@ export interface DbTopic {
 	notes: string;
 	/** Scene ids (see src/explain/scenes) shown as "Watch" buttons. */
 	scenes: string[];
-	/** Snippets that run in the playground (Postgres: SQL, MongoDB: a shell-style query). */
+	/** Snippets that run in the playground (Postgres: SQL, MongoDB: a shell-style query, JavaScript/TypeScript/CS: runnable code). */
 	try?: { label: string; code: string }[];
 }
 
-export interface DbEngine {
-	id: 'postgres' | 'mysql' | 'mongodb';
+/** A learn section: topics (notes + animated lessons), a quiz, and optionally a playground. Used for databases and the CS / frontend sections. */
+export interface LearnEngine {
+	id: 'postgres' | 'mysql' | 'mongodb' | 'cs' | 'ai' | 'javascript' | 'typescript' | 'react' | 'nextjs';
 	name: string;
 	tagline: string;
 	topics: DbTopic[];
 	questions: Question[];
 	quizTopics: TopicDef[];
-	/** Which in-app playground this engine has, if any. MySQL has none: it cannot run in a WebView. */
-	playground?: 'sql' | 'mongo';
+	/** Which in-app playground this engine has, if any. MySQL has none: it cannot run in a WebView. React and Next.js have none. */
+	playground?: 'sql' | 'mongo' | 'js';
 	/** What the quiz screen says under its title. */
 	quizBlurb: string;
 }
+
+export type DbEngine = LearnEngine;

@@ -1,4 +1,5 @@
-// Runs every topic's "Try it" snippet against the real playground engines (PGlite for PostgreSQL, mingo for MongoDB).
+// Runs every topic's "Try it" snippet against the real playground engines (PGlite for PostgreSQL, mingo for MongoDB, the JS runner for
+// the Computer science / AI / JavaScript / TypeScript sections; a section with no topics yet simply has nothing to run).
 // A snippet must run without error, unless its label says it fails on purpose ("violate", "error", "fails").
 // Run: bun scripts/verify-snippets.ts
 import { PGlite } from '@electric-sql/pglite';
@@ -8,6 +9,11 @@ import { runMongo } from '../src/db/playground/mongoEval';
 import { seedStatements } from '../src/dojo/engine/sql-core';
 import { postgres } from '../src/db/postgres';
 import { mongodb } from '../src/db/mongodb';
+import { cs } from '../src/db/cs';
+import { ai } from '../src/db/ai';
+import { javascript } from '../src/db/javascript';
+import { typescript } from '../src/db/typescript';
+import { runScript } from '../src/db/playground/jsRun';
 
 let fails = 0, total = 0;
 const expectsError = (label: string) => /violat|error|fail|reject/i.test(label);
@@ -48,6 +54,23 @@ for (const t of mongodb.topics) {
 		const bad = expectsError(s.label) ? !err : !!err;
 		if (bad) fails++;
 		console.log(`${bad ? '✗' : '✓'} mongo ${t.id} / ${s.label}${err ? '  -> ' + err : `  (${n} results)`}`);
+	}
+}
+
+// JavaScript / TypeScript snippets run through the same pure runner the playground's worker uses. A snippet must finish without an
+// uncaught error or a "stopped" note, unless its label says it fails on purpose.
+for (const eng of [cs, ai, javascript, typescript]) {
+	for (const t of eng.topics) {
+		for (const s of t.try ?? []) {
+			total++;
+			const r = await runScript(s.code, { ts: eng.id === 'typescript', timeoutMs: 3000 });
+			const stopped = r.notes.find((n) => n.startsWith('Stopped'));
+			const err = r.error?.message ?? stopped ?? '';
+			// JS/TS snippets are meant to run cleanly; one that throws on purpose says so in its label with "(throws)"
+			const bad = /\(throws\)/i.test(s.label) ? !r.error : !!err;
+			if (bad) fails++;
+			console.log(`${bad ? '✗' : '✓'} js    ${eng.id} ${t.id} / ${s.label}${err ? '  -> ' + err : `  (${r.lines.length} lines, ${r.ms} ms)`}`);
+		}
 	}
 }
 console.log(`${total} snippets, ${fails} problems`);
