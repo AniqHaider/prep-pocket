@@ -6,7 +6,7 @@
 	import { groupTitle } from './groups';
 	import { publish } from '../assistant/context';
 
-	const TOPICS: Topic[] = ['backend', 'postgres', 'mysql', 'mongodb'];
+	const TOPICS: Topic[] = ['backend', 'cs', 'ai', 'javascript', 'typescript', 'react', 'nextjs', 'postgres', 'mysql', 'mongodb'];
 	const stored = (() => { try { return localStorage.getItem('preppy:visual:topic'); } catch { return null; } })();
 	let topic = $state<Topic>(TOPICS.includes(stored as Topic) ? (stored as Topic) : 'backend');
 	let watched = $state(loadWatched());
