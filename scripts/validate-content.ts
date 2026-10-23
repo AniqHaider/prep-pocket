@@ -9,6 +9,7 @@ import { mysql } from '../src/db/mysql';
 import { mongodb } from '../src/db/mongodb';
 import { cs } from '../src/db/cs';
 import { ai } from '../src/db/ai';
+import { aws } from '../src/db/aws';
 import { javascript } from '../src/db/javascript';
 import { typescript } from '../src/db/typescript';
 import { react } from '../src/db/react';
@@ -20,8 +21,8 @@ const warns: string[] = [];
 const E = (where: string, msg: string) => errs.push(`${where}: ${msg}`);
 const W = (where: string, msg: string) => warns.push(`${where}: ${msg}`);
 const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B50}]/u;
-const engines = { postgres, mysql, mongodb, cs, ai, javascript, typescript, react, nextjs };
-const PREFIX = { postgres: 'pg-', mysql: 'my-', mongodb: 'mg-', cs: 'cs-', ai: 'ai-', javascript: 'js-', typescript: 'ts-', react: 'rc-', nextjs: 'nx-' } as const; // scene id prefix per engine
+const engines = { postgres, mysql, mongodb, cs, ai, aws, javascript, typescript, react, nextjs };
+const PREFIX = { postgres: 'pg-', mysql: 'my-', mongodb: 'mg-', cs: 'cs-', ai: 'ai-', aws: 'aw-', javascript: 'js-', typescript: 'ts-', react: 'rc-', nextjs: 'nx-' } as const; // scene id prefix per engine
 const CH = new Set(Array.from({ length: 12 }, (_, i) => `ch${i + 1}`));
 
 // ---------- scenes ----------
