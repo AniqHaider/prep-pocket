@@ -4,6 +4,14 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [1.9.0] — 2026-10-26
+An in-app keyboard for writing code.
+
+### Added
+- **Code keyboard.** Typing in a code editor (the JavaScript, TypeScript, SQL and MongoDB playgrounds, the Backend lab and the Drills) now shows Preppy's own keyboard instead of the phone's. Letters with Shift (tap twice for caps lock), a numbers layer, and a symbols layer with everything code needs: `( ) { } [ ] < > = ; : " ' \` $ _ | & ! ? / \ + - * % # @ ~ ^`. Brackets and `;` stay on every layer. Also Tab, Undo, cursor keys (hold to repeat; backspace repeats too) and Enter, which keeps the indentation of the line above and adds a level after `{`, `(`, `[` or `:`. Every key has a spoken label for screen readers.
+- **Switching back.** "Use the phone keyboard instead" under the keys, or Settings → Code keyboard (In-app / Phone keyboard). With the phone keyboard chosen, a small "Code keyboard" button appears while an editor is focused to switch back. Chat boxes and settings fields always keep the phone keyboard.
+- Sideways, the keys are shorter and the editor shrinks to the space above the keyboard, so you can see your code and the output while you type. The chevron key hides the keyboard (tap the editor to bring it back), which is also how you reach the Run button in landscape.
+
 ## [1.8.0] — 2026-10-24
 AWS lessons, and the animated-lesson player is now a video-style player.
 

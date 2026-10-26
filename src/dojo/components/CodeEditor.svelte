@@ -8,6 +8,7 @@
   import { sql } from "@codemirror/lang-sql";
   import { javascript } from "@codemirror/lang-javascript";
   import { oneDark } from "@codemirror/theme-one-dark";
+  import { kb } from "../../ui/kbState.svelte";
 
   let { code = "", language = "python", onChange } = $props();
 
@@ -23,6 +24,8 @@
         extensions: [
           keymap.of([indentWithTab]),
           basicSetup,
+          // with the in-app keyboard chosen, the phone keyboard must stay closed
+          EditorView.contentAttributes.of(() => (kb.mode === "app" ? { inputmode: "none" } : {})),
           langExt,
           oneDark,
           EditorView.updateListener.of((v) => {
@@ -42,6 +45,9 @@
       }),
     });
   });
+
+  // re-evaluate the attributes when the keyboard choice changes
+  $effect(() => { kb.mode; editor?.dispatch({}); });
 
   onDestroy(() => editor && editor.destroy());
 </script>

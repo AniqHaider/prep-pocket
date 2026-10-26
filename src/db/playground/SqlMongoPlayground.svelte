@@ -2,6 +2,7 @@
 	import { onMount, untrack } from 'svelte';
 	import type { DbEngine } from '../types';
 	import Icon from '../../ui/Icon.svelte';
+	import { codeinput } from '../../ui/kbState.svelte';
 	import { publish } from '../../assistant/context';
 	import { sqlEngine, type SqlRun } from './sqlEngine';
 	import { runMongo, MongoInputError, type MongoResult } from './mongoEval';
@@ -157,6 +158,7 @@
 		autocomplete="off"
 		aria-describedby="pg-hint"
 		data-testid="pg-editor"
+		use:codeinput
 	></textarea>
 	<p class="hint" id="pg-hint">{isSql ? 'Any SQL works: it is your own throwaway copy of the shop.' : 'Read-only: find, findOne, aggregate, countDocuments, distinct.'} Ctrl or Cmd + Enter runs it.</p>
 

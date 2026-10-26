@@ -2,6 +2,7 @@
 	import { onDestroy, untrack } from 'svelte';
 	import type { DbEngine } from '../types';
 	import Icon from '../../ui/Icon.svelte';
+	import { codeinput } from '../../ui/kbState.svelte';
 	import { publish } from '../../assistant/context';
 	import { jsEngine } from './jsEngine';
 	import type { RunLine, RunResult } from './jsRun';
@@ -91,6 +92,7 @@
 		autocomplete="off"
 		aria-describedby="js-hint"
 		data-testid="pg-editor"
+		use:codeinput
 	></textarea>
 	<p class="hint" id="js-hint">
 		{#if isTs}Types are stripped, not checked: your editor shows type errors. {/if}Runs in a sandbox with no network and no imports; top-level <code>await</code> works. Ctrl or Cmd + Enter runs it.

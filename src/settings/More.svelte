@@ -10,6 +10,7 @@
 	import { loadTtsPrefs, saveTtsPrefs } from '../tts/prefs';
 	import { speedClass, SPEED_LABEL } from '../tts/schedule';
 	import { playSample, stopSample } from '../tts/speaker';
+	import { kb, setKbMode } from '../ui/kbState.svelte';
 	import { SUB_LEVELS, loadSubLevel, saveSubLevel, subAlpha, type SubLevel } from '../explain/subtitle';
 
 	let subLevel = $state<SubLevel>(loadSubLevel());
@@ -445,6 +446,21 @@
 				<div class="sp-a"></div><div class="sp-b"></div><div class="sp-c"></div>
 				<span class="sp-cap" class:clear={subAlpha(subLevel) < 0.2} style="--sub-bg: rgba(0, 0, 0, {subAlpha(subLevel)})">Every pass of the loop leaves a trace.</span>
 			</div>
+		</div>
+	</section>
+
+	<section>
+		<div class="lab">
+			<h2>Code keyboard</h2>
+			<p>When you type in a code editor (the playgrounds, Backend lab and drills) Preppy shows its own keyboard with brackets, quotes, symbols, Tab and cursor keys, so you do not have to hunt for them. Chat boxes and settings keep the phone keyboard.</p>
+			<p class="now">Now: {kb.mode === 'app' ? 'In-app code keyboard' : 'Phone keyboard'}</p>
+		</div>
+		<div class="panel">
+			<div class="chips" role="radiogroup" aria-label="Code keyboard">
+				<button class="chip" role="radio" aria-checked={kb.mode === 'app'} onclick={() => setKbMode('app')}>In-app</button>
+				<button class="chip" role="radio" aria-checked={kb.mode === 'phone'} onclick={() => setKbMode('phone')}>Phone keyboard</button>
+			</div>
+			<p class="hint">You can also switch from the keyboard itself: tap "Use the phone keyboard instead" under the keys.</p>
 		</div>
 	</section>
 

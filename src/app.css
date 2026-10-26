@@ -64,6 +64,13 @@ body {
 	font-feature-settings: 'cv11', 'ss01'; -webkit-font-smoothing: antialiased; overscroll-behavior-y: none;
 }
 #app { min-height: 100dvh; }
+html.kb-open body { padding-bottom: var(--kb-h, 0px); } /* room under the page for the in-app code keyboard */
+textarea[data-codekb], .cm-editor { scroll-margin-bottom: calc(var(--kb-h, 0px) + 12px); scroll-margin-top: calc(var(--bar-top) + 8px); }
+/* Sideways the keyboard is half the screen: the editor shrinks to the space above it rather than hiding behind it. */
+@media (orientation: landscape) and (max-height: 560px) {
+	html.kb-open textarea[data-codekb] { height: clamp(72px, calc(100dvh - var(--bar-top) - var(--kb-h, 0px) - 24px), 240px) !important; min-height: 0 !important; }
+	html.kb-open .cm-editor { max-height: clamp(72px, calc(100dvh - var(--bar-top) - var(--kb-h, 0px) - 24px), 320px) !important; }
+}
 button { font-family: inherit; color: inherit; }
 a { color: var(--text); text-underline-offset: 3px; }
 code, pre, kbd { font-family: var(--mono); }
