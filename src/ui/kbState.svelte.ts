@@ -3,13 +3,24 @@ import { EditorView } from '@codemirror/view';
 import { deleteCharBackward, cursorCharLeft, cursorCharRight, cursorLineUp, cursorLineDown, insertNewlineAndIndent, indentMore, undo } from '@codemirror/commands';
 
 export type KbMode = 'app' | 'phone';
+export type Haptic = 'off' | 'light' | 'strong';
 const KEY = 'preppy:codekeyboard';
+const HKEY = 'preppy:codekeyboard:haptic';
 
 function loadMode(): KbMode {
 	try { return localStorage.getItem(KEY) === 'phone' ? 'phone' : 'app'; } catch { return 'app'; }
 }
 
-export const kb = $state({ mode: loadMode() as KbMode, target: null as KbTarget | null, collapsed: false });
+function loadHaptic(): Haptic {
+	try { const v = localStorage.getItem(HKEY); return v === 'off' || v === 'strong' ? v : 'light'; } catch { return 'light'; }
+}
+
+export const kb = $state({ mode: loadMode() as KbMode, haptic: loadHaptic() as Haptic, target: null as KbTarget | null, collapsed: false });
+
+export function setHaptic(h: Haptic) {
+	kb.haptic = h;
+	try { localStorage.setItem(HKEY, h); } catch { /* not remembered */ }
+}
 
 export function setKbMode(m: KbMode) {
 	kb.mode = m;

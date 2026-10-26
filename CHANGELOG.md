@@ -4,6 +4,15 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [1.9.1] — 2026-10-26
+More room in landscape, and the code keyboard buzzes.
+
+### Added
+- **Key vibration.** Each key on the code keyboard gives a small tap under your finger, so you can feel that it registered. Settings → Code keyboard → Key vibration: No vibration, Light tap (your phone's own keyboard-tap feedback, so it follows Android's touch-feedback setting) or Strong click (the vibration motor's click effect, independent of that setting). Held keys (backspace, arrows) tap once, not on every repeat.
+
+### Changed
+- **Landscape coding screens give the header back.** On any screen with a code editor (the playgrounds, Backend lab exercises, Drills) the top bar no longer stays pinned: it scrolls away with the page, and is gone completely while the code keyboard is up. Scroll to the top, or close the keyboard, to reach the menu.
+
 ## [1.9.0] — 2026-10-26
 An in-app keyboard for writing code.
 

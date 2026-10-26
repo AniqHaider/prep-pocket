@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import Icon from './Icon.svelte';
 	import { kb, setKbMode, targetFor } from './kbState.svelte';
+	import { haptic } from './haptics';
 
 	/** The in-app keyboard for code: letters, numbers, every symbol programmers reach for, Tab and cursor keys. Replaces the phone keyboard in code editors. */
 	type Layer = 'abc' | 'num' | 'sym';
@@ -104,11 +105,12 @@
 
 	// A pointerdown on a key must not steal focus from the editor.
 	const keep = (e: Event) => e.preventDefault();
+	const down = (e: Event) => { e.preventDefault(); if ((e.target as Element).closest('.k')) haptic(); };
 </script>
 
 {#if visible}
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-	<div class="kbd" bind:this={panel} role="group" aria-label="Code keyboard" onpointerdown={keep} onmousedown={keep} data-testid="code-keyboard">
+	<div class="kbd" bind:this={panel} role="group" aria-label="Code keyboard" onpointerdown={down} onmousedown={keep} data-testid="code-keyboard">
 		<div class="row top">
 			<button class="k fn" aria-label="Tab" onclick={() => act((t) => t.tab())}>Tab</button>
 			{#each CODE_ROW as c}

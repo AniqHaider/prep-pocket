@@ -66,6 +66,13 @@ body {
 #app { min-height: 100dvh; }
 html.kb-open body { padding-bottom: var(--kb-h, 0px); } /* room under the page for the in-app code keyboard */
 textarea[data-codekb], .cm-editor { scroll-margin-bottom: calc(var(--kb-h, 0px) + 12px); scroll-margin-top: calc(var(--bar-top) + 8px); }
+/* Sideways, a screen with a code editor gives the header's 52px back: it scrolls away with the page instead of staying pinned, and goes
+   completely while the code keyboard is up. Scroll to the top, or close the keyboard, to reach the menu again. */
+@media (orientation: landscape) and (max-height: 560px) {
+	html:has(.cm-editor, textarea[data-codekb]) { --bar-top: 0px; }
+	html:has(.cm-editor, textarea[data-codekb]) .appbar { position: static; height: var(--bar-h); padding-top: 0; }
+	html.kb-open .appbar { display: none; }
+}
 /* Sideways the keyboard is half the screen: the editor shrinks to the space above it rather than hiding behind it. */
 @media (orientation: landscape) and (max-height: 560px) {
 	html.kb-open textarea[data-codekb] { height: clamp(72px, calc(100dvh - var(--bar-top) - var(--kb-h, 0px) - 24px), 240px) !important; min-height: 0 !important; }

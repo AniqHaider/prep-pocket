@@ -7,6 +7,13 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
+import android.content.Context;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.os.VibratorManager;
+import android.view.HapticFeedbackConstants;
+import android.view.View;
+
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
@@ -382,6 +389,29 @@ public class LocalTtsPlugin extends Plugin {
             if (on) getActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             else getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             call.resolve();
+        });
+    }
+
+    /**
+     * A short tap under the finger for the in-app code keyboard. "light" is the phone's own keyboard-tap haptic (follows the
+     * system touch-feedback setting, so it feels like every other button); "strong" is the vibration motor's built-in click effect.
+     */
+    @PluginMethod
+    public void haptic(PluginCall call) {
+        call.resolve(); // never make the key wait for the buzz
+        final boolean strong = "strong".equals(call.getString("mode", "light"));
+        if (getActivity() == null || getBridge() == null) return;
+        getActivity().runOnUiThread(() -> {
+            try {
+                if (strong) {
+                    VibratorManager vm = (VibratorManager) getContext().getSystemService(Context.VIBRATOR_MANAGER_SERVICE);
+                    Vibrator v = vm != null ? vm.getDefaultVibrator() : null;
+                    if (v != null && v.hasVibrator()) v.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK));
+                } else {
+                    View view = getBridge().getWebView();
+                    if (view != null) view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                }
+            } catch (RuntimeException ignored) { /* no vibration motor or denied: the key still types */ }
         });
     }
 }

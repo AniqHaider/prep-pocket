@@ -10,7 +10,8 @@
 	import { loadTtsPrefs, saveTtsPrefs } from '../tts/prefs';
 	import { speedClass, SPEED_LABEL } from '../tts/schedule';
 	import { playSample, stopSample } from '../tts/speaker';
-	import { kb, setKbMode } from '../ui/kbState.svelte';
+	import { kb, setKbMode, setHaptic, type Haptic } from '../ui/kbState.svelte';
+	import { haptic } from '../ui/haptics';
 	import { SUB_LEVELS, loadSubLevel, saveSubLevel, subAlpha, type SubLevel } from '../explain/subtitle';
 
 	let subLevel = $state<SubLevel>(loadSubLevel());
@@ -461,6 +462,12 @@
 				<button class="chip" role="radio" aria-checked={kb.mode === 'phone'} onclick={() => setKbMode('phone')}>Phone keyboard</button>
 			</div>
 			<p class="hint">You can also switch from the keyboard itself: tap "Use the phone keyboard instead" under the keys.</p>
+			<div class="chips" role="radiogroup" aria-label="Key vibration">
+				{#each [['off', 'No vibration'], ['light', 'Light tap'], ['strong', 'Strong click']] as [id, label]}
+					<button class="chip" role="radio" aria-checked={kb.haptic === id} onclick={() => { setHaptic(id as Haptic); haptic(); }}>{label}</button>
+			{/each}
+			</div>
+			<p class="hint">Key vibration: "Light tap" is your phone's own keyboard-tap feedback (it follows the touch-feedback setting in Android); "Strong click" uses the vibration motor directly.</p>
 		</div>
 	</section>
 
