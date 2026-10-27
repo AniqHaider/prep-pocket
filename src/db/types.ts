@@ -17,7 +17,7 @@ export interface DbTopic {
 
 /** A learn section: topics (notes + animated lessons), a quiz, and optionally a playground. Used for databases and the CS / frontend sections. */
 export interface LearnEngine {
-	id: 'postgres' | 'mysql' | 'mongodb' | 'cs' | 'ai' | 'aws' | 'javascript' | 'typescript' | 'react' | 'nextjs';
+	id: 'postgres' | 'mysql' | 'mongodb' | 'cs' | 'ai' | 'aws' | 'javascript' | 'typescript' | 'react' | 'nextjs' | 'interview';
 	name: string;
 	tagline: string;
 	topics: DbTopic[];

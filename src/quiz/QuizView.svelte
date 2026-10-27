@@ -2,6 +2,7 @@
 	import { buildDeck, type Config, type Item } from './quiz';
 	import type { Question, TopicDef } from './types';
 	import { loadMissed, saveMissed } from './storage';
+	import { useBack } from '../ui/backNav.svelte';
 	import { publish } from '../assistant/context';
 	import { quizContext } from '../assistant/quizContext';
 	import Icon from '../ui/Icon.svelte';
@@ -20,6 +21,7 @@
 	type Screen = 'home' | 'quiz' | 'result';
 
 	let screen = $state<Screen>('home');
+	useBack(() => screen, (v) => (screen = v as Screen));
 	let cfg = $state<Config>({ topic: 'all', level: 'all', mode: 'practice', count: 10, onlyMissed: false });
 	// svelte-ignore state_referenced_locally
 	let missed = $state(loadMissed(storageKey));

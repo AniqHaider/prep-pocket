@@ -7,11 +7,14 @@
 	import { referenceFor, starterFor } from './drills-code';
 	import { publish } from '../assistant/context';
 	import Icon from '../ui/Icon.svelte';
+	import { useBack } from '../ui/backNav.svelte';
 
 	const KEY = 'prep-pocket:drills:v1';
 	interface Saved { code?: string; solved?: boolean }
 	let saved = $state<Record<string, Saved>>(load());
 	let openId = $state<string | null>(null);
+	let remount = $state(0);
+	useBack(() => openId ?? '', (v) => (openId = v || null));
 	let code = $state('');
 	let result = $state<DrillResult | null>(null);
 	let running = $state(false);
@@ -84,8 +87,7 @@
 		code = starterFor(drill.file);
 		saved[drill.id] = { ...saved[drill.id], code };
 		persist();
-		openId = null;
-		queueMicrotask(() => (openId = drill.id)); // remount the editor
+		remount++; // remount the editor
 		result = null;
 	}
 </script>
@@ -113,7 +115,7 @@
 		<h1>{drill.title} <small class="muted">{drill.topic}</small></h1>
 		<div class="prompt">{@html marked.parse(drill.prompt)}</div>
 
-		{#key openId}
+		{#key openId + ':' + remount}
 			<CodeEditor {code} language="ts" {onChange} />
 		{/key}
 

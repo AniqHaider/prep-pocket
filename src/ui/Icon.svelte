@@ -2,7 +2,7 @@
 	// One outline icon set (24px grid, 1.6 stroke, round caps). Decorative by default; pass `label` to expose it.
 	type Name =
 		| 'menu' | 'close' | 'back' | 'chevron' | 'dojo' | 'frontend' | 'react' | 'drills' | 'settings'
-		| 'sparkle' | 'flame' | 'check' | 'send' | 'stop' | 'trash' | 'book' | 'mic' | 'layers' | 'database' | 'alert' | 'play' | 'pause' | 'replay' | 'visual' | 'table' | 'braces' | 'cpu' | 'bot' | 'cloud' | 'js' | 'shield' | 'component' | 'next';
+		| 'sparkle' | 'flame' | 'check' | 'send' | 'stop' | 'trash' | 'book' | 'mic' | 'layers' | 'database' | 'alert' | 'play' | 'pause' | 'replay' | 'visual' | 'table' | 'braces' | 'cpu' | 'bot' | 'cloud' | 'js' | 'shield' | 'component' | 'next' | 'briefcase';
 	let { name, size = 18, label = '' }: { name: Name; size?: number; label?: string } = $props();
 	const P: Record<Name, string> = {
 		menu: 'M4 7h16M4 12h16M4 17h16',
@@ -34,6 +34,7 @@
 		cloud: 'M7 18a4 4 0 0 1-.6-7.95A5.6 5.6 0 0 1 17 8.6 4.7 4.7 0 0 1 17.4 18z',
 		bot: 'M12 3v3M8 6h8a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3zM9.5 11v1.5M14.5 11v1.5M9 15.5h6M3 11v3M21 11v3',
 		js: 'M4 4h16v16H4zM11.5 10v5.2a1.6 1.6 0 0 1-3 .6M14.3 16.7c.4.8 1.1 1.1 1.9 1.1 1 0 1.6-.5 1.6-1.3 0-2.1-3.4-1-3.4-3.1 0-.8.7-1.4 1.7-1.4.7 0 1.3.2 1.7.8',
+		briefcase: 'M3 8h18v11H3zM9 8V5h6v3M3 13h18',
 		shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4',
 		component: 'M12 3l3 3-3 3-3-3zM6 9l3 3-3 3-3-3zM18 9l3 3-3 3-3-3zM12 15l3 3-3 3-3-3z',
 		next: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM9.5 16V8l6 8.2V8',

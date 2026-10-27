@@ -8,6 +8,7 @@
 	import { play, loadWatched } from '../explain/nav';
 	import { sceneById } from '../explain/registry';
 	import { publish } from '../assistant/context';
+	import { useBack } from '../ui/backNav.svelte';
 
 	let { engine }: { engine: DbEngine } = $props();
 
@@ -26,6 +27,8 @@
 	let tab = $state<Tab>(saved === 'quiz' || saved === 'play' ? saved : 'learn');
 	let open = $state<string | null>(null);
 	let seed = $state('');
+	useBack(() => tab, (v) => (tab = v as Tab));
+	useBack(() => open ?? '', (v) => (open = v || null));
 	let watched = $state(loadWatched());
 	const tabs = $derived<{ id: Tab; label: string }[]>([
 		{ id: 'learn', label: 'Learn' },

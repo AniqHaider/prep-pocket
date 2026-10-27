@@ -7,12 +7,15 @@
 	import Icon from '../ui/Icon.svelte';
 	import { theories } from './theory/index';
 	import Theory from './Theory.svelte';
+	import { useBack } from '../ui/backNav.svelte';
 
 	type Screen = 'home' | 'quiz' | 'result';
 	type View = 'quiz' | 'svelte' | 'typescript';
 	let view = $state<View>('quiz');
 
 	let screen = $state<Screen>('home');
+	useBack(() => view, (v) => (view = v as View));
+	useBack(() => screen, (v) => (screen = v as Screen));
 	let cfg = $state<Config>({ topic: 'all', level: 'all', mode: 'practice', count: 10, onlyMissed: false });
 	let missed = $state(loadMissed());
 

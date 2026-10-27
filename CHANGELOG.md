@@ -4,6 +4,19 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [2.1.0] — 2026-10-27
+Interview prep, a smarter Back button, and a What's new note after each update.
+
+### Added
+- **Interview prep** (menu, between Practice and App). What gets asked for SDE 1 and SDE 2 roles, built from interview write-ups and weighted toward full-stack work: 22 topics across JavaScript, TypeScript, React, Next.js, web performance, Node.js, NestJS and Express, API design, auth and security, Python and FastAPI, SQL, MySQL and MongoDB, AWS, Docker and CI/CD, data structures, low-level and high-level design, real system designs, AI features, behavioral questions, SDE 2 expectations and project deep-dives.
+- **Model answers.** Every topic is a bank of questions marked SDE 1 or SDE 2, each with a concise answer and, for SDE 2, the follow-ups interviewers ask next.
+- **264 quiz questions** (basic is SDE 1, advanced is SDE 2) and **about 80 runnable exercises** in the playground.
+- **12 new graded coding drills** in Drills (Interview · SDE 1 and SDE 2): the machine-coding problems that come up most.
+- **What's new.** After an update, a short note of what changed appears once, taken from these release notes.
+
+### Changed
+- **Back goes to where you were.** Back now steps back through an opened topic, a switched Learn/Quiz/Playground tab, an opened drill and the screens of a quiz, as well as through the sections you visited. The "Quit Preppy?" question only appears at the very first screen.
+
 ## [2.0.0] — 2026-10-27
 Networking joins Computer science.
 

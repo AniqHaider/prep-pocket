@@ -10,10 +10,12 @@
 	import More from './settings/More.svelte';
 	import CodeKeyboard from './ui/CodeKeyboard.svelte';
 	import ExitConfirm from './ui/ExitConfirm.svelte';
+	import WhatsNew from './ui/WhatsNew.svelte';
 	import Icon from './ui/Icon.svelte';
 	import Visual from './explain/Visual.svelte';
 	import Player from './explain/Player.svelte';
 	import { playlist } from './explain/nav';
+	import { innerDepth, resetInner } from './ui/backNav.svelte';
 	import Database from './db/Database.svelte';
 	import { postgres } from './db/postgres';
 	import { mysql } from './db/mysql';
@@ -25,9 +27,10 @@
 	import { typescript } from './db/typescript';
 	import { react } from './db/react';
 	import { nextjs } from './db/nextjs';
+	import { interview } from './db/interview';
 
-	type Tab = 'dojo' | 'visual' | 'cs' | 'ai' | 'aws' | 'js' | 'ts' | 'react' | 'next' | 'pg' | 'mysql' | 'mongo' | 'prep' | 'prep2' | 'drills' | 'more';
-	type IconName = 'dojo' | 'frontend' | 'react' | 'drills' | 'settings' | 'visual' | 'database' | 'table' | 'braces' | 'cpu' | 'bot' | 'cloud' | 'js' | 'shield' | 'component' | 'next';
+	type Tab = 'dojo' | 'visual' | 'cs' | 'ai' | 'aws' | 'js' | 'ts' | 'react' | 'next' | 'pg' | 'mysql' | 'mongo' | 'prep' | 'prep2' | 'drills' | 'interview' | 'more';
+	type IconName = 'dojo' | 'frontend' | 'react' | 'drills' | 'settings' | 'visual' | 'database' | 'table' | 'braces' | 'cpu' | 'bot' | 'cloud' | 'js' | 'shield' | 'component' | 'next' | 'briefcase';
 	const GROUPS: { title: string; items: { id: Tab; icon: IconName; label: string; sub: string }[] }[] = [
 		{
 			title: 'Learn',
@@ -64,6 +67,10 @@
 				{ id: 'drills', icon: 'drills', label: 'Drills', sub: 'debounce, LRU, promise pool…' }
 			]
 		},
+		{
+			title: 'Interviews',
+			items: [{ id: 'interview', icon: 'briefcase', label: 'Interview prep', sub: 'SDE 1 and SDE 2 questions, answers, exercises' }]
+		},
 		{ title: 'App', items: [{ id: 'more', icon: 'settings', label: 'Settings', sub: 'AI models, progress, backup' }] }
 	];
 	const ALL = GROUPS.flatMap((g) => g.items);
@@ -79,7 +86,7 @@
 
 	// Android's back button == history.back(). Every tab switch / Backend lab screen change pushes an entry,
 	// so Back steps through them and exits the app only from the first screen.
-	const snapshot = () => ({ tab, view: get(view), drawer, assistant, play: get(playlist) });
+	const snapshot = () => ({ tab, view: get(view), drawer, assistant, play: get(playlist), inner: innerDepth() });
 
 	onMount(() => {
 		history.replaceState(snapshot(), '');
@@ -150,6 +157,7 @@
 	function go(t: Tab) {
 		if (t === tab) return closeDrawer();
 		tab = t;
+		resetInner();
 		assistant = false;
 		persist(t);
 		drawer = false;
@@ -164,7 +172,7 @@
 </header>
 
 <div class="screen" class:pad={tab !== 'dojo'}>
-	{#if tab === 'dojo'}<Dojo />{:else if tab === 'visual'}<Visual />{:else if tab === 'cs'}<Database engine={cs} />{:else if tab === 'ai'}<Database engine={ai} />{:else if tab === 'aws'}<Database engine={aws} />{:else if tab === 'js'}<Database engine={javascript} />{:else if tab === 'ts'}<Database engine={typescript} />{:else if tab === 'react'}<Database engine={react} />{:else if tab === 'next'}<Database engine={nextjs} />{:else if tab === 'pg'}<Database engine={postgres} />{:else if tab === 'mysql'}<Database engine={mysql} />{:else if tab === 'mongo'}<Database engine={mongodb} />{:else if tab === 'prep'}<Prep />{:else if tab === 'prep2'}<Prep2 />{:else if tab === 'drills'}<Drills />{:else}<More />{/if}
+	{#if tab === 'dojo'}<Dojo />{:else if tab === 'visual'}<Visual />{:else if tab === 'cs'}<Database engine={cs} />{:else if tab === 'ai'}<Database engine={ai} />{:else if tab === 'aws'}<Database engine={aws} />{:else if tab === 'js'}<Database engine={javascript} />{:else if tab === 'ts'}<Database engine={typescript} />{:else if tab === 'react'}<Database engine={react} />{:else if tab === 'next'}<Database engine={nextjs} />{:else if tab === 'pg'}<Database engine={postgres} />{:else if tab === 'mysql'}<Database engine={mysql} />{:else if tab === 'mongo'}<Database engine={mongodb} />{:else if tab === 'prep'}<Prep />{:else if tab === 'prep2'}<Prep2 />{:else if tab === 'interview'}<Database engine={interview} />{:else if tab === 'drills'}<Drills />{:else}<More />{/if}
 </div>
 
 {#if $playlist}
@@ -173,6 +181,7 @@
 
 <CodeKeyboard />
 <ExitConfirm />
+<WhatsNew />
 
 {#if tab !== 'dojo'}
 	<Assistant open={assistant} onopen={openAssistant} onclose={closeAssistant} />

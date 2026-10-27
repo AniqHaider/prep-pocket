@@ -16,7 +16,9 @@ initLandscapeImmersive();
 
 if (Capacitor.isNativePlatform()) {
 	CapApp.addListener('backButton', ({ canGoBack }) => {
-		if (exitAsk.open) exitAsk.open = false;
+		const wn = document.querySelector<HTMLElement>('[data-testid="whats-new-ok"]');
+		if (wn) wn.click();
+		else if (exitAsk.open) exitAsk.open = false;
 		else if (kbShowing()) hideKb();
 		else if (canGoBack) history.back();
 		else exitAsk.open = true;
