@@ -160,7 +160,7 @@
 
 <style>
 	.kbd {
-		position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; background: #0b0b0b; border-top: 1px solid var(--rule);
+		position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; background: #0b0c1c; border-top: 1px solid var(--rule);
 		padding: 8px 6px calc(6px + var(--safe-b)); display: grid; gap: 6px; user-select: none; -webkit-user-select: none; touch-action: manipulation;
 	}
 	.row { display: flex; gap: 5px; justify-content: center; }
@@ -168,14 +168,14 @@
 		flex: 1 1 0; min-width: 0; height: 44px; border: 0; border-radius: 9px; background: var(--raised); color: var(--text);
 		font: 500 18px var(--mono); padding: 0; display: inline-flex; align-items: center; justify-content: center;
 	}
-	.k:active { background: #444; }
-	.k.fn { background: #1b1b1b; color: var(--muted); font: 500 13px var(--font); }
-	.k.fn:active { background: #333; }
-	.k.fn.on { background: #333; color: var(--text); }
+	.k:active { background: #3b4070; }
+	.k.fn { background: #171a36; color: var(--muted); font: 500 13px var(--font); }
+	.k.fn:active { background: #2a2e56; }
+	.k.fn.on { background: #2a2e56; color: var(--text); }
 	.k.wide { flex: 1.5 1 0; }
 	.k.space { flex: 3 1 0; font: 500 12px var(--font); color: var(--faint); }
-	.k.go { background: var(--text); color: #000; font: 600 14px var(--font); }
-	.k.go:active { background: #d9d9d9; }
+	.k.go { background: var(--brand); color: var(--brand-ink); font: 600 14px var(--font); }
+	.k.go:active { background: #7479f0; }
 	.row.top .k { height: 40px; font-size: 17px; }
 	.k:focus-visible { outline-offset: -2px; }
 	.phone { justify-self: center; background: transparent; border: 0; color: var(--faint); font-size: 12px; min-height: 28px; padding: 0 12px; text-decoration: underline; text-underline-offset: 3px; }

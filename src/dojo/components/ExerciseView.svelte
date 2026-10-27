@@ -198,7 +198,7 @@
     display: grid; place-items: center; background: var(--raised); color: var(--muted);
     font-weight: 600; font-size: 13px;
   }
-  .option.sel .optmark { background: var(--text); color: #000; }
+  .option.sel .optmark { background: var(--brand); color: var(--brand-ink); }
   .opttext { flex: 1; }
 
   .exnav {

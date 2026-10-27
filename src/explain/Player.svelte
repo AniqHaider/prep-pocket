@@ -259,8 +259,8 @@
 	.cb { width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; border-radius: 50%; color: var(--text); }
 	.cb:active { background: var(--surface); }
 	.cb:disabled { opacity: .35; }
-	.cb.main { width: 48px; height: 48px; background: var(--text); color: #000; margin-right: 6px; }
-	.cb.main:active { background: #d9d9d9; }
+	.cb.main { width: 48px; height: 48px; background: var(--brand); color: var(--brand-ink); margin-right: 6px; }
+	.cb.main:active { background: #7479f0; }
 	.pill-b { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border-radius: 999px; background: none; border: 1px solid var(--control); color: var(--text); font-size: 13px; font-weight: 600; }
 	.pill-b.on { background: var(--raised); border-color: var(--text); }
 	.pill-b.strong { border-color: var(--text); }

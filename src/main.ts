@@ -6,6 +6,7 @@ import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { kbShowing, hideKb } from './ui/kbState.svelte';
 import { exitAsk } from './ui/exitState.svelte';
+import { atRoot } from './ui/rootState';
 import { initLandscapeImmersive } from './ui/immersive';
 
 // #gallery is a dev-only contact sheet of every animated scene (see docs/explainers.md)
@@ -20,7 +21,7 @@ if (Capacitor.isNativePlatform()) {
 		if (wn) wn.click();
 		else if (exitAsk.open) exitAsk.open = false;
 		else if (kbShowing()) hideKb();
-		else if (canGoBack) history.back();
+		else if (!atRoot() && canGoBack) history.back();
 		else exitAsk.open = true;
 	});
 }

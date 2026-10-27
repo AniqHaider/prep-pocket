@@ -503,7 +503,7 @@
 	.opt { display: flex; gap: 12px; align-items: flex-start; min-height: 44px; padding: 10px 12px; border-radius: var(--radius-row); }
 	.opt + .opt { margin-top: 2px; }
 	.opt.on { background: var(--raised); }
-	.opt input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: #fff; flex: none; }
+	.opt input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--brand); flex: none; }
 	.opt b { font-weight: 500; }
 	.opt small { display: block; color: var(--muted); margin-top: 2px; font-size: var(--fs-small); line-height: 1.45; }
 	.f { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; font-size: var(--fs-body); font-weight: 500; }

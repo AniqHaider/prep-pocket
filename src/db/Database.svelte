@@ -27,7 +27,6 @@
 	let tab = $state<Tab>(saved === 'quiz' || saved === 'play' ? saved : 'learn');
 	let open = $state<string | null>(null);
 	let seed = $state('');
-	useBack(() => tab, (v) => (tab = v as Tab));
 	useBack(() => open ?? '', (v) => (open = v || null));
 	let watched = $state(loadWatched());
 	const tabs = $derived<{ id: Tab; label: string }[]>([
@@ -125,7 +124,7 @@
 	.stats { color: var(--faint); font-size: var(--fs-small); margin: 8px 0 0; }
 	.tabs { display: flex; gap: 4px; background: var(--surface); border-radius: var(--radius-control); padding: 4px; margin: 16px 0; }
 	.tab { flex: 1; min-height: 44px; border: 0; background: none; border-radius: var(--radius-control); color: var(--muted); font-weight: 500; font-size: var(--fs-body); }
-	.tab.on { background: var(--raised); color: var(--text); font-weight: 600; }
+	.tab.on { background: var(--brand-soft); color: var(--text); font-weight: 600; }
 	.empty { padding: 24px 4px; }
 	.topics { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 	.topic { background: var(--surface); border-radius: var(--radius-card); overflow: hidden; }

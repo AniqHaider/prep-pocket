@@ -12,10 +12,12 @@
 	import ExitConfirm from './ui/ExitConfirm.svelte';
 	import WhatsNew from './ui/WhatsNew.svelte';
 	import Icon from './ui/Icon.svelte';
+	import Home from './ui/Home.svelte';
 	import Visual from './explain/Visual.svelte';
 	import Player from './explain/Player.svelte';
 	import { playlist } from './explain/nav';
 	import { innerDepth, resetInner } from './ui/backNav.svelte';
+	import { setRootProbe } from './ui/rootState';
 	import Database from './db/Database.svelte';
 	import { postgres } from './db/postgres';
 	import { mysql } from './db/mysql';
@@ -29,8 +31,8 @@
 	import { nextjs } from './db/nextjs';
 	import { interview } from './db/interview';
 
-	type Tab = 'dojo' | 'visual' | 'cs' | 'ai' | 'aws' | 'js' | 'ts' | 'react' | 'next' | 'pg' | 'mysql' | 'mongo' | 'prep' | 'prep2' | 'drills' | 'interview' | 'more';
-	type IconName = 'dojo' | 'frontend' | 'react' | 'drills' | 'settings' | 'visual' | 'database' | 'table' | 'braces' | 'cpu' | 'bot' | 'cloud' | 'js' | 'shield' | 'component' | 'next' | 'briefcase';
+	type Tab = 'home' | 'dojo' | 'visual' | 'cs' | 'ai' | 'aws' | 'js' | 'ts' | 'react' | 'next' | 'pg' | 'mysql' | 'mongo' | 'prep' | 'prep2' | 'drills' | 'interview' | 'more';
+	type IconName = 'dojo' | 'frontend' | 'react' | 'drills' | 'settings' | 'visual' | 'database' | 'table' | 'braces' | 'cpu' | 'bot' | 'cloud' | 'js' | 'shield' | 'component' | 'next' | 'briefcase' | 'home' | 'python';
 	const GROUPS: { title: string; items: { id: Tab; icon: IconName; label: string; sub: string }[] }[] = [
 		{
 			title: 'Learn',
@@ -73,12 +75,14 @@
 		},
 		{ title: 'App', items: [{ id: 'more', icon: 'settings', label: 'Settings', sub: 'AI models, progress, backup' }] }
 	];
-	const ALL = GROUPS.flatMap((g) => g.items);
+	const HOME = { id: 'home' as Tab, icon: 'home' as IconName, label: 'Home', sub: 'Your day, and every section' };
+	const ALL = [HOME, ...GROUPS.flatMap((g) => g.items)];
 	const TAB_IDS = new Set<string>(ALL.map((t) => t.id));
 	const stored = localStorage.getItem('prep-pocket:tab') ?? '';
 
-	// Never open on Settings: restore the last content section, else the Backend lab.
-	let tab = $state<Tab>(TAB_IDS.has(stored) && stored !== 'more' ? (stored as Tab) : 'dojo');
+	// Always open on Home; the last section you studied is one tap away (Continue).
+	let tab = $state<Tab>('home');
+	let last = $state(TAB_IDS.has(stored) && stored !== 'more' && stored !== 'home' ? stored : 'dojo'); // the last content section, for Continue
 	let drawer = $state(false);
 	let assistant = $state(false); // app-level assistant sheet (every section except the Backend lab, which has its own tutor)
 	let restoring = false;
@@ -89,6 +93,8 @@
 	const snapshot = () => ({ tab, view: get(view), drawer, assistant, play: get(playlist), inner: innerDepth() });
 
 	onMount(() => {
+		// "Root" = a section's top screen with the menu, assistant, player and any opened topic / drill / lesson closed.
+		setRootProbe(() => !drawer && !assistant && !get(playlist) && innerDepth() === 0 && (tab !== 'dojo' || get(view).name === 'dashboard'));
 		history.replaceState(snapshot(), '');
 		const unsub = view.subscribe(() => {
 			if (restoring || !history.state) return;
@@ -121,7 +127,8 @@
 	});
 
 	function persist(t: Tab) {
-		if (t === 'more') return; // Settings is a visit, not a home
+		if (t === 'more' || t === 'home') return; // Settings and Home are visits, not sections to resume
+		last = t;
 		try {
 			localStorage.setItem('prep-pocket:tab', t);
 		} catch {
@@ -154,6 +161,15 @@
 		return () => document.documentElement.classList.remove('lock');
 	});
 
+	// A tile on Home opens a section. Switching sections is not a history step: Back from a section's top screen offers to quit.
+	function pick(id: string) {
+		tab = id as Tab;
+		resetInner();
+		persist(tab);
+		history.replaceState(snapshot(), '');
+		window.scrollTo(0, 0);
+	}
+
 	function go(t: Tab) {
 		if (t === tab) return closeDrawer();
 		tab = t;
@@ -168,11 +184,11 @@
 
 <header class="appbar">
 	<button class="menu" onclick={openDrawer} aria-label="Open menu" aria-expanded={drawer} data-testid="menu"><Icon name="menu" size={22} /></button>
-	<span class="ttl" data-testid="title">{current.label}</span>
+	<span class="ttl" data-testid="title">{tab === 'home' ? 'Preppy' : current.label}</span>
 </header>
 
 <div class="screen" class:pad={tab !== 'dojo'}>
-	{#if tab === 'dojo'}<Dojo />{:else if tab === 'visual'}<Visual />{:else if tab === 'cs'}<Database engine={cs} />{:else if tab === 'ai'}<Database engine={ai} />{:else if tab === 'aws'}<Database engine={aws} />{:else if tab === 'js'}<Database engine={javascript} />{:else if tab === 'ts'}<Database engine={typescript} />{:else if tab === 'react'}<Database engine={react} />{:else if tab === 'next'}<Database engine={nextjs} />{:else if tab === 'pg'}<Database engine={postgres} />{:else if tab === 'mysql'}<Database engine={mysql} />{:else if tab === 'mongo'}<Database engine={mongodb} />{:else if tab === 'prep'}<Prep />{:else if tab === 'prep2'}<Prep2 />{:else if tab === 'interview'}<Database engine={interview} />{:else if tab === 'drills'}<Drills />{:else}<More />{/if}
+	{#if tab === 'home'}<Home groups={GROUPS} {last} onpick={pick} />{:else if tab === 'dojo'}<Dojo />{:else if tab === 'visual'}<Visual />{:else if tab === 'cs'}<Database engine={cs} />{:else if tab === 'ai'}<Database engine={ai} />{:else if tab === 'aws'}<Database engine={aws} />{:else if tab === 'js'}<Database engine={javascript} />{:else if tab === 'ts'}<Database engine={typescript} />{:else if tab === 'react'}<Database engine={react} />{:else if tab === 'next'}<Database engine={nextjs} />{:else if tab === 'pg'}<Database engine={postgres} />{:else if tab === 'mysql'}<Database engine={mysql} />{:else if tab === 'mongo'}<Database engine={mongodb} />{:else if tab === 'prep'}<Prep />{:else if tab === 'prep2'}<Prep2 />{:else if tab === 'interview'}<Database engine={interview} />{:else if tab === 'drills'}<Drills />{:else}<More />{/if}
 </div>
 
 {#if $playlist}
@@ -195,6 +211,10 @@
 		<svg class="mark" width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><path d="M9 25V5h6.5a5.75 5.75 0 0 1 0 11.5H9" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" /><circle cx="21.5" cy="23.5" r="2.4" fill="currentColor" /></svg>
 		<div><b>Preppy</b><small>Study offline. Keep the streak.</small></div>
 	</div>
+	<button class="item" class:on={tab === 'home'} onclick={() => go('home')} aria-current={tab === 'home' ? 'page' : undefined} data-testid="nav-home">
+		<span class="i"><Icon name="home" size={20} /></span>
+		<span class="tx"><b>Home</b><small>{HOME.sub}</small></span>
+	</button>
 	{#each GROUPS as g}
 		<div class="grp">{g.title}</div>
 		{#each g.items as t}
@@ -210,11 +230,11 @@
 	.appbar {
 		position: sticky; top: 0; z-index: 45; display: flex; align-items: center; gap: 4px;
 		height: var(--bar-top); padding: var(--safe-t) max(8px, env(safe-area-inset-right)) 0 max(4px, env(safe-area-inset-left));
-		background: var(--ground); border-bottom: 1px solid var(--border);
+		background: color-mix(in srgb, var(--ground) 88%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--border);
 	}
 	.menu { width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; border-radius: 50%; color: var(--text); }
 	.menu:active { background: var(--surface); }
-	.ttl { margin: 0; font-weight: 600; font-size: 17px; letter-spacing: -.01em; }
+	.ttl { margin: 0; font-weight: 650; font-size: 17px; letter-spacing: -.015em; }
 	/* the bar owns the status-bar inset, so screens must not add it again */
 	.screen { --safe-t: 0px; padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); min-height: calc(100dvh - var(--bar-h)); padding-bottom: calc(var(--safe-b) + 84px); } /* room for the floating Ask / Ask tutor button */
 
@@ -231,14 +251,15 @@
 	.brand b { display: block; font-size: 18px; font-weight: 600; letter-spacing: -.02em; }
 	.brand small { color: var(--faint); font-size: var(--fs-small); }
 	.grp { color: var(--faint); font-size: var(--fs-small); font-weight: 500; padding: 22px 10px 6px; }
-	.item { width: 100%; min-height: 52px; display: flex; align-items: center; gap: 14px; text-align: left; background: none; border: 0; border-radius: var(--radius-row); padding: 6px 10px; color: #bbb; }
+	.item { width: 100%; min-height: 52px; display: flex; align-items: center; gap: 14px; text-align: left; background: none; border: 0; border-radius: var(--radius-row); padding: 6px 10px; color: var(--muted); }
 	.item:active { background: var(--surface); }
 	.item .i { width: 24px; display: grid; place-items: center; flex: none; }
 	.item .tx { display: flex; flex-direction: column; min-width: 0; }
 	.item b { font-size: 15px; font-weight: 500; }
 	.item small { color: var(--faint); font-size: var(--fs-small); }
-	/* active = label goes #bbb → #fff (+ heavier weight so it isn't brightness alone) */
-	.item.on { color: #fff; background: var(--surface); }
+	/* active = a brand-tinted row, bright label and heavier weight (never colour alone) */
+	.item.on { color: var(--text); background: var(--brand-soft); }
+	.item.on .i { color: var(--brand); }
 	.item.on b { font-weight: 600; }
 	@keyframes fade { from { opacity: 0; } }
 </style>

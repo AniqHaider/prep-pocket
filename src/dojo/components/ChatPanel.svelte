@@ -193,7 +193,7 @@
   .right { display: flex; align-items: center; gap: 4px; }
   .toggle { display: flex; background: var(--raised); border-radius: var(--radius-control); padding: 2px; }
   .toggle button { background: none; border: none; color: var(--muted); min-height: 36px; padding: 0 14px; border-radius: var(--radius-control); cursor: pointer; font-size: var(--fs-small); font-weight: 500; }
-  .toggle button.active { background: var(--text); color: #000; }
+  .toggle button.active { background: var(--brand); color: var(--brand-ink); }
   .clear { width: 44px; height: 44px; display: grid; place-items: center; background: none; border: none; border-radius: 50%; cursor: pointer; color: var(--muted); }
   .clear:active { background: var(--raised); color: var(--text); }
   .msgs { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }

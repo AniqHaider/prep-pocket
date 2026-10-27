@@ -4,6 +4,17 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [2.2.0] — 2026-10-27
+A new look, a Home screen, and a Back button that offers to quit at the top.
+
+### Changed
+- **New Home screen.** Preppy opens on Home: a greeting, your streak, XP and solved count, a Continue card for the last section you studied, and a tile for every section, each with its own colour.
+- **New look across the whole app.** A deep indigo palette replaces pure black, with softer, rounder cards, a violet primary colour on buttons and the active menu item, and a frosted top bar. Every screen picks it up, including lessons, quizzes, drills, the code keyboard and Settings.
+- **Menu.** A Home item at the top; the active section is shown with a tinted row.
+
+### Fixed
+- **Back at the top now offers to quit.** On the first screen of any section (or Home), Back asks "Quit Preppy?" instead of jumping to a section you were in before. Back still closes things opened on top, in order: the keyboard, the menu, the assistant, an open topic, drill, lesson or quiz screen. Switching sections or the Learn/Quiz/Playground tabs no longer adds Back steps.
+
 ## [2.1.0] — 2026-10-27
 Interview prep, a smarter Back button, and a What's new note after each update.
 
