@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Icon from './Icon.svelte';
-	import { kb, setKbMode, targetFor } from './kbState.svelte';
+	import { kb, setKbMode, targetFor, hideKb } from './kbState.svelte';
 	import { haptic } from './haptics';
 
 	/** The in-app keyboard for code: letters, numbers, every symbol programmers reach for, Tab and cursor keys. Replaces the phone keyboard in code editors. */
@@ -46,14 +46,16 @@
 		let hold: ReturnType<typeof setTimeout> | undefined, rep: ReturnType<typeof setInterval> | undefined, viaPointer = false;
 		const stop = () => { clearTimeout(hold); clearInterval(rep); hold = rep = undefined; };
 		const down = () => { viaPointer = true; fn(); hold = setTimeout(() => { rep = setInterval(fn, 55); }, 380); };
+		// On touch, pointerleave fires right after pointerup and before click, so the flag must outlive it: the click that follows a pointer press is swallowed, never repeated.
 		const cancel = () => { stop(); viaPointer = false; };
+		const up = () => { stop(); setTimeout(() => { viaPointer = false; }, 600); };
 		const click = () => { if (!viaPointer) fn(); viaPointer = false; };
 		node.addEventListener('pointerdown', down);
-		node.addEventListener('pointerup', stop);
-		node.addEventListener('pointerleave', cancel);
+		node.addEventListener('pointerup', up);
+		node.addEventListener('pointerleave', stop);
 		node.addEventListener('pointercancel', cancel);
 		node.addEventListener('click', click);
-		return { destroy() { stop(); node.removeEventListener('pointerdown', down); node.removeEventListener('pointerup', stop); node.removeEventListener('pointerleave', cancel); node.removeEventListener('pointercancel', cancel); node.removeEventListener('click', click); } };
+		return { destroy() { stop(); node.removeEventListener('pointerdown', down); node.removeEventListener('pointerup', up); node.removeEventListener('pointerleave', stop); node.removeEventListener('pointercancel', cancel); node.removeEventListener('click', click); } };
 	}
 
 	// Follow focus: typing into a code editor opens the keyboard; leaving it for anything else closes it.
@@ -73,7 +75,7 @@
 		if (kb.collapsed && targetFor(e.target as Element)) kb.collapsed = false;
 	}
 
-	function hide() { kb.collapsed = true; (document.activeElement as HTMLElement | null)?.blur(); }
+	const hide = hideKb;
 
 	// Reserve room under the page so the editor can scroll clear of the keyboard.
 	$effect(() => {

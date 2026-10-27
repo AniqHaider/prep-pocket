@@ -4,6 +4,8 @@ import App from './App.svelte';
 import Gallery from './explain/Gallery.svelte';
 import { App as CapApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import { kbShowing, hideKb } from './ui/kbState.svelte';
+import { exitAsk } from './ui/exitState.svelte';
 import { initLandscapeImmersive } from './ui/immersive';
 
 // #gallery is a dev-only contact sheet of every animated scene (see docs/explainers.md)
@@ -14,7 +16,9 @@ initLandscapeImmersive();
 
 if (Capacitor.isNativePlatform()) {
 	CapApp.addListener('backButton', ({ canGoBack }) => {
-		if (canGoBack) history.back();
-		else CapApp.exitApp();
+		if (exitAsk.open) exitAsk.open = false;
+		else if (kbShowing()) hideKb();
+		else if (canGoBack) history.back();
+		else exitAsk.open = true;
 	});
 }

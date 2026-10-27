@@ -9,6 +9,7 @@
 	import Drills from './drills/Drills.svelte';
 	import More from './settings/More.svelte';
 	import CodeKeyboard from './ui/CodeKeyboard.svelte';
+	import ExitConfirm from './ui/ExitConfirm.svelte';
 	import Icon from './ui/Icon.svelte';
 	import Visual from './explain/Visual.svelte';
 	import Player from './explain/Player.svelte';
@@ -171,6 +172,7 @@
 {/if}
 
 <CodeKeyboard />
+<ExitConfirm />
 
 {#if tab !== 'dojo'}
 	<Assistant open={assistant} onopen={openAssistant} onclose={closeAssistant} />

@@ -22,6 +22,14 @@ export function setHaptic(h: Haptic) {
 	try { localStorage.setItem(HKEY, h); } catch { /* not remembered */ }
 }
 
+/** True while the in-app keyboard is on screen. */
+export const kbShowing = () => kb.mode === 'app' && !!kb.target && !kb.collapsed;
+
+export function hideKb() {
+	kb.collapsed = true;
+	(document.activeElement as HTMLElement | null)?.blur();
+}
+
 export function setKbMode(m: KbMode) {
 	kb.mode = m;
 	kb.collapsed = false;

@@ -4,6 +4,16 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [1.9.2] — 2026-10-27
+Back button fixes and a backspace fix.
+
+### Fixed
+- **Backspace and the arrows deleted or moved two steps per tap** on a touchscreen. One tap is now one step; holding still repeats.
+
+### Changed
+- **Back closes the code keyboard first.** With the keyboard open, one Back hides it instead of leaving the screen.
+- **Back on the first screen asks "Quit Preppy?"** (Stay / Quit) instead of closing the app straight away.
+
 ## [1.9.1] — 2026-10-26
 More room in landscape, and the code keyboard buzzes.
 
