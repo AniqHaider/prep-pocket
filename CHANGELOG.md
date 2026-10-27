@@ -4,6 +4,14 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [2.0.0] — 2026-10-27
+Networking joins Computer science.
+
+### Added
+- **Eight new Networking topics** after "Networking: DNS, TCP, TLS": network layers and packets, IP addresses, subnets and NAT, TCP reliability and congestion, UDP, QUIC and HTTP/3, HTTP/1.1 vs HTTP/2 vs HTTP/3, proxies, load balancers and CDNs, real-time (polling, SSE, WebSockets), and debugging the network.
+- **Sixteen new animated lessons** for them (encapsulation, packet journey, CIDR, NAT, retransmit, congestion window, UDP vs TCP, QUIC, head-of-line blocking, multiplexing, load balancing, CDN edge, polling vs WebSocket, SSE, traceroute, latency budget), each with narration and subtitles.
+- **72 new quiz questions** (basic to advanced) and runnable playground snippets for every topic.
+
 ## [1.9.2] — 2026-10-27
 Back button fixes and a backspace fix.
 

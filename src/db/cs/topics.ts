@@ -1,4 +1,5 @@
 import type { DbTopic } from '../types';
+import { netTopics } from './netTopics';
 
 const md = (...lines: string[]) => lines.join('\n');
 
@@ -369,6 +370,7 @@ export const csTopics: DbTopic[] = [
 			{ label: 'Round trips before the first byte', code: `const rtt = 80; // simplification: every step costs one 80 ms round trip (a cached DNS answer is usually much quicker)\nconst cold = { dns: 1, tcp: 1, tls13: 1, http: 1 };\nlet total = 0;\nfor (const [step, trips] of Object.entries(cold)) {\n  total += trips * rtt;\n  console.log(step, '->', total, 'ms');\n}\nconsole.log('a reused connection only pays the HTTP round trip:', rtt, 'ms');` }
 		]
 	},
+	...netTopics,
 	{
 		id: 'memory-hierarchy-and-caching',
 		title: 'Memory hierarchy and caching',
