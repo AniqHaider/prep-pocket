@@ -15,7 +15,7 @@
 <style>
   .callout {
     width: 100%; display: flex; align-items: center; gap: 14px; text-align: left; min-height: 64px;
-    background: var(--surface); border: 0; border-radius: var(--radius-card);
+    background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-card);
     padding: 14px 18px; margin: 18px 0; cursor: pointer; color: var(--text);
   }
   .callout:active { background: var(--raised); }

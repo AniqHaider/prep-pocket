@@ -4,39 +4,42 @@
  * Colour lives on progress data only (--accent); chrome, tabs, nav and buttons stay neutral.
  * The primary control is inverted: a white pill with black text.
  */
-@import '@fontsource-variable/inter';
+@import '@fontsource-variable/instrument-sans';
+@import '@fontsource/cormorant-garamond/600.css';
+@import '@fontsource/cormorant-garamond/700.css';
 
 :root {
 	color-scheme: dark;
-	--font: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--font: 'Instrument Sans Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 	--mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
 
-	--ground: #080913;
-	--surface: #12142a;
-	--raised: #232647;
-	--border: #1b1e3a;
-	--rule: #1f2342;
-	--control: #3b4070;
-	--text: #f4f5ff;
-	--muted: #b9bcd8;
-	--faint: #9a9ec2;
-	--accent: #c6f24e; /* data only: solved, accuracy, streak, progress */
-	--accent-ink: #0b1200;
-	--brand: #8f94ff; /* the primary action colour: buttons, the active menu item, the Home hero */
-	--brand-ink: #0a0b2e;
-	--brand-soft: #1d2050;
-	--positive: #c6f24e;
+	--serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+	--ground: #0a0a0c;
+	--surface: #111114;
+	--raised: #1c1810;
+	--border: #2a2415;
+	--rule: #2e2814;
+	--control: #6b5a2a;
+	--text: #f3ead2;
+	--muted: #b6a984;
+	--faint: #9c906c;
+	--accent: #d9b95e; /* data only: solved, accuracy, streak, progress */
+	--accent-ink: #17120a;
+	--brand: #c9a24b; /* the primary action colour: buttons, the active menu item, the Home hero */
+	--brand-ink: #17120a;
+	--brand-soft: #1d180c;
+	--positive: #9fd3a0;
 	--negative: #ff6b70;
 	--warning: #e5a93b;
-	--pill-positive-bg: #222a10; --pill-positive-ink: #c6f24e;
+	--pill-positive-bg: #14261a; --pill-positive-ink: #9fd3a0;
 	--pill-negative-bg: #2c1a20; --pill-negative-ink: #ff8a8f;
 	--pill-warning-bg: #2b2414;  --pill-warning-ink: #e5a93b;
-	--pill-neutral-bg: #1e2142;  --pill-neutral-ink: #f4f5ff;
+	--pill-neutral-bg: transparent;  --pill-neutral-ink: #c9a24b;
 
-	--radius-card: 24px;
-	--radius-row: 16px;
-	--radius-control: 999px;
-	--radius-field: 12px;
+	--radius-card: 6px;
+	--radius-row: 4px;
+	--radius-control: 3px;
+	--radius-field: 4px;
 	--gap: 14px;
 	--pad: 20px;
 	--control-height: 44px; /* touch target floor */
@@ -84,6 +87,8 @@ textarea[data-codekb], .cm-editor { scroll-margin-bottom: calc(var(--kb-h, 0px) 
 button { font-family: inherit; color: inherit; }
 a { color: var(--text); text-underline-offset: 3px; }
 code, pre, kbd { font-family: var(--mono); }
+h1, h2, h3 { font-family: var(--serif); font-weight: 600; letter-spacing: 0; }
+h1 { font-size: 26px; } h2 { font-size: 20px; } h3 { font-size: 18px; } /* Cormorant sets small: sizes are a step above the sans they replace */
 input, textarea, select { font-family: inherit; font-size: 16px; } /* 16px stops Android/iOS zoom-on-focus */
 .num { font-variant-numeric: tabular-nums; }
 html.lock, html.lock body { overflow: hidden; } /* menu or sheet open: the page behind must not scroll */
@@ -100,16 +105,16 @@ html.lock, html.lock body { overflow: hidden; } /* menu or sheet open: the page 
 }
 .btn:active { background: var(--raised); }
 .btn.primary { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
-.btn.primary:active { background: #7479f0; }
+.btn.primary:active { background: #b08a36; }
 .btn:disabled { opacity: .45; cursor: default; }
 .pill {
-	display: inline-flex; align-items: center; min-height: 20px; padding: 0 9px; border-radius: 999px;
+	display: inline-flex; align-items: center; min-height: 20px; padding: 0 9px; border-radius: 3px; border: 1px solid var(--control);
 	font-size: var(--fs-small); font-weight: 500; white-space: nowrap; flex: none;
 	background: var(--pill-neutral-bg); color: var(--pill-neutral-ink);
 }
-.pill.pos { background: var(--pill-positive-bg); color: var(--pill-positive-ink); }
-.pill.neg { background: var(--pill-negative-bg); color: var(--pill-negative-ink); }
-.pill.warn { background: var(--pill-warning-bg); color: var(--pill-warning-ink); }
+.pill.pos { background: var(--pill-positive-bg); color: var(--pill-positive-ink); border-color: #2f5a3a; }
+.pill.neg { background: var(--pill-negative-bg); color: var(--pill-negative-ink); border-color: #5a2f36; }
+.pill.warn { background: var(--pill-warning-bg); color: var(--pill-warning-ink); border-color: #5a4a20; }
 .muted { color: var(--muted); }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .faint { color: var(--faint); }

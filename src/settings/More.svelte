@@ -561,7 +561,7 @@
 	.q + .q { border-top: 1px solid var(--rule); }
 	.q b { font-weight: 500; font-size: var(--fs-body); }
 	.q .chips { margin-top: 0; }
-	.list { background: var(--surface); border-radius: var(--radius-card); overflow: hidden; }
+	.list { background: var(--surface); border-radius: var(--radius-card); overflow: hidden; border: 1px solid var(--rule); }
 	.nav { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; min-height: 64px; padding: 10px 16px; background: none; border: 0; color: var(--text); }
 	.nav + .nav { border-top: 1px solid var(--rule); }
 	.nav:active { background: var(--raised); }
@@ -578,7 +578,7 @@
 	h2 { font-size: var(--fs-section); font-weight: 600; margin: 0 0 4px; }
 	.lab p { margin: 0 0 12px; color: var(--muted); font-size: var(--fs-body); line-height: 1.5; }
 	.lab .now { color: var(--text); font-size: var(--fs-small); font-weight: 500; margin: 0 0 12px; }
-	.panel { background: var(--surface); border-radius: var(--radius-card); padding: 16px; }
+	.panel { background: var(--surface); border-radius: var(--radius-card); padding: 16px; border: 1px solid var(--rule); }
 	.opt { display: flex; gap: 12px; align-items: flex-start; min-height: 44px; padding: 10px 12px; border-radius: var(--radius-row); }
 	.opt + .opt { margin-top: 2px; }
 	.opt.on { background: var(--raised); }
@@ -607,7 +607,7 @@
 	.tip :global(svg) { flex: none; margin-top: 2px; color: var(--warning); }
 	.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 	.chip { min-height: 44px; padding: 0 14px; border-radius: var(--radius-control); background: transparent; border: 1px solid var(--control); color: var(--text); font-size: var(--fs-body); cursor: pointer; }
-		.chip[aria-pressed='true'], .chip[aria-checked='true'] { background: var(--surface); border-color: var(--text); font-weight: 600; }
+		.chip[aria-pressed='true'], .chip[aria-checked='true'] { background: var(--surface); border-color: var(--brand); color: var(--brand); font-weight: 600; }
 	/* a tiny picture with the subtitle on it, so the choice can be judged at once */
 	.subprev { position: relative; margin-top: 10px; height: 96px; border-radius: var(--radius-row); background: var(--ground); border: 1px solid var(--rule); overflow: hidden; }
 	.sp-a, .sp-b, .sp-c { position: absolute; border-radius: 8px; background: var(--raised); }

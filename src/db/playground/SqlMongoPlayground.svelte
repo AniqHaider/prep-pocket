@@ -263,12 +263,12 @@
 	.status { margin: 0; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: var(--fs-body); }
 	.status :global(svg) { color: var(--accent); flex: none; }
 	.status .num { color: var(--accent); font-weight: 600; }
-	.err { background: var(--surface); border-radius: var(--radius-row); padding: 14px 16px; }
+	.err { background: var(--surface); border-radius: var(--radius-row); padding: 14px 16px; border: 1px solid var(--rule); }
 	.err b { display: flex; align-items: center; gap: 8px; font-weight: 600; }
 	.err b :global(svg) { color: var(--negative); }
 	.err p { margin: 8px 0 0; color: var(--muted); font-family: var(--mono); font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
-	.empty { margin: 0; padding: 16px; background: var(--surface); border-radius: var(--radius-row); color: var(--muted); }
-	.scroller { overflow-x: auto; background: var(--surface); border-radius: var(--radius-row); }
+	.empty { margin: 0; padding: 16px; background: var(--surface); border-radius: var(--radius-row); color: var(--muted); border: 1px solid var(--rule); }
+	.scroller { overflow-x: auto; background: var(--surface); border-radius: var(--radius-row); border: 1px solid var(--rule); }
 	table { border-collapse: collapse; min-width: 100%; font-size: 13px; }
 	th { text-align: left; color: var(--muted); font-weight: 500; font-size: var(--fs-small); padding: 10px 14px; white-space: nowrap; border-bottom: 1px solid var(--rule); }
 	td { padding: 10px 14px; white-space: nowrap; border-bottom: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
@@ -276,12 +276,12 @@
 	td.num { text-align: right; }
 	td.nul { color: var(--faint); }
 	.docs { display: grid; gap: 8px; }
-	.docs details { background: var(--surface); border-radius: var(--radius-row); padding: 0 14px; }
+	.docs details { background: var(--surface); border-radius: var(--radius-row); padding: 0 14px; border: 1px solid var(--rule); }
 	.docs summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 500; list-style: none; }
 	.docs summary::-webkit-details-marker { display: none; }
 	.json { margin: 0 0 14px; padding: 14px; background: var(--raised); border-radius: var(--radius-row); overflow-x: auto; font-family: var(--mono); font-size: 13px; line-height: 1.55; }
 	.docs .json { margin: 0 0 12px; }
-	.ref { background: var(--surface); border-radius: var(--radius-card); padding: 0 16px; }
+	.ref { background: var(--surface); border-radius: var(--radius-card); padding: 0 16px; border: 1px solid var(--rule); }
 	.ref summary { min-height: 48px; display: flex; align-items: center; cursor: pointer; font-weight: 500; }
 	.refgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; padding: 4px 0 12px; }
 	.reft b { font-family: var(--mono); font-size: 13px; }

@@ -169,7 +169,7 @@
   .loading, .err { color: var(--muted); }
 
   .syntaxbar { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
-  .syntax { flex: 1; background: var(--surface); border-radius: var(--radius-row); padding: 0 14px; }
+  .syntax { flex: 1; background: var(--surface); border-radius: var(--radius-row); padding: 0 14px; border: 1px solid var(--rule); }
   .syntax-spacer { flex: 1; }
   .syntax summary { cursor: pointer; color: var(--text); font-size: var(--fs-body); font-weight: 600; min-height: 44px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; list-style: none; }
   .syntax summary::-webkit-details-marker { display: none; }
@@ -188,7 +188,7 @@
   .options { display: flex; flex-direction: column; gap: 10px; }
   .option {
     display: flex; align-items: center; gap: 12px; text-align: left; width: 100%; min-height: 56px;
-    background: var(--surface); border: 1px solid transparent; color: var(--text);
+    background: var(--surface); border: 1px solid var(--rule); color: var(--text);
     padding: 12px 14px; border-radius: var(--radius-row); cursor: pointer; font-size: 15px; line-height: 1.4;
   }
   .option:active { background: var(--raised); }

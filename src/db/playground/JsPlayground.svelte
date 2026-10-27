@@ -157,8 +157,8 @@
 	.status .num { color: var(--accent); font-weight: 600; }
 	.status.bad :global(svg) { color: var(--negative); }
 	.status.bad .num { color: var(--muted); font-weight: 400; }
-	.empty { margin: 0; padding: 16px; background: var(--surface); border-radius: var(--radius-row); color: var(--muted); }
-	.console { background: var(--surface); border-radius: var(--radius-row); padding: 10px 14px; overflow-x: auto; font-family: var(--mono); font-size: 13px; line-height: 1.55; user-select: text; }
+	.empty { margin: 0; padding: 16px; background: var(--surface); border-radius: var(--radius-row); color: var(--muted); border: 1px solid var(--rule); }
+	.console { background: var(--surface); border-radius: var(--radius-row); padding: 10px 14px; overflow-x: auto; font-family: var(--mono); font-size: 13px; line-height: 1.55; user-select: text; border: 1px solid var(--rule); }
 	.ln { display: flex; gap: 8px; padding: 2px 0; font-variant-numeric: tabular-nums; }
 	.tx { white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; }
 	.tag { flex: none; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; font-family: var(--font); padding: 0 7px; border-radius: 999px; height: 18px; margin-top: 2px; background: var(--pill-warning-bg); color: var(--pill-warning-ink); }

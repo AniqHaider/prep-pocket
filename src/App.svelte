@@ -240,7 +240,7 @@
 	}
 	.menu { width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; border-radius: 50%; color: var(--text); }
 	.menu:active { background: var(--surface); }
-	.ttl { margin: 0; font-weight: 650; font-size: 17px; letter-spacing: -.015em; }
+	.ttl { margin: 0; font: 600 17px var(--serif); letter-spacing: .12em; text-transform: uppercase; color: var(--text); }
 	/* the bar owns the status-bar inset, so screens must not add it again */
 	.screen { --safe-t: 0px; padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); min-height: calc(100dvh - var(--bar-h)); padding-bottom: calc(var(--safe-b) + 84px); } /* room for the floating Ask / Ask tutor button */
 
@@ -256,10 +256,10 @@
 	}
 	.drawer.open { transform: none; visibility: visible; transition: transform .22s ease, visibility 0s; }
 	.brand { display: flex; align-items: center; gap: 12px; padding: 0 10px 18px; }
-	.brand .mark { color: var(--accent); flex: none; }
-	.brand b { display: block; font-size: 18px; font-weight: 600; letter-spacing: -.02em; }
+	.brand .mark { color: var(--brand); flex: none; }
+	.brand b { display: block; font: 700 22px var(--serif); letter-spacing: .1em; text-transform: uppercase; }
 	.brand small { color: var(--faint); font-size: var(--fs-small); }
-	.grp { color: var(--faint); font-size: var(--fs-small); font-weight: 500; padding: 22px 10px 6px; }
+	.grp { color: var(--brand); font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; padding: 22px 10px 6px; }
 	.item { width: 100%; min-height: 52px; display: flex; align-items: center; gap: 14px; text-align: left; background: none; border: 0; border-radius: var(--radius-row); padding: 6px 10px; color: var(--muted); }
 	.item:active { background: var(--surface); }
 	.item .i { width: 24px; display: grid; place-items: center; flex: none; }
@@ -267,7 +267,7 @@
 	.item b { font-size: 15px; font-weight: 500; }
 	.item small { color: var(--faint); font-size: var(--fs-small); }
 	/* active = a brand-tinted row, bright label and heavier weight (never colour alone) */
-	.item.on { color: var(--text); background: var(--brand-soft); }
+	.item.on { color: var(--text); background: var(--brand-soft); box-shadow: inset 2px 0 0 var(--brand); }
 	.item.on .i { color: var(--brand); }
 	.item.on b { font-weight: 600; }
 </style>

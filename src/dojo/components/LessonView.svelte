@@ -285,13 +285,13 @@
   .theory :global(h2) { color: var(--text); font-size: var(--fs-section); font-weight: 600; margin: 28px 0 8px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); }
   .theory :global(h3) { color: var(--text); font-size: 15px; font-weight: 600; margin: 20px 0 6px; }
   .theory :global(code) { background: var(--raised); padding: 1px 6px; border-radius: 5px; font-size: 13px; color: var(--text); }
-  .theory :global(pre) { background: var(--surface); padding: 14px; border-radius: var(--radius-row); overflow-x: auto; }
+  .theory :global(pre) { background: var(--surface); padding: 14px; border-radius: var(--radius-row); overflow-x: auto; border: 1px solid var(--rule); }
   .theory :global(pre code) { background: none; padding: 0; color: var(--text); }
   .theory :global(strong) { color: var(--text); font-weight: 600; }
-  .theory :global(blockquote) { margin: 12px 0; padding: 8px 16px; color: var(--muted); background: var(--surface); border-radius: var(--radius-row); }
+  .theory :global(blockquote) { margin: 12px 0; padding: 8px 16px; color: var(--muted); background: var(--surface); border-radius: var(--radius-row); border: 1px solid var(--rule); }
   .theory :global(th) { text-align: left; color: var(--muted); font-weight: 500; font-size: var(--fs-small); padding: 6px 12px 6px 0; }
   .theory :global(td) { padding: 6px 12px 6px 0; border-top: 1px solid var(--rule); }
-  .exlist { background: var(--surface); border-radius: var(--radius-card); padding: 16px; position: sticky; top: calc(80px + var(--bar-top, 0px)); }
+  .exlist { background: var(--surface); border-radius: var(--radius-card); padding: 16px; position: sticky; top: calc(80px + var(--bar-top, 0px)); border: 1px solid var(--rule); }
   .exh { color: var(--text); font-size: var(--fs-section); font-weight: 600; margin: 0 0 10px; }
   .exhint { color: var(--muted); font-size: var(--fs-small); line-height: 1.45; margin: 0 0 12px; }
   .exitem {
@@ -301,7 +301,7 @@
   }
   .exitem:active { background: var(--control); }
   .idx { width: 22px; text-align: center; color: var(--faint); font-weight: 500; flex: none; }
-  .ok { color: var(--accent); display: inline-flex; justify-content: center; }
+  .ok { color: var(--positive); display: inline-flex; justify-content: center; }
   .extitle { flex: 1; }
   .xp { color: var(--faint); font-size: var(--fs-small); flex: none; }
   .loading, .err { color: var(--muted); }

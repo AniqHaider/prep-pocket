@@ -1,21 +1,21 @@
 # Preppy design system
 
-Direction (2.2): **midnight indigo**. A deep blue-black ground, tinted surfaces, one violet brand colour for actions, and a distinct hue per section on Home.
+Direction (2.3): **midnight gold**, picked from a set of twenty directions. Near-black ground, warm cream text, thin gold lines, a classical serif for titles.
 Preppy is a one-person study app used in short sessions, mostly at night, on an AMOLED phone, so it stays dark and calm.
 
 ## Rules
 
-1. **Elevation is lightness.** Ground `#080913` → surface `#12142a` → raised `#232647`. Cards have no border and no shadow at rest. Only things that float (the chat panel) may carry a shadow.
-2. **Two colours with jobs.** Violet (`--brand`) is for the primary action, the active menu item and the Home hero. Lime (`--accent`) marks solved, accuracy, streak and progress. Per-section hues appear only on Home tiles and the Continue card.
-3. **One primary action per screen**, a violet pill (`.btn.primary`). Secondary is an outlined pill (`.btn`). Destructive actions go last, outlined in `--negative`, with the consequence in words.
+1. **Hairlines, not fills.** Ground `#0a0a0c` → surface `#111114` → raised `#1c1810`. Cards are outlined with a 1px `--rule` line; no shadows. Corners are nearly square (card 6px, row 4px, control 3px).
+2. **Gold has jobs.** `--brand` / `--accent` (gold) marks the primary action, the active menu row, tab underlines, progress and your place. Green (`--positive`) is only for correct, red (`--negative`) only for wrong. Nothing else is coloured.
+3. **One primary action per screen**, a solid gold button with dark ink (`.btn.primary`). Secondary is an outlined button (`.btn`). Destructive actions go last, outlined in `--negative`, with the consequence in words.
 4. **Colour is never the only signal.** Correct / wrong / solved always carry an icon or a word as well.
-5. **No emoji, no glow.** One gradient is allowed: the Home Continue card. Icons come from `src/ui/Icon.svelte` (one outline set, 1.6 stroke).
-6. **One typeface.** Inter (bundled via `@fontsource-variable/inter`, so it works offline). Code uses the system mono. Weights 400/500/600, sentence case, tabular figures on every number.
-7. **Accessibility floor.** Touch targets ≥ 44px, text ≥ 12px, text greys `--muted` and `--faint` only (both ≥ 4.5:1 on `--surface`), visible `:focus-visible` ring, `prefers-reduced-motion` honoured, icon-only buttons have `aria-label`, results announced with `role="status"`.
+5. **Type.** Titles and lesson headings: Cormorant Garamond (`--serif`, 600). Everything else: Instrument Sans (`--font`). Code: the system mono. Both bundled, so it works offline. The top bar title is spaced capitals. Small labels are spaced capitals in gold.
+6. **No emoji, no glow.** One gradient only: the Home Continue card. Icons come from `src/ui/Icon.svelte` (one outline set, 1.6 stroke).
+7. **Accessibility floor.** Touch targets ≥ 44px, text ≥ 12px (labels 11px caps), text greys `--muted` and `--faint` only (both ≥ 4.5:1 on `--surface`), visible `:focus-visible` ring, `prefers-reduced-motion` honoured, icon-only buttons have `aria-label`, results announced with `role="status"`.
 
 ## Tokens
 
-All in `src/app.css`. Radii: card 24, row 16, field 12, control 999. Spacing: gap 14, pad 20. Type: title 20, section 16, body 14, small 12.
+All in `src/app.css`. Radii: card 6, row 4, field 4, control 3. Spacing: gap 14, pad 20. Type: title 20, section 16, body 14, small 12.
 The older names (`--bg`, `--panel`, `--line`, `--good`, `--bad`) are aliases of the tokens above so older components keep working; prefer the new names.
 
 ## Shell

@@ -233,7 +233,7 @@
 	.theater { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: calc(var(--safe-t) + 4px) max(10px, env(safe-area-inset-right)) 0 max(10px, env(safe-area-inset-left)); }
 	.mid { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
 	.frame { position: relative; flex: none; width: 100%; max-width: 760px; margin: 0 auto; aspect-ratio: 360 / 330; }
-	.stagewrap { position: absolute; inset: 0; background: var(--surface); border-radius: var(--radius-card); padding: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+	.stagewrap { position: absolute; inset: 0; background: var(--surface); border-radius: var(--radius-card); padding: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid var(--rule); }
 	.stagewrap :global(svg.stage) { width: 100%; height: 100%; max-height: 100%; }
 	.tap { position: absolute; inset: 0; z-index: 1; background: none; border: 0; padding: 0; border-radius: var(--radius-card); cursor: pointer; -webkit-tap-highlight-color: transparent; }
 	.tap:focus-visible { outline-offset: -4px; }

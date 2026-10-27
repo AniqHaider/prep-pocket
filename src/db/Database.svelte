@@ -122,12 +122,12 @@
 	h1 { margin: 8px 0 4px; font-size: var(--fs-title); font-weight: 600; letter-spacing: -.01em; }
 	.muted { color: var(--muted); margin: 0; }
 	.stats { color: var(--faint); font-size: var(--fs-small); margin: 8px 0 0; }
-	.tabs { display: flex; gap: 4px; background: var(--surface); border-radius: var(--radius-control); padding: 4px; margin: 16px 0; }
-	.tab { flex: 1; min-height: 44px; border: 0; background: none; border-radius: var(--radius-control); color: var(--muted); font-weight: 500; font-size: var(--fs-body); }
-	.tab.on { background: var(--brand-soft); color: var(--text); font-weight: 600; }
+	.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--rule); margin: 16px 0; }
+	.tab { flex: 1; min-height: 44px; border: 0; background: none; border-radius: 0; color: var(--muted); font-weight: 500; font-size: var(--fs-body); }
+	.tab.on { color: var(--text); font-weight: 600; box-shadow: inset 0 -2px 0 var(--brand); }
 	.empty { padding: 24px 4px; }
 	.topics { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-	.topic { background: var(--surface); border-radius: var(--radius-card); overflow: hidden; }
+	.topic { background: var(--surface); border-radius: var(--radius-card); overflow: hidden; border: 1px solid var(--rule); }
 	.head { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; padding: 14px 16px; min-height: 64px; background: none; border: 0; color: var(--text); }
 	.head :global(svg:last-child) { color: var(--faint); transition: transform .2s; flex: none; }
 	.topic.open .head :global(svg:last-child) { transform: rotate(90deg); }

@@ -28,7 +28,7 @@
   .list { display: flex; flex-direction: column; gap: var(--gap); }
   .chapter {
     width: 100%; display: flex; align-items: center; gap: 16px; text-align: left;
-    background: var(--surface); border: 0; border-radius: var(--radius-card);
+    background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-card);
     padding: var(--pad); cursor: pointer; color: inherit; min-height: 44px;
   }
   .chapter:active { background: var(--raised); }

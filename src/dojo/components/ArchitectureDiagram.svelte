@@ -58,7 +58,7 @@
 </div>
 
 <style>
-  .diagram { background: var(--surface); border-radius: var(--radius-card); padding: var(--pad); }
+  .diagram { background: var(--surface); border-radius: var(--radius-card); padding: var(--pad); border: 1px solid var(--rule); }
   .head { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 44px; margin: -8px 0; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; color: inherit; }
   .head h3 { margin: 0; color: var(--text); font-size: var(--fs-section); font-weight: 600; }
   .count { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: var(--fs-body); }

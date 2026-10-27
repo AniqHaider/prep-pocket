@@ -65,7 +65,7 @@
 {/if}
 
 <style>
-  .panel { border-radius: var(--radius-card); padding: var(--pad); margin-top: 16px; background: var(--surface); }
+  .panel { border-radius: var(--radius-card); padding: var(--pad); margin-top: 16px; background: var(--surface); border: 1px solid var(--rule); }
   .status { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--text); font-size: 15px; }
   .mark { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--raised); }
   .mark.pos { color: var(--accent); }

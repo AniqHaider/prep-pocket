@@ -12,7 +12,7 @@
 		dojo: 150, cs: 205, ai: 275, py: 48, aws: 28, visual: 320, js: 52, ts: 215, react: 190, next: 240, pg: 220, mysql: 25, mongo: 140,
 		prep: 12, prep2: 262, drills: 45, interview: 335
 	};
-	const hue = (id: string) => HUE[id] ?? 250;
+	const hue = (id: string) => HUE[id] ?? 250; // kept for data attributes; the Midnight gold look draws every tile in gold
 
 	const h = new Date().getHours();
 	const hello = h < 5 ? 'Still up' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
@@ -61,41 +61,42 @@
 <style>
 	.home { padding: 20px var(--pad) 8px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
 	.hero { padding: 6px 0 14px; }
-	.date { margin: 0; color: var(--faint); font-size: var(--fs-small); }
-	h1 { margin: 2px 0 14px; font-size: 30px; font-weight: 650; letter-spacing: -.03em; line-height: 1.1; }
+	.date { margin: 0; color: var(--brand); font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+	h1 { margin: 6px 0 16px; font: 600 40px/1.05 var(--serif); letter-spacing: -.005em; }
 	.stats { display: flex; flex-wrap: wrap; gap: 8px; }
-	.stat { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 999px; background: var(--surface); color: var(--muted); font-size: 13px; }
+	.stat { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 3px; color: var(--muted); font-size: 13px; }
 	.stat b { color: var(--text); font-weight: 600; }
-	.stat :global(svg) { color: var(--accent); }
+	.stat :global(svg) { color: var(--brand); }
 
 	.resume {
-		width: 100%; display: flex; align-items: center; gap: 14px; text-align: left; padding: 16px; border: 0; color: var(--text);
-		border-radius: var(--radius-card); margin: 4px 0 10px; min-height: 84px;
-		background: linear-gradient(135deg, hsl(var(--h) 55% 28%), var(--brand-soft) 78%);
+		width: 100%; display: flex; align-items: center; gap: 14px; text-align: left; padding: 16px; color: var(--text);
+		border: 1px solid var(--control); border-radius: var(--radius-card); margin: 4px 0 10px; min-height: 84px;
+		background: linear-gradient(135deg, #1d180c, var(--ground) 80%);
 	}
-	.resume:active { filter: brightness(1.12); }
+	.resume:active { background: var(--raised); }
 	.resume .tx { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 1px; }
-	.resume small { color: hsl(var(--h) 80% 86%); font-size: var(--fs-small); font-weight: 500; }
-	.resume b { font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
-	.resume em { font-style: normal; color: hsl(var(--h) 30% 84%); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.resume small { color: var(--brand); font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+	.resume b { font: 600 24px var(--serif); }
+	.resume em { font-style: normal; color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.resume > :global(svg) { color: var(--brand); }
 
-	section { margin-top: 12px; }
-	h2 { margin: 0 2px 10px; font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: .01em; }
+	section { margin-top: 14px; }
+	h2 { margin: 0 2px 10px; font: 600 11px var(--font); color: var(--brand); letter-spacing: .14em; text-transform: uppercase; padding-bottom: 8px; border-bottom: 1px solid var(--rule); }
 	.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 	.tile {
 		display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 14px; min-height: 124px;
-		background: var(--surface); border: 0; border-radius: var(--radius-card); color: var(--text);
+		background: transparent; border: 1px solid var(--rule); border-radius: var(--radius-card); color: var(--text);
 	}
-	.tile:active { background: var(--raised); }
+	.tile:active { background: var(--raised); border-color: var(--control); }
 	.tile.wide { grid-column: 1 / -1; min-height: 0; flex-direction: row; align-items: center; gap: 14px; }
 	.t { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-	.tile b { font-size: 15px; font-weight: 600; margin-top: 8px; }
+	.tile b { font: 600 20px/1.1 var(--serif); margin-top: 8px; }
 	.tile.wide b { margin-top: 0; }
 	.tile small { color: var(--faint); font-size: var(--fs-small); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 	.tile.wide small { -webkit-line-clamp: 2; line-clamp: 2; }
 	.chip {
-		width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; flex: none;
-		background: hsl(var(--h) 45% 22%); color: hsl(var(--h) 90% 78%);
+		width: 38px; height: 38px; border-radius: 3px; display: grid; place-items: center; flex: none;
+		border: 1px solid var(--control); color: var(--brand);
 	}
-	.resume .chip { width: 48px; height: 48px; border-radius: 15px; background: hsl(var(--h) 45% 16% / .7); }
+	.resume .chip { width: 46px; height: 46px; }
 </style>

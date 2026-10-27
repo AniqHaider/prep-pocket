@@ -4,6 +4,16 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [2.3.0] — 2026-10-27
+Midnight gold: a new look for the whole app.
+
+### Changed
+- **Midnight gold design.** Near-black pages, warm cream text and thin gold lines replace the indigo look, on every screen: Home, section lists, lessons, quizzes, drills, the Backend lab, Settings, the menu and the code keyboard.
+- **Type.** Titles and lesson headings use a classical serif (Cormorant Garamond); body text uses Instrument Sans. The top bar shows the section name in spaced capitals.
+- **Cards and buttons.** Square-cornered outlined cards, gold underlines on tabs, a gold primary button, and outlined tags instead of filled pills.
+- **Colour has jobs.** Gold marks actions, progress and your place; green is kept for correct answers and red for wrong ones.
+- **Home** now uses one gold treatment for every section tile instead of a different colour each.
+
 ## [2.2.1] — 2026-10-27
 Python for AI engineering, and a Settings screen you tap into.
 

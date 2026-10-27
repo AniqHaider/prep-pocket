@@ -133,11 +133,11 @@
 	.bar { height: 4px; background: var(--raised); border-radius: 9px; overflow: hidden; margin-top: 4px; }
 	.bar > div { height: 100%; background: var(--accent); transition: width .25s; }
 	.toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
-	.toc-item { min-height: 44px; background: var(--surface); border: 1px solid transparent; border-radius: var(--radius-control); padding: 0 14px; font-size: var(--fs-body); color: var(--muted); display: flex; gap: 8px; align-items: center; }
+	.toc-item { min-height: 44px; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-control); padding: 0 14px; font-size: var(--fs-body); color: var(--muted); display: flex; gap: 8px; align-items: center; }
 	.toc-item .num { color: var(--faint); }
 	.toc-item.on { background: var(--raised); border-color: var(--text); color: var(--text); font-weight: 600; }
 	.toc-item.done :global(svg) { color: var(--accent); }
-	.card { background: var(--surface); border-radius: var(--radius-card); padding: var(--pad); }
+	.card { background: var(--surface); border-radius: var(--radius-card); padding: var(--pad); border: 1px solid var(--rule); }
 	.say { background: var(--raised); border-radius: var(--radius-row); padding: 14px 16px; }
 	.say-h { display: flex; align-items: center; gap: 8px; font-size: var(--fs-small); color: var(--muted); font-weight: 600; margin-bottom: 6px; }
 	.say p { margin: 0; line-height: 1.65; }

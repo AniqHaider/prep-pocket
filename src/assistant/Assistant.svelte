@@ -179,7 +179,7 @@
 	.msg.ai { align-self: stretch; color: var(--text); white-space: normal; }
 	.dots { color: var(--faint); }
 	.md :global(p) { margin: 0 0 10px; } .md :global(p:last-child) { margin-bottom: 0; }
-	.md :global(pre) { background: var(--surface); border-radius: var(--radius-row); padding: 12px; overflow-x: auto; font-size: 13px; margin: 10px 0; }
+	.md :global(pre) { background: var(--surface); border-radius: var(--radius-row); padding: 12px; overflow-x: auto; font-size: 13px; margin: 10px 0; border: 1px solid var(--rule); }
 	.md :global(code) { font-family: var(--mono); font-size: 13px; background: var(--surface); padding: 1px 5px; border-radius: 6px; color: var(--text); }
 	.md :global(pre code) { background: none; padding: 0; }
 	.md :global(ul), .md :global(ol) { margin: 4px 0 10px; padding-left: 20px; }

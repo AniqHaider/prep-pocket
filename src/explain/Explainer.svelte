@@ -128,7 +128,7 @@
 	.n { opacity: 0; pointer-events: none; transition: transform .75s cubic-bezier(.4, 0, .2, 1), opacity .45s ease; }
 	.n.shown { opacity: 1; }
 	.tone-neutral { --fill: var(--raised); --stroke: transparent; --ink: var(--text); }
-	.tone-accent { --fill: var(--pill-positive-bg); --stroke: var(--accent); --ink: var(--text); }
+	.tone-accent { --fill: var(--brand-soft); --stroke: var(--accent); --ink: var(--text); }
 	.tone-warn { --fill: var(--pill-warning-bg); --stroke: var(--warning); --ink: var(--text); }
 	.tone-neg { --fill: var(--pill-negative-bg); --stroke: var(--negative); --ink: var(--text); }
 	.shape { fill: var(--fill); stroke: var(--stroke); stroke-width: 1.5; transition: fill .4s, stroke .4s; }
