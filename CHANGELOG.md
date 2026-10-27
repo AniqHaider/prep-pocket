@@ -4,6 +4,20 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [2.2.1] — 2026-10-27
+Python for AI engineering, and a Settings screen you tap into.
+
+### Added
+- **Python for AI** (menu, under Learn). What to learn to move into AI engineering with Python, and what each library is for: the tooling around Python, NumPy, pandas, Matplotlib, scikit-learn, PyTorch (tensors, autograd, training loops, GPUs), TensorFlow, JAX and ONNX, how transformers work, the Hugging Face ecosystem, fine-tuning and LoRA, calling LLM APIs, embeddings and RAG, agents and frameworks such as LangChain, evals, serving and quantization, MLOps, vision and speech, and a 12-week learning plan.
+- **22 topics, 34 animated lessons and 144 quiz questions** (basic to advanced), starting with a map of how the libraries fit together.
+
+### Fixed
+- **The menu slides away.** Tapping outside the menu used to make it vanish; it now slides out and the dim background fades, the same way it opens.
+
+### Changed
+- **Back goes Home first.** From a section's top screen, Back returns to Home; from Home it asks "Quit Preppy?". Back still closes anything open on top first (keyboard, menu, assistant, a topic, drill, lesson, quiz screen or a Settings page).
+- **Settings is organised.** The quick choices (code keyboard, key vibration, subtitle background) sit at the top. AI models, Narration voice, Keyboard and subtitles, Your data and About each open on their own page, so there is no long scroll. Back returns from a page to Settings.
+
 ## [2.2.0] — 2026-10-27
 A new look, a Home screen, and a Back button that offers to quit at the top.
 

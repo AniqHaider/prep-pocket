@@ -12,8 +12,13 @@
 	import { playSample, stopSample } from '../tts/speaker';
 	import { kb, setKbMode, setHaptic, type Haptic } from '../ui/kbState.svelte';
 	import { haptic } from '../ui/haptics';
+	import { useBack } from '../ui/backNav.svelte';
+	import { appVersion } from '../ui/whatsNew';
 	import { SUB_LEVELS, loadSubLevel, saveSubLevel, subAlpha, type SubLevel } from '../explain/subtitle';
 
+	type Page = '' | 'ai' | 'voice' | 'details' | 'data' | 'about';
+	let page = $state<Page>('');
+	useBack(() => page, (v) => (page = v as Page)); // Back leaves a settings page before it leaves Settings
 	let subLevel = $state<SubLevel>(loadSubLevel());
 	const pickSub = (id: SubLevel) => { subLevel = id; saveSubLevel(id); };
 	let s = $state<TutorSettings>(loadSettings());
@@ -279,6 +284,50 @@
 <div class="more">
 	<h1 class="sr-only">Settings</h1>
 
+	{#if page === ''}
+	<section class="quick">
+		<h2>Quick settings</h2>
+		<div class="panel">
+			<div class="q">
+				<b id="q-kb">Code keyboard</b>
+				<div class="chips" role="radiogroup" aria-labelledby="q-kb">
+					<button class="chip" role="radio" aria-checked={kb.mode === 'app'} onclick={() => setKbMode('app')}>In-app</button>
+					<button class="chip" role="radio" aria-checked={kb.mode === 'phone'} onclick={() => setKbMode('phone')}>Phone keyboard</button>
+				</div>
+			</div>
+			<div class="q">
+				<b id="q-vib">Key vibration</b>
+				<div class="chips" role="radiogroup" aria-labelledby="q-vib">
+					{#each [['off', 'None'], ['light', 'Light'], ['strong', 'Strong']] as [id, label]}
+						<button class="chip" role="radio" aria-checked={kb.haptic === id} onclick={() => { setHaptic(id as Haptic); haptic(); }}>{label}</button>
+					{/each}
+				</div>
+			</div>
+			<div class="q">
+				<b id="q-sub">Subtitle background</b>
+				<div class="chips" role="radiogroup" aria-labelledby="q-sub">
+					{#each SUB_LEVELS as l}
+						<button class="chip" role="radio" aria-checked={subLevel === l.id} onclick={() => pickSub(l.id)}>{l.label}</button>
+					{/each}
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="menu">
+		<h2>More</h2>
+		<div class="list">
+			<button class="nav" onclick={() => (page = 'ai')} data-testid="set-ai"><span class="nt"><b>AI models</b><small>{providers.find((x) => x.id === s.provider)?.label}{s.provider === 'on-device' && s.model ? ' · ' + (MODEL_CATALOG.find((m) => m.file === s.model)?.label ?? s.model) : ''}</small></span><Icon name="chevron" size={18} /></button>
+			<button class="nav" onclick={() => (page = 'voice')} data-testid="set-voice"><span class="nt"><b>Narration voice</b><small>{tp.voice === 'system' || !ttsNative ? 'System voice' : (VOICES.find((v) => v.id === tp.voice)?.label ?? 'System voice')}</small></span><Icon name="chevron" size={18} /></button>
+			<button class="nav" onclick={() => (page = 'details')} data-testid="set-details"><span class="nt"><b>Keyboard and subtitles</b><small>Details, haptics and a subtitle preview</small></span><Icon name="chevron" size={18} /></button>
+			<button class="nav" onclick={() => (page = 'data')} data-testid="set-data"><span class="nt"><b>Your data</b><small>Export or reset Backend lab progress</small></span><Icon name="chevron" size={18} /></button>
+			<button class="nav" onclick={() => (page = 'about')} data-testid="set-about"><span class="nt"><b>About</b><small>What is in Preppy · version {appVersion}</small></span><Icon name="chevron" size={18} /></button>
+		</div>
+	</section>
+	{/if}
+
+	{#if page === 'ai'}
+	<button class="crumb" onclick={() => history.back()} aria-label="Back to Settings"><Icon name="back" size={18} />Settings</button>
 	<section>
 		<div class="lab">
 			<h2>AI models</h2>
@@ -348,7 +397,10 @@
 			{#if status}<p class="status" role="status">{status}</p>{/if}
 		</div>
 	</section>
+	{/if}
 
+	{#if page === 'voice'}
+	<button class="crumb" onclick={() => history.back()} aria-label="Back to Settings"><Icon name="back" size={18} />Settings</button>
 	<section>
 		<div class="lab">
 			<h2>Narration voice</h2>
@@ -429,7 +481,10 @@
 			{/if}
 		</div>
 	</section>
+	{/if}
 
+	{#if page === 'details'}
+	<button class="crumb" onclick={() => history.back()} aria-label="Back to Settings"><Icon name="back" size={18} />Settings</button>
 	<section>
 		<div class="lab">
 			<h2>Lesson subtitles</h2>
@@ -449,7 +504,6 @@
 			</div>
 		</div>
 	</section>
-
 	<section>
 		<div class="lab">
 			<h2>Code keyboard</h2>
@@ -470,14 +524,10 @@
 			<p class="hint">Key vibration: "Light tap" is your phone's own keyboard-tap feedback (it follows the touch-feedback setting in Android); "Strong click" uses the vibration motor directly.</p>
 		</div>
 	</section>
+	{/if}
 
-	<section>
-		<div class="lab">
-			<h2>About</h2>
-			<p>Preppy bundles the Backend lab (Python via Pyodide, SQL via real Postgres-in-WASM), computer science, AI, JavaScript, TypeScript, React, Next.js and database lessons with animated explainers, quizzes, playgrounds and drills, all offline. The AI assistant is optional.</p>
-		</div>
-	</section>
-
+	{#if page === 'data'}
+	<button class="crumb" onclick={() => history.back()} aria-label="Back to Settings"><Icon name="back" size={18} />Settings</button>
 	<section>
 		<div class="lab">
 			<h2>Your data</h2>
@@ -489,9 +539,38 @@
 			<div class="row first" style="margin-top:14px"><button class="btn danger" onclick={resetProgress}>Reset Backend lab progress</button></div>
 		</div>
 	</section>
+	{/if}
+
+	{#if page === 'about'}
+	<button class="crumb" onclick={() => history.back()} aria-label="Back to Settings"><Icon name="back" size={18} />Settings</button>
+	<section>
+		<div class="lab">
+			<h2>About</h2>
+			<p>Preppy bundles the Backend lab (Python via Pyodide, SQL via real Postgres-in-WASM), computer science, AI, JavaScript, TypeScript, React, Next.js and database lessons with animated explainers, quizzes, playgrounds and drills, all offline. The AI assistant is optional.</p>
+		</div>
+	</section>
+	{/if}
+
 </div>
 
 <style>
+
+	.quick, .menu { padding: 16px 0 8px; border-top: 0; }
+	.menu { padding-top: 8px; }
+	.q { display: flex; flex-direction: column; gap: 8px; padding: 10px 0; }
+	.q + .q { border-top: 1px solid var(--rule); }
+	.q b { font-weight: 500; font-size: var(--fs-body); }
+	.q .chips { margin-top: 0; }
+	.list { background: var(--surface); border-radius: var(--radius-card); overflow: hidden; }
+	.nav { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; min-height: 64px; padding: 10px 16px; background: none; border: 0; color: var(--text); }
+	.nav + .nav { border-top: 1px solid var(--rule); }
+	.nav:active { background: var(--raised); }
+	.nav .nt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+	.nav b { font-weight: 500; font-size: 15px; }
+	.nav small { color: var(--muted); font-size: var(--fs-small); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.nav :global(svg) { color: var(--faint); flex: none; }
+	.crumb { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 12px 0 4px; margin: 4px 0 0; background: none; border: 0; color: var(--muted); font-weight: 500; font-size: var(--fs-body); }
+	.crumb:active { color: var(--text); }
 	.more { max-width: 640px; margin: 0 auto; padding: 8px 16px 32px; }
 	h1 { font-size: var(--fs-title); font-weight: 600; margin: 8px 0 4px; letter-spacing: -.01em; }
 	section { padding: 24px 0; border-top: 1px solid var(--rule); }

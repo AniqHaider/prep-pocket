@@ -17,7 +17,7 @@
 	import Player from './explain/Player.svelte';
 	import { playlist } from './explain/nav';
 	import { innerDepth, resetInner } from './ui/backNav.svelte';
-	import { setRootProbe } from './ui/rootState';
+	import { setBackPlanner } from './ui/rootState';
 	import Database from './db/Database.svelte';
 	import { postgres } from './db/postgres';
 	import { mysql } from './db/mysql';
@@ -30,8 +30,9 @@
 	import { react } from './db/react';
 	import { nextjs } from './db/nextjs';
 	import { interview } from './db/interview';
+	import { pyai } from './db/pyai';
 
-	type Tab = 'home' | 'dojo' | 'visual' | 'cs' | 'ai' | 'aws' | 'js' | 'ts' | 'react' | 'next' | 'pg' | 'mysql' | 'mongo' | 'prep' | 'prep2' | 'drills' | 'interview' | 'more';
+	type Tab = 'home' | 'dojo' | 'visual' | 'cs' | 'ai' | 'py' | 'aws' | 'js' | 'ts' | 'react' | 'next' | 'pg' | 'mysql' | 'mongo' | 'prep' | 'prep2' | 'drills' | 'interview' | 'more';
 	type IconName = 'dojo' | 'frontend' | 'react' | 'drills' | 'settings' | 'visual' | 'database' | 'table' | 'braces' | 'cpu' | 'bot' | 'cloud' | 'js' | 'shield' | 'component' | 'next' | 'briefcase' | 'home' | 'python';
 	const GROUPS: { title: string; items: { id: Tab; icon: IconName; label: string; sub: string }[] }[] = [
 		{
@@ -40,6 +41,7 @@
 				{ id: 'dojo', icon: 'dojo', label: 'Backend lab', sub: 'Python + SQL, XP and streaks' },
 				{ id: 'cs', icon: 'cpu', label: 'Computer science', sub: 'Data structures, algorithms, memory' },
 				{ id: 'ai', icon: 'bot', label: 'AI and agents', sub: 'Models, RAG, agents, harnesses' },
+				{ id: 'py', icon: 'python', label: 'Python for AI', sub: 'NumPy, PyTorch, Hugging Face, RAG, MLOps' },
 				{ id: 'aws', icon: 'cloud', label: 'AWS', sub: 'S3, CloudFront, IAM, Lambda, queues' },
 				{ id: 'visual', icon: 'visual', label: 'Visual lessons', sub: 'Animated, step-by-step explainers' }
 			]
@@ -93,8 +95,14 @@
 	const snapshot = () => ({ tab, view: get(view), drawer, assistant, play: get(playlist), inner: innerDepth() });
 
 	onMount(() => {
-		// "Root" = a section's top screen with the menu, assistant, player and any opened topic / drill / lesson closed.
-		setRootProbe(() => !drawer && !assistant && !get(playlist) && innerDepth() === 0 && (tab !== 'dojo' || get(view).name === 'dashboard'));
+		// Back closes whatever is open on top (menu, assistant, player, an opened topic / drill / lesson); from a section's top screen it
+		// returns to Home; from Home it offers to quit.
+		setBackPlanner(() => {
+			const open = drawer || assistant || !!get(playlist) || innerDepth() > 0 || (tab === 'dojo' && get(view).name !== 'dashboard');
+			if (open) return 'back';
+			if (tab !== 'home') { go('home'); return 'home'; }
+			return 'quit';
+		});
 		history.replaceState(snapshot(), '');
 		const unsub = view.subscribe(() => {
 			if (restoring || !history.state) return;
@@ -188,7 +196,7 @@
 </header>
 
 <div class="screen" class:pad={tab !== 'dojo'}>
-	{#if tab === 'home'}<Home groups={GROUPS} {last} onpick={pick} />{:else if tab === 'dojo'}<Dojo />{:else if tab === 'visual'}<Visual />{:else if tab === 'cs'}<Database engine={cs} />{:else if tab === 'ai'}<Database engine={ai} />{:else if tab === 'aws'}<Database engine={aws} />{:else if tab === 'js'}<Database engine={javascript} />{:else if tab === 'ts'}<Database engine={typescript} />{:else if tab === 'react'}<Database engine={react} />{:else if tab === 'next'}<Database engine={nextjs} />{:else if tab === 'pg'}<Database engine={postgres} />{:else if tab === 'mysql'}<Database engine={mysql} />{:else if tab === 'mongo'}<Database engine={mongodb} />{:else if tab === 'prep'}<Prep />{:else if tab === 'prep2'}<Prep2 />{:else if tab === 'interview'}<Database engine={interview} />{:else if tab === 'drills'}<Drills />{:else}<More />{/if}
+	{#if tab === 'home'}<Home groups={GROUPS} {last} onpick={pick} />{:else if tab === 'dojo'}<Dojo />{:else if tab === 'visual'}<Visual />{:else if tab === 'cs'}<Database engine={cs} />{:else if tab === 'ai'}<Database engine={ai} />{:else if tab === 'py'}<Database engine={pyai} />{:else if tab === 'aws'}<Database engine={aws} />{:else if tab === 'js'}<Database engine={javascript} />{:else if tab === 'ts'}<Database engine={typescript} />{:else if tab === 'react'}<Database engine={react} />{:else if tab === 'next'}<Database engine={nextjs} />{:else if tab === 'pg'}<Database engine={postgres} />{:else if tab === 'mysql'}<Database engine={mysql} />{:else if tab === 'mongo'}<Database engine={mongodb} />{:else if tab === 'prep'}<Prep />{:else if tab === 'prep2'}<Prep2 />{:else if tab === 'interview'}<Database engine={interview} />{:else if tab === 'drills'}<Drills />{:else}<More />{/if}
 </div>
 
 {#if $playlist}
@@ -203,9 +211,7 @@
 	<Assistant open={assistant} onopen={openAssistant} onclose={closeAssistant} />
 {/if}
 
-{#if drawer}
-	<button class="scrim" onclick={closeDrawer} aria-label="Close menu" tabindex="-1"></button>
-{/if}
+<button class="scrim" class:open={drawer} onclick={closeDrawer} aria-label="Close menu" tabindex="-1" aria-hidden={!drawer}></button>
 <nav class="drawer" class:open={drawer} aria-label="Main" aria-hidden={!drawer} inert={!drawer}>
 	<div class="brand">
 		<svg class="mark" width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true"><path d="M9 25V5h6.5a5.75 5.75 0 0 1 0 11.5H9" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" /><circle cx="21.5" cy="23.5" r="2.4" fill="currentColor" /></svg>
@@ -238,14 +244,17 @@
 	/* the bar owns the status-bar inset, so screens must not add it again */
 	.screen { --safe-t: 0px; padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); min-height: calc(100dvh - var(--bar-h)); padding-bottom: calc(var(--safe-b) + 84px); } /* room for the floating Ask / Ask tutor button */
 
-	.scrim { position: fixed; inset: 0; z-index: 70; background: rgba(0, 0, 0, .72); border: 0; padding: 0; animation: fade .18s; touch-action: none; }
+	.scrim { position: fixed; inset: 0; z-index: 70; background: rgba(0, 0, 0, .72); border: 0; padding: 0; touch-action: none; opacity: 0; pointer-events: none; transition: opacity .22s ease; }
+	.scrim.open { opacity: 1; pointer-events: auto; }
 	.drawer {
 		position: fixed; top: 0; bottom: 0; left: 0; z-index: 80; width: min(84vw, 320px);
 		padding: calc(var(--safe-t) + 20px) 12px calc(var(--safe-b) + 16px); overflow-y: auto;
 		background: var(--ground); border-right: 1px solid var(--border);
-		overscroll-behavior: contain; transform: translateX(-102%); transition: transform .2s ease; visibility: hidden;
+		overscroll-behavior: contain; transform: translateX(-102%); visibility: hidden;
+		/* visibility flips only after the slide-out finishes, or the menu would vanish instead of sliding away */
+		transition: transform .22s ease, visibility 0s linear .22s;
 	}
-	.drawer.open { transform: none; visibility: visible; }
+	.drawer.open { transform: none; visibility: visible; transition: transform .22s ease, visibility 0s; }
 	.brand { display: flex; align-items: center; gap: 12px; padding: 0 10px 18px; }
 	.brand .mark { color: var(--accent); flex: none; }
 	.brand b { display: block; font-size: 18px; font-weight: 600; letter-spacing: -.02em; }
@@ -261,5 +270,4 @@
 	.item.on { color: var(--text); background: var(--brand-soft); }
 	.item.on .i { color: var(--brand); }
 	.item.on b { font-weight: 600; }
-	@keyframes fade { from { opacity: 0; } }
 </style>

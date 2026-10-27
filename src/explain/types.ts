@@ -2,7 +2,7 @@
 // animates between steps, so authoring a scene never needs code. See docs/explainers.md for the authoring guide.
 
 export type Tone = 'neutral' | 'accent' | 'warn' | 'neg';
-export type Topic = 'backend' | 'postgres' | 'mysql' | 'mongodb' | 'cs' | 'ai' | 'aws' | 'javascript' | 'typescript' | 'react' | 'nextjs';
+export type Topic = 'backend' | 'postgres' | 'mysql' | 'mongodb' | 'cs' | 'ai' | 'aws' | 'javascript' | 'typescript' | 'react' | 'nextjs' | 'pyai';
 
 interface Common {
 	id: string;

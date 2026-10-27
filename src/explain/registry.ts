@@ -10,8 +10,9 @@ import { javascriptScenes } from './scenes/javascript';
 import { typescriptScenes } from './scenes/typescript';
 import { reactScenes } from './scenes/react';
 import { nextjsScenes } from './scenes/nextjs';
+import { pyaiScenes } from './scenes/pyai';
 
-export const allScenes: Scene[] = [...backendScenes, ...csScenes, ...aiScenes, ...awsScenes, ...javascriptScenes, ...typescriptScenes, ...reactScenes, ...nextjsScenes, ...postgresScenes, ...mysqlScenes, ...mongodbScenes];
+export const allScenes: Scene[] = [...backendScenes, ...csScenes, ...aiScenes, ...pyaiScenes, ...awsScenes, ...javascriptScenes, ...typescriptScenes, ...reactScenes, ...nextjsScenes, ...postgresScenes, ...mysqlScenes, ...mongodbScenes];
 const byId = new Map(allScenes.map((s) => [s.id, s]));
 
 export const sceneById = (id: string) => byId.get(id);
@@ -23,6 +24,6 @@ export const captionMs = (say: string) => Math.max(2800, say.length * 62);
 export const sceneSeconds = (s: Scene) => Math.round(s.steps.reduce((t, st) => t + captionMs(st.say), 0) / 1000);
 
 export const TOPIC_LABEL: Record<Topic, string> = {
-	backend: 'Backend lab', cs: 'Computer science', ai: 'AI and agents', aws: 'AWS', javascript: 'JavaScript', typescript: 'TypeScript', react: 'React', nextjs: 'Next.js',
+	backend: 'Backend lab', cs: 'Computer science', ai: 'AI and agents', pyai: 'Python for AI', aws: 'AWS', javascript: 'JavaScript', typescript: 'TypeScript', react: 'React', nextjs: 'Next.js',
 	postgres: 'PostgreSQL', mysql: 'MySQL', mongodb: 'MongoDB'
 };
