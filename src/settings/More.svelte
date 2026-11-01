@@ -15,8 +15,9 @@
 	import { useBack } from '../ui/backNav.svelte';
 	import { appVersion } from '../ui/whatsNew';
 	import { SUB_LEVELS, loadSubLevel, saveSubLevel, subAlpha, type SubLevel } from '../explain/subtitle';
+	import { WEB_PROVIDERS, loadWebSettings, saveWebSettings, webReady, webSearch, type WebSettings } from '../assistant/web';
 
-	type Page = '' | 'ai' | 'voice' | 'details' | 'data' | 'about';
+	type Page = '' | 'ai' | 'web' | 'voice' | 'details' | 'data' | 'about';
 	let page = $state<Page>('');
 	useBack(() => page, (v) => (page = v as Page)); // Back leaves a settings page before it leaves Settings
 	let subLevel = $state<SubLevel>(loadSubLevel());
@@ -27,7 +28,7 @@
 
 	const providers: { id: Provider; label: string; note: string }[] = [
 		{ id: 'none', label: 'Off', note: 'No AI. Everything else works offline.' },
-		{ id: 'on-device', label: 'On this phone (offline)', note: 'Runs a small open model right on your phone — no internet, no Mac, no account. One-time download of 0.5–4.7 GB (7B models need a 12 GB phone).' },
+		{ id: 'on-device', label: 'On this phone (offline)', note: 'Runs a small open model right on your phone — no internet, no Mac, no account. One-time download of 0.5–5.7 GB (the bigger ones need a 12 GB phone).' },
 		{ id: 'gemini', label: 'Google Gemini', note: 'Free API key from aistudio.google.com. Needs internet.' },
 		{ id: 'anthropic', label: 'Claude (Anthropic)', note: 'API key from console.anthropic.com. Needs internet.' },
 		{ id: 'openai-compatible', label: 'Local / other (OpenAI-compatible)', note: 'Ollama, LM Studio, llama.cpp server… running on your Mac (same Wi-Fi) or anywhere reachable.' }
@@ -121,6 +122,31 @@
 			status = 'Failed: ' + (e?.message ?? e);
 		} finally {
 			testing = false;
+		}
+	}
+
+	// ---- web lookup ----
+	let web = $state<WebSettings>(loadWebSettings());
+	let webStatus = $state('');
+	let webTesting = $state(false);
+	const webLabel = $derived(WEB_PROVIDERS.find((p) => p.id === web.provider)?.label ?? 'Off');
+	function saveWeb() {
+		saveWebSettings({ ...web, key: web.key.trim() });
+		webStatus = 'Saved';
+		setTimeout(() => (webStatus = ''), 1800);
+	}
+	async function testWeb() {
+		saveWebSettings({ ...web, key: web.key.trim() });
+		if (!webReady(web)) return (webStatus = web.provider === 'off' ? 'Pick a provider first.' : 'Add the API key first.');
+		webTesting = true;
+		webStatus = 'Searching…';
+		try {
+			const hits = await webSearch('Model Context Protocol', { ...web, key: web.key.trim() });
+			webStatus = hits.length ? `Works: found “${hits[0].title}”.` : 'Connected, but the search returned nothing.';
+		} catch (e: any) {
+			webStatus = 'Failed: ' + (e?.message ?? e);
+		} finally {
+			webTesting = false;
 		}
 	}
 
@@ -318,6 +344,7 @@
 		<h2>More</h2>
 		<div class="list">
 			<button class="nav" onclick={() => (page = 'ai')} data-testid="set-ai"><span class="nt"><b>AI models</b><small>{providers.find((x) => x.id === s.provider)?.label}{s.provider === 'on-device' && s.model ? ' · ' + (MODEL_CATALOG.find((m) => m.file === s.model)?.label ?? s.model) : ''}</small></span><Icon name="chevron" size={18} /></button>
+			<button class="nav" onclick={() => (page = 'web')} data-testid="set-web"><span class="nt"><b>Web lookup</b><small>{webLabel}{web.provider !== 'off' && !webReady(web) ? ' · needs a key' : ''}</small></span><Icon name="chevron" size={18} /></button>
 			<button class="nav" onclick={() => (page = 'voice')} data-testid="set-voice"><span class="nt"><b>Narration voice</b><small>{tp.voice === 'system' || !ttsNative ? 'System voice' : (VOICES.find((v) => v.id === tp.voice)?.label ?? 'System voice')}</small></span><Icon name="chevron" size={18} /></button>
 			<button class="nav" onclick={() => (page = 'details')} data-testid="set-details"><span class="nt"><b>Keyboard and subtitles</b><small>Details, haptics and a subtitle preview</small></span><Icon name="chevron" size={18} /></button>
 			<button class="nav" onclick={() => (page = 'data')} data-testid="set-data"><span class="nt"><b>Your data</b><small>Export or reset Backend lab progress</small></span><Icon name="chevron" size={18} /></button>
@@ -348,14 +375,14 @@
 				{#if !native}
 					<p class="hint">On-device models run inside the Android app. This browser build can't load them.</p>
 				{:else}
-					<p class="hint">Open-weights GGUF files from Hugging Face, stored privately in the app.{freeBytes ? ' ' + fmtBytes(freeBytes) + ' free.' : ''} Bigger is smarter but slower; the 7B models need a 12 GB phone and a few minutes to download, so use Wi-Fi.</p>
+					<p class="hint">Open-weights GGUF files from Hugging Face, stored privately in the app.{freeBytes ? ' ' + fmtBytes(freeBytes) + ' free.' : ''} Bigger is smarter but slower; the 9B and 7B models need a 12 GB phone and a few minutes to download, so use Wi-Fi. “Newer” models were trained on more recent data, so they know more recent tools.</p>
 					{#each MODEL_CATALOG as m}
 						{@const h = have[m.file]}
 						{@const p = progress[m.file]}
 						<div class="model" class:sel={s.model === m.file}>
 							<div class="mhead">
 								<b>{m.label}</b>
-								{#if s.model === m.file}<span class="pill pos"><Icon name="check" size={12} />In use</span>{:else if h?.complete}<span class="pill">Downloaded</span>{/if}
+								{#if s.model === m.file}<span class="pill pos"><Icon name="check" size={12} />In use</span>{:else if h?.complete}<span class="pill">Downloaded</span>{/if}{#if m.recent}<span class="pill">Newer</span>{/if}
 							</div>
 							<div class="meta num">{fmtBytes(m.bytes)} · RAM {m.ram}</div>
 							<div class="hint">{m.note}</div>
@@ -395,6 +422,42 @@
 				{#if s.provider !== 'none'}<button class="btn" onclick={test} disabled={testing}>Test</button>{/if}
 			</div>
 			{#if status}<p class="status" role="status">{status}</p>{/if}
+		</div>
+	</section>
+	{/if}
+
+	{#if page === 'web'}
+	<button class="crumb" onclick={() => history.back()} aria-label="Back to Settings"><Icon name="back" size={18} />Settings</button>
+	<section>
+		<div class="lab">
+			<h2>Web lookup</h2>
+			<p>A phone-sized model only knows what it was trained on, so it can miss newer tools. With web lookup on, the Assistant searches the web and gives the model the top results, then lists them as sources under its answer. Preppy’s own notes are always checked first, offline.</p>
+			<p class="now num">Now: {webLabel}</p>
+		</div>
+		<div class="panel">
+			<div role="radiogroup" aria-label="Web search provider">
+				{#each WEB_PROVIDERS as p}
+					<label class="opt" class:on={web.provider === p.id}>
+						<input type="radio" name="webprov" value={p.id} bind:group={web.provider} />
+						<span><b>{p.label}</b><small>{p.note}</small></span>
+					</label>
+				{/each}
+			</div>
+			{#if web.provider === 'tavily' || web.provider === 'serper'}
+				<label class="f">{web.provider === 'tavily' ? 'Tavily' : 'Serper'} API key<input type="password" bind:value={web.key} autocapitalize="off" autocomplete="off" /></label>
+			{/if}
+			{#if web.provider !== 'off'}
+				<label class="opt" class:on={web.always}>
+					<input type="checkbox" bind:checked={web.always} />
+					<span><b>Search on every question</b><small>Off: only when Preppy’s notes do not cover the question, or it asks about something recent.</small></span>
+				</label>
+				<p class="hint">What leaves the phone: only the keywords of your question, sent to {webLabel}{web.provider === 'wikipedia' ? '' : ' with your key'}, and only when you are online. Nothing is sent for “give me a hint” style prompts. Results are unverified, so check the source links.</p>
+			{/if}
+			<div class="row">
+				<button class="btn primary" onclick={saveWeb}>Save</button>
+				{#if web.provider !== 'off'}<button class="btn" onclick={testWeb} disabled={webTesting}>Test</button>{/if}
+			</div>
+			{#if webStatus}<p class="status" role="status">{webStatus}</p>{/if}
 		</div>
 	</section>
 	{/if}

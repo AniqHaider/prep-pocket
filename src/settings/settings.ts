@@ -12,7 +12,7 @@ export interface TutorSettings {
 
 export const DEFAULT_MODELS: Record<Provider, string> = {
 	none: '',
-	'on-device': 'qwen2.5-1.5b-instruct-q4_k_m.gguf', // file name of the chosen local model
+	'on-device': 'Qwen3.5-4B-Q4_K_M.gguf', // file name of the chosen local model
 	gemini: 'gemini-2.5-flash',
 	anthropic: 'claude-haiku-5-5',
 	'openai-compatible': 'llama3.2'

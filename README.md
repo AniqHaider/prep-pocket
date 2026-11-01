@@ -4,7 +4,7 @@
 
 *A pocket study app for software engineers. (repo: `prep-pocket`; called Kata before 1.3.0)*
 
-[![Download APK](https://img.shields.io/badge/Download-Preppy%20v1.8.0%20APK-3DDC84?logo=android&logoColor=white)](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Preppy-v1.8.0.apk)
+[![Download APK](https://img.shields.io/badge/Download-Preppy%20v2.4.0%20APK-3DDC84?logo=android&logoColor=white)](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Preppy-v2.4.0.apk)
 
 > Changes per version: **[CHANGELOG.md](CHANGELOG.md)** · Design rules: **[docs/design.md](docs/design.md)**
 
@@ -29,16 +29,22 @@ Copied from `backend-dojo`, `svelte-typescript-prep`, `react-next-typescript-pre
 The Backend lab's old FastAPI/Postgres/`claude`-CLI backend is replaced by on-device ports (`src/dojo/engine/`): same grading, XP, streak and diagram-unlock rules.
 
 ## Install on your phone
-Download **[Preppy-v1.8.0.apk](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Preppy-v1.8.0.apk)** (≈50 MB, debug-signed, arm64) from the [latest release](https://github.com/AniqHaider/prep-pocket/releases/latest), then:
-- **USB:** enable *Developer options → USB debugging*, then `adb install -r Preppy-v1.8.0.apk`
+Download **[Preppy-v2.4.0.apk](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Preppy-v2.4.0.apk)** (≈50 MB, debug-signed, arm64) from the [latest release](https://github.com/AniqHaider/prep-pocket/releases/latest), then:
+- **USB:** enable *Developer options → USB debugging*, then `adb install -r Preppy-v2.4.0.apk`
 - **File transfer:** send the APK to the phone (Drive, Telegram, WhatsApp "document", Nearby Share, cable), open it, allow *Install unknown apps* for that app. Play Protect may warn about an unknown developer — that's expected for a self-built APK.
 
 ## AI (optional)
 The Backend lab's **Ask tutor** and the app-wide **Assistant** share one model, chosen in Settings → AI models:
-- **On this phone (offline)** — no Mac, no internet after a one-time model download, no account. Pick a model (stored privately in the app), tap *Download*, and ask. Catalog (open-weights, Q4_K_M GGUF from Hugging Face): Qwen2.5 **7B** and Qwen2.5-**Coder** 7B (4.7 GB each, best quality — need a 12 GB phone, replies are slow), Qwen2.5 **3B** (2.1 GB, best everyday pick), **1.5B** (1.1 GB, balanced), Llama 3.2 3B (2.0 GB), Qwen2.5 0.5B (0.5 GB, testing only). Inference is llama.cpp on the CPU with the best ARM variant (dotprod/i8mm/SVE) picked at runtime; the first question after a restart loads the model (~10–30 s). Small models make mistakes — treat answers as hints.
+- **On this phone (offline)** — no Mac, no internet after a one-time model download, no account. Pick a model (stored privately in the app), tap *Download*, and ask. Catalog (open-weights GGUF from Hugging Face, Q4_K_M unless noted): **Qwen3.5** 4B (2.7 GB, the everyday pick), 9B (5.7 GB, best quality for a 12 GB phone), 2B (1.3 GB) and 4B at 8-bit (4.5 GB, near-lossless but slower); **Gemma 4 E4B** (5.0 GB); and the older 2024 models Qwen2.5 7B / Coder 7B / 3B / 1.5B / 0.5B and Llama 3.2 3B. The 2024 models do not know tools released after mid-2024 (MCP, for example). Inference is llama.cpp on the CPU with the best ARM variant (dotprod/i8mm/SVE) picked at runtime, using each model's own chat template with thinking switched off; the first question after a restart loads the model (~10–30 s). Small models make mistakes — treat answers as hints.
 - **Gemini** / **Claude**: paste an API key (stored only on the phone). Needs internet.
 - **Local server**: Ollama etc. on a machine reachable from the phone — `OLLAMA_HOST=0.0.0.0 OLLAMA_ORIGINS=* ollama serve`, URL `http://<ip>:11434/v1`.
 Everything else works with no network and no tutor.
+
+## How the Assistant answers
+A model only knows what was in its training data, so before the model answers, the app grounds it:
+1. **Preppy's own notes (always, offline).** The question is searched (BM25) across every topic's notes and every quiz explanation, and the best passages go into the prompt. Answers list them under "Sources".
+2. **Web lookup (optional, off by default; Settings → Web lookup).** Wikipedia needs no key; Tavily and Serper need your own key. It runs when the notes do not cover the question, when the question asks about something recent, or on every question if you choose. Only the keywords of the question are sent, only while online, and the pages used are linked under the answer. Web text is treated as untrusted, and links in answers open outside the app.
+Generic prompts such as "give me a hint" trigger neither. The Backend lab tutor keeps its own prompts.
 
 ## Narration voice (optional)
 Lesson read-aloud uses the phone's system voice by default. For a smoother voice, open Settings → Narration voice and download one (Natural/Kokoro 132 MB, Clear/Piper 35 MB, Warm/Piper 21 MB, British/Piper 21 MB). The voices run on the phone through sherpa-onnx; after the one-time download, narration works offline. Downloads come from the sherpa-onnx GitHub releases. Natural is the most human-sounding and the slowest to prepare; on a slower phone it may pause between sentences, so try Clear or Warm.
@@ -49,6 +55,8 @@ bun install
 bun run dev                 # http://localhost:5180 (mobile viewport in devtools)
 bun run verify              # runs all 147 Backend lab reference solutions + 9 drills through the in-browser engines
 bun run check               # svelte-check
+bun scripts/check-assistant-knowledge.ts   # the Assistant's notes lookup finds the right topics
+bun scripts/check-web-lookup.ts           # web lookup requests and parsing (live Wikipedia part skipped offline)
 ```
 
 ## Build the APK

@@ -131,6 +131,14 @@ async function* openaiCompatible(s: TutorSettings, system: string, user: string,
 	}
 }
 
+/** Reasoning models may put their scratch work in <think>…</think>. Hide it, and show a short note while it is still open. */
+export function stripThinking(t: string): string {
+	let out = t.replace(/<think>[\s\S]*?<\/think>\s*/g, '');
+	const open = out.indexOf('<think>');
+	if (open >= 0) out = out.slice(0, open) + '(thinking…)';
+	return out;
+}
+
 /** Runs the model that lives on the phone (llama.cpp via the LocalLlm plugin). */
 async function onDevice(s: TutorSettings, system: string, user: string, onChunk?: (full: string) => void, signal?: AbortSignal): Promise<string> {
 	if (!onDeviceAvailable()) throw new Error('On-device models only work inside the Android app.');
@@ -167,7 +175,8 @@ async function onDevice(s: TutorSettings, system: string, user: string, onChunk?
 
 /** Sends one (system, user) prompt to whichever provider is configured in Settings → AI models and streams the reply.
  *  Shared by the Backend lab tutor and the app-level assistant. Calls onChunk(fullTextSoFar); returns the full answer. */
-export async function runModel(system: string, user: string, onChunk?: (full: string) => void, signal?: AbortSignal): Promise<string> {
+export async function runModel(system: string, user: string, onChunkRaw?: (full: string) => void, signal?: AbortSignal): Promise<string> {
+	const onChunk = onChunkRaw && ((t: string) => onChunkRaw(stripThinking(t)));
 	const s = loadSettings();
 	if (s.provider === 'none') {
 		const msg = '(No AI model is set up yet. Open **Settings → AI models** and choose a model on this phone, Gemini, Claude, or a local server such as Ollama.)';
@@ -176,7 +185,7 @@ export async function runModel(system: string, user: string, onChunk?: (full: st
 	}
 	if (s.provider === 'on-device') {
 		try {
-			return await onDevice(s, system, user, onChunk, signal);
+			return stripThinking(await onDevice(s, system, user, onChunk, signal));
 		} catch (e: any) {
 			throw new Error(String(e?.message ?? e));
 		}
@@ -202,7 +211,7 @@ export async function runModel(system: string, user: string, onChunk?: (full: st
 		full = '(No response.)';
 		onChunk?.(full);
 	}
-	return full;
+	return stripThinking(full);
 }
 
 /** Streams the Backend lab tutor's answer (its prompts + the learner's exercise/mistake context). */

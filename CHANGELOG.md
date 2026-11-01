@@ -4,6 +4,19 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [2.4.0] — 2026-11-01
+Newer on-device models, and an assistant that looks things up before it answers.
+
+### Added
+- **Newer models.** Qwen3.5 (2B, 4B, 9B, and 4B at 8-bit) and Gemma 4 E4B join the on-device list (Settings → AI models → On this phone), marked "Newer". Qwen3.5 4B is the new everyday pick. The Qwen2.5 and Llama 3.2 models are from 2024, so they do not know tools released since, such as MCP.
+- **The Assistant checks Preppy's own notes first.** Before answering, it searches the app's topics and quiz explanations on the phone, offline, and gives the best passages to the model. Under each answer, "Sources" lists what it used.
+- **Web lookup (optional, off by default).** Settings → Web lookup: Wikipedia (no key), or Tavily or Serper with your own key. The Assistant searches when the notes do not cover the question, or when you ask about something recent, and links the pages it used. Only the keywords of your question are sent, only while you are online.
+
+### Changed
+- **Reasoning models answer straight away.** Thinking is switched off for on-device models, and any hidden "thinking" text is removed from answers.
+- **Each model's own chat template** is used for prompts, which Qwen3.5 and Gemma 4 need.
+- The Assistant's instructions describe the whole app, and links in its answers open in your browser.
+
 ## [2.3.0] — 2026-10-27
 Midnight gold: a new look for the whole app.
 

@@ -4,6 +4,7 @@
 	import { appContext } from './context';
 	import { askAssistant, type Turn } from './assistant';
 	import { loadSettings } from '../settings/settings';
+	import { loadWebSettings, webReady, WEB_PROVIDERS } from './web';
 	import Icon from '../ui/Icon.svelte';
 
 	let { open, onopen, onclose }: { open: boolean; onopen: () => void; onclose: () => void } = $props();
@@ -12,7 +13,10 @@
 	// Model output is untrusted text: escape any raw HTML instead of letting marked pass it through.
 	const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 	const md = new Marked({ renderer: { html: (t: any) => esc(typeof t === 'string' ? t : t.text) } });
-	const render = (t: string) => md.parse(t || '', { async: false }) as string;
+	// Links in answers (the sources list, or anything the model writes) open outside the app, and only http(s) links stay clickable.
+	const safeLinks = (html: string) =>
+		html.replace(/<a\s+href="([^"]*)"([^>]*)>/g, (_m, href: string, rest: string) => (/^https?:\/\//i.test(href) ? `<a href="${href}" target="_blank" rel="noopener noreferrer"${rest}>` : '<a>'));
+	const render = (t: string) => safeLinks(md.parse(t || '', { async: false }) as string);
 
 	function load(): Turn[] {
 		try {
@@ -30,6 +34,8 @@
 
 	const ctx = $derived($appContext);
 	const noModel = $derived(loadSettings().provider === 'none');
+	// Re-read each time the sheet opens, so a change in Settings → Web lookup shows up without a restart.
+	const webLabel = $derived(open && webReady(loadWebSettings()) ? (WEB_PROVIDERS.find((p) => p.id === loadWebSettings().provider)?.label ?? '') : '');
 
 	function persist() {
 		try {
@@ -60,7 +66,7 @@
 				? ['Give me a hint', 'Review my code', 'What edge cases should I test?']
 				: ctx?.label.includes('theory')
 					? ['Quiz me on this', 'Explain it simply', 'How would I say this in an interview?']
-					: ['Explain closures simply', 'React vs Svelte reactivity?', 'What is idempotency?']
+					: ['What is MCP?', 'Explain closures simply', 'React vs Svelte reactivity?']
 	);
 
 	async function send(text = input) {
@@ -122,7 +128,7 @@
 		{/if}
 		{#if !turns.length}
 			<div class="hello">
-				<p>I can see what you’re looking at (the quiz question, theory section or drill), so you can just ask “why?” or “give me a hint”.</p>
+				<p>I can see what you’re looking at (the quiz question, theory section or drill), so you can just ask “why?” or “give me a hint”. I check Preppy’s own notes first{webLabel ? ', and can search the web (' + webLabel + ')' : ''}, and list what I used under each answer.</p>
 				<div class="chips">
 					{#each SUGGESTIONS as s}<button class="chip" onclick={() => send(s)} disabled={busy}>{s}</button>{/each}
 				</div>
@@ -183,6 +189,7 @@
 	.md :global(code) { font-family: var(--mono); font-size: 13px; background: var(--surface); padding: 1px 5px; border-radius: 6px; color: var(--text); }
 	.md :global(pre code) { background: none; padding: 0; }
 	.md :global(ul), .md :global(ol) { margin: 4px 0 10px; padding-left: 20px; }
+	.md :global(a) { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
 	footer { display: flex; gap: 8px; align-items: flex-end; padding: 8px 12px calc(var(--safe-b) + 8px); border-top: 1px solid var(--border); }
 	textarea { flex: 1; resize: none; max-height: 120px; min-height: 44px; background: var(--surface); border: 1px solid var(--control); border-radius: 22px; color: var(--text); padding: 11px 16px; font: inherit; font-size: 16px; }
 	textarea::placeholder { color: var(--faint); }

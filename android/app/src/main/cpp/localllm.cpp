@@ -13,6 +13,7 @@
 #include "chat.h"
 #include "common.h"
 #include "llama.h"
+#include "prompt_format.h"
 
 #define TAG "LocalLlm"
 #define LOGi(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
@@ -132,23 +133,16 @@ Java_com_aniqhaider_preppocket_LlamaEngine_nativeGenerate(JNIEnv * env, jobject,
     jclass cls = env->GetObjectClass(listener);
     jmethodID onToken = env->GetMethodID(cls, "onToken", "(Ljava/lang/String;)V");
 
-    // 1) format with the model's chat template (system, then user + assistant prefix)
+    // 1) format with the model's own chat template (see prompt_format.h; thinking off)
     const std::string sys = jstr(env, jsystem), usr = jstr(env, juser);
-    std::vector<common_chat_msg> history;
-    common_chat_msg m_sys; m_sys.role = "system"; m_sys.content = sys;
-    common_chat_msg m_usr; m_usr.role = "user";   m_usr.content = usr;
-    const bool has_tmpl = common_chat_templates_was_explicit(g_templates.get());
-    std::string prompt;
-    if (has_tmpl) {
-        prompt  = common_chat_format_single(g_templates.get(), history, m_sys, false, false);
-        history.push_back(m_sys);
-        prompt += common_chat_format_single(g_templates.get(), history, m_usr, true, false);
-    } else {
-        prompt = sys + "\n\n" + usr + "\n";
-    }
+    const PromptFormat pf = format_chat_prompt(g_templates.get(), g_model, sys, usr);
+    if (!pf.note.empty()) LOGe("%s", pf.note.c_str());
+    const std::string & prompt = pf.text;
+    const bool use_special = pf.templated;
+    LOGi("prompt formatted: %d chars (template %s)", (int) prompt.size(), pf.templated ? "applied" : "none");
 
     // 2) tokenize and make sure prompt + answer fit
-    auto tokens = common_tokenize(g_ctx, prompt, has_tmpl, has_tmpl);
+    auto tokens = common_tokenize(g_ctx, prompt, use_special, use_special);
     if ((int) tokens.size() + 16 >= g_n_ctx) { LOGe("prompt too long: %d tokens (n_ctx %d)", (int) tokens.size(), g_n_ctx); return -2; }
     const int budget = std::min((int) maxTokens, g_n_ctx - (int) tokens.size() - 4);
 
