@@ -4,6 +4,15 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [2.4.1] — 2026-11-02
+Elasticsearch and OpenSearch join the AWS section.
+
+### Added
+- **Two new AWS topics.** "OpenSearch and Elasticsearch" covers documents, the inverted index, analyzers, text and keyword fields, and bool queries with filters. "Running OpenSearch Service" covers shards and replicas, why the primary shard count is fixed, dedicated cluster manager nodes, keeping the index in step with your database, reindexing behind an alias, and access control. Both have runnable "Try it" examples.
+- **Four animated lessons:** how a search engine finds products, a product search query, shards and a failed node, and keeping search in step with the database.
+- **13 new quiz questions** (6 and 7), basic to advanced. The AWS quiz now has 93 questions across 20 topics.
+- The Assistant finds these topics too, so you can ask it about OpenSearch and see them listed under "Sources".
+
 ## [2.4.0] — 2026-11-01
 Newer on-device models, and an assistant that looks things up before it answers.
 

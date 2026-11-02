@@ -346,6 +346,83 @@ console.log('database queries:', dbHits, 'of 6 requests');`
 		]
 	},
 	{
+		id: 'opensearch-search',
+		title: 'OpenSearch and Elasticsearch',
+		level: 'mid',
+		summary: 'See how a search engine finds and ranks products, and why it sits next to your database, not in place of it.',
+		scenes: ['aw-search-inverted-index', 'aw-opensearch-query'],
+		notes: md(
+			'**Elasticsearch** and **OpenSearch** are search engines built on Lucene. You store JSON **documents** in an **index**, then find them by words, filters and relevance. **Amazon OpenSearch Service** is the managed version: in 2021 AWS forked Elasticsearch 7.10 into the Apache-licensed OpenSearch, and the service once called Amazon Elasticsearch Service took that name. The core ideas and most of the API are shared.',
+			'',
+			'It is fast because of an **inverted index**: for every word (a **term**) it keeps the list of documents that contain it. An **analyzer** first lowercases and splits text into terms, and can stem "running" to "run", so "Running Shoes" matches "shoes for running". Results are ranked by a relevance **score** (BM25 by default).',
+			'',
+			'Use a **text** field to search words, and a **keyword** field for exact values, sorting and counting (**aggregations**) such as brand or category.',
+			'',
+			'```js',
+			'// POST /products/_search',
+			'const query = { bool: {',
+			'  must:   [{ match: { title: "running shoes" } }],           // scored',
+			'  filter: [{ term: { brand: "Acme" } }, { range: { price: { lte: 100 } } }] // yes or no',
+			'} };',
+			'```',
+			'',
+			'**Common trap:** using the index as your database. It is near real time (a new document appears after the next refresh, usually about a second) and has no multi-document transactions. Keep orders and products in a real database and copy them into the index.'
+		),
+		try: [
+			{
+				label: 'A tiny inverted index',
+				code: String.raw`const docs = [
+  { id: 1, title: 'Running shoes' },
+  { id: 2, title: 'Trail running jacket' },
+  { id: 3, title: 'Leather shoes' }
+];
+const analyze = (s) => s.toLowerCase().split(/\W+/).filter(Boolean);
+const index = {};
+for (const d of docs) for (const t of new Set(analyze(d.title))) (index[t] = index[t] || []).push(d.id);
+console.log('index:', JSON.stringify(index));
+function search(q) {
+  const score = {};
+  for (const t of analyze(q)) for (const id of index[t] || []) score[id] = (score[id] || 0) + 1;
+  return Object.entries(score).sort((a, b) => b[1] - a[1]).map(([id, n]) => 'doc ' + id + ' (' + n + ' matching terms)');
+}
+console.log('"Running Shoes" ->', search('Running Shoes').join(', '));`
+			}
+		]
+	},
+	{
+		id: 'opensearch-operations',
+		title: 'Running OpenSearch Service',
+		level: 'advanced',
+		summary: 'Size shards, survive a failed node, and keep the search index in step with the database.',
+		scenes: ['aw-opensearch-shards', 'aw-opensearch-sync'],
+		notes: md(
+			'An Amazon OpenSearch Service **domain** is one cluster. An index is split into **primary shards**, and each primary has **replica** copies on other nodes. If a node fails, a replica is promoted and search keeps working; replicas also add read capacity. You can change the replica count later, but changing the **primary** shard count means reindexing (or the split and shrink APIs), so choose it before the first document.',
+			'',
+			'Aim for shards of tens of gigabytes (AWS suggests roughly 10 to 50 GB depending on the workload). Thousands of tiny shards waste memory and CPU; huge shards are slow to recover. Production domains add **three dedicated cluster manager nodes**, an odd number so a majority can always elect a manager, and run across Availability Zones.',
+			'',
+			'The index is a **copy**. Keep the database as the source of truth and feed the index from it with an outbox, a change stream, or a queue and a worker. To change a mapping, build a new index and move an **alias** to it, so search never goes down.',
+			'',
+			'```js',
+			'// The app searches the alias; you swap the index behind it after a reindex.',
+			'const request = { index: "products", query: { match: { title: "shoes" } } }; // "products" -> products-v2',
+			'```',
+			'',
+			'Protect a domain with a VPC, IAM-signed requests and fine-grained access control. **Common trap:** a public domain with a loose access policy, or no replicas, so one failed node takes shards offline.'
+		),
+		try: [
+			{
+				label: 'Why the shard count is fixed',
+				code: `// Simplified routing: a document goes to shard hash(id) % primaries.
+const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+const ids = ['sku-101', 'sku-102', 'sku-103', 'sku-104', 'sku-105', 'sku-106'];
+const route = (n) => ids.map((id) => id + '->shard' + (hash(id) % n)).join('  ');
+console.log('3 primaries:', route(3));
+console.log('4 primaries:', route(4));
+console.log('The same ids land on different shards, so the count cannot just change.');`
+			}
+		]
+	},
+	{
 		id: 'containers-ecr-ecs-eks',
 		title: 'Containers: ECR, ECS, EKS',
 		level: 'mid',
@@ -626,10 +703,10 @@ for (const [ip, count] of traffic) {
 export const aws: LearnEngine = {
 	id: 'aws',
 	name: 'AWS',
-	tagline: 'The AWS services a web engineer meets most: storage, CDN, access, data, compute and queues.',
+	tagline: 'The AWS services a web engineer meets most: storage, CDN, access, data, search, compute and queues.',
 	topics,
 	questions: awsQuestions,
 	quizTopics: topics.map((t) => ({ id: t.id, label: t.title })),
 	playground: 'js',
-	quizBlurb: 'AWS storage, CDN, IAM, DNS and TLS, databases, compute, queues and operations'
+	quizBlurb: 'AWS storage, CDN, IAM, DNS and TLS, databases, search, compute, queues and operations'
 };

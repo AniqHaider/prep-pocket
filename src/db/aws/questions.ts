@@ -699,8 +699,119 @@ sh.add('mid', 'idle-cost',
 	 'Idle resources are billed at a rate that grows each day'],
 	'Many resources bill by the hour or capacity they are provisioned for, not by use. Clean up what is not needed, or schedule it to stop.');
 
+// ───────────────────────── opensearch-search ─────────────────────────
+// Appended after the other banks so the positional ids of existing questions do not change.
+const os1 = t('opensearch-search');
+
+os1.add('basic', 'what-it-is',
+	'What is Amazon OpenSearch Service?',
+	'A managed search and analytics service built on OpenSearch, which began as a fork of Elasticsearch 7.10',
+	['A managed relational database that you query with SQL joins',
+	 'A content delivery network that caches pages near shoppers all over the world',
+	 'A message queue that passes events between two services'],
+	'OpenSearch is a search and analytics engine. AWS forked Elasticsearch 7.10 into it in 2021, and the service that was called Amazon Elasticsearch Service became Amazon OpenSearch Service. It is not a relational database, a CDN or a queue.');
+
+os1.add('basic', 'inverted-index',
+	'Why can OpenSearch find the documents that contain a word so quickly?',
+	'It keeps an inverted index: for each term, a list of the documents that contain it',
+	['It reads every document on each search, using many processors at once',
+	 'It stores each document in its own table and joins the tables at query time',
+	 'It sends the whole index to the shopper\'s browser to search there'],
+	'An inverted index points from terms to documents, so a search looks up a few lists instead of scanning all documents. Scanning everything, joining tables or searching in the browser would be far slower or not possible.');
+
+os1.add('mid', 'keyword-vs-text',
+	'You must filter products by exact brand and show a count of products per brand. Which field type fits the brand?',
+	'keyword, which keeps the value as one exact term',
+	['text, which is split into separate words before it is stored',
+	 'date, because dates already sort in a fixed order',
+	 'binary, because it holds the raw bytes of the value'],
+	'A keyword field is not analyzed, so exact matches, sorting and aggregations such as counts per brand work. A text field is split into words for full-text search, which breaks exact matching and grouping.');
+
+os1.add('mid', 'filter-vs-must',
+	'In a bool query, why put the brand and price conditions in filter instead of must?',
+	'Filters answer yes or no without scoring, so they are cheaper and can be cached',
+	['Filters raise the relevance score of the products that pass them',
+	 'Only filter clauses are allowed to compare numbers',
+	 'Filters stop the cluster from copying the index to replicas'],
+	'The must part contributes to the relevance score. Conditions that only include or exclude products belong in filter: they skip scoring and the results can be cached. Both clauses can compare numbers, and neither affects replication.');
+
+os1.add('mid', 'analyzer',
+	'A shopper types "Running Shoes" and a product is titled "shoes for running". What makes it a match?',
+	'The analyzer lowercases and splits both texts into terms, and the terms overlap',
+	['The engine compares the two strings one character at a time',
+	 'OpenSearch asks the database to run a SQL LIKE query on the title',
+	 'Words are only matched in the exact order the shopper typed them'],
+	'The analyzer turns both the stored title and the query into lowercase terms, so "running" and "shoes" appear in both. It does not compare raw strings, call a database, or require the same word order.');
+
+os1.add('advanced', 'not-a-database',
+	'Why should OpenSearch not be the only place a store keeps its orders?',
+	'It is near real time and has no multi-document transactions, so it suits a searchable copy of the data',
+	['It cannot store more than one field in each document',
+	 'It has no way to look up a document by an exact value',
+	 'Its documents expire after one hour unless they are refreshed'],
+	'OpenSearch is built to search and aggregate. New documents appear after a refresh and it offers no multi-document transactions, so orders belong in a database that is the source of truth, with the index as a copy.');
+
+// ───────────────────────── opensearch-operations ─────────────────────────
+const os2 = t('opensearch-operations');
+
+os2.add('mid', 'replicas',
+	'What do replica shards give you in an OpenSearch Service domain?',
+	'A copy on another node for failover, and extra capacity for searches',
+	['Faster indexing, because every replica writes the first copy of each document',
+	 'Automatic compression of the primary shard to save disk space',
+	 'A second index that uses a different mapping'],
+	'A replica is a copy of a primary shard on a different node. If a node fails the replica is promoted, and searches can be answered by either copy. Replicas add a little indexing work and do not compress data or change a mapping.');
+
+os2.add('advanced', 'primary-count',
+	'Why should you choose the number of primary shards before indexing the first document?',
+	'It cannot simply be changed later: a different count means reindexing or using the split or shrink APIs',
+	['AWS locks the value after the first day of billing',
+	 'Every document stores the shard count and must be rewritten on each update',
+	 'You can never have more primary shards than data nodes'],
+	'A document is routed to a shard from its id and the number of primary shards, so changing the count would move documents. Replica counts can change at any time. More shards than nodes is allowed, and nothing is rewritten on updates.');
+
+os2.add('advanced', 'too-many-shards',
+	'A domain holds thousands of tiny shards and is running short of memory. What is the likely cause and the fix?',
+	'Each shard has overhead, so use fewer, larger shards',
+	['Replicas hold all of the memory, so delete every replica',
+	 'The dedicated cluster manager nodes store the data, so remove them',
+	 'The refresh interval is too long, so shorten it to one millisecond'],
+	'Every shard costs memory and CPU whatever its size, so many tiny shards waste resources. Combine data into fewer, larger shards (tens of gigabytes). Manager nodes hold no data, and a shorter refresh interval would add work, not remove it.');
+
+os2.add('advanced', 'cluster-manager',
+	'Why do production domains use three dedicated cluster manager nodes rather than two?',
+	'An odd number lets a majority form to elect a new manager after a failure; with two, one failure leaves no majority',
+	['Three nodes store more data than two',
+	 'Search requests are answered by the manager nodes, so more of them means faster searches',
+	 'AWS only allows odd numbers of data nodes'],
+	'The cluster manager tracks the cluster state and needs a majority to elect a replacement. With two nodes, losing one leaves a single node, which is not a majority; with three, two remain. Manager nodes hold no data and do not serve searches.');
+
+os2.add('mid', 'keeping-in-sync',
+	'Product prices change in the database. How should the search index stay current?',
+	'Publish each change as an event and let a worker update the index, keeping the database as the source of truth',
+	['Write only to the index and copy it to the database every night',
+	 'Let shoppers\' browsers fix the index when they spot a difference',
+	 'Rebuild the whole index by hand after every price change'],
+	'The database stays the source of truth, and changes flow to the index through an outbox, a change stream or a queue with a worker. The index can be rebuilt from the database if it drifts. Writing only to the index or fixing it by hand is fragile.');
+
+os2.add('advanced', 'alias-reindex',
+	'You must change the type of a field on a live search index. What avoids downtime?',
+	'Create a new index with the new mapping, reindex into it, then move the alias to it',
+	['Edit the mapping in place while traffic continues, so the existing field changes type immediately',
+	 'Delete the index and let searches fail until it has been rebuilt',
+	 'Add a replica, which converts the field when it syncs'],
+	'The type of an existing field cannot be changed in place. Build a new index with the right mapping, reindex into it, and switch the alias the app searches, so there is no gap. Deleting the index causes downtime, and replicas copy data without changing a mapping.');
+
+os2.add('mid', 'access',
+	'What is a sound way to protect an OpenSearch Service domain that holds store data?',
+	'Place it in a VPC, sign requests with IAM, and use fine-grained access control',
+	['Leave it public and rely on the difficulty of guessing its URL',
+	 'Share one admin password with every service that needs to search',
+	 'Turn on replicas, since each copy adds its own access check'],
+	'Keep the domain off the public internet where possible, authenticate callers with IAM-signed requests, and limit what each role can read or write with fine-grained access control. An obscure URL and shared passwords are weak, and replicas are for availability.');
+
 // ───────────────────────── assemble ─────────────────────────
-const banks = [sp, s3, ps, cf, ib, ie, ra, rd, ec, cn, lm, sq, mk, se, cw, sc, wf, sh];
+const banks = [sp, s3, ps, cf, ib, ie, ra, rd, ec, cn, lm, sq, mk, se, cw, sc, wf, sh, os1, os2];
 export const awsQuestions: Question[] = banks
 	.flatMap((b) => b.out)
 	.map((q, i) => ({ ...q, id: 'AW' + String(i + 1).padStart(2, '0') }));

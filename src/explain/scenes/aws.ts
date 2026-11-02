@@ -421,6 +421,107 @@ export const awsScenes: Scene[] = [
 		]
 	},
 
+	// ───────────── opensearch-search ─────────────
+	{
+		id: 'aw-search-inverted-index',
+		topic: 'aws',
+		group: 'opensearch-search',
+		title: 'How a search engine finds products',
+		blurb: 'Why is searching for words in OpenSearch so fast?',
+		stage: { w: 360, h: 360 },
+		nodes: [
+			...stack('a', [
+				{ l: 'Product documents', s: 'JSON, one per product' },
+				{ l: 'Analyzer', s: 'lowercase, split into terms' },
+				{ l: 'Inverted index', s: 'term to documents' },
+				{ l: 'Search: "running shoes"', s: 'look up each term' },
+				{ l: 'Ranked results', s: 'best match first', tone: 'accent' }
+			]),
+			{ id: 'tbl', kind: 'table', x: 240, y: 118, cols: ['term', 'docs'], rows: [['running', '1,2'], ['shoes', '1,3'], ['trail', '2'], ['jacket', '2'], ['leather', '3']], colW: 52 }
+		],
+		steps: [
+			{ say: 'A store puts its products into a search index as JSON documents: 1 "Running shoes", 2 "Trail running jacket" and 3 "Leather shoes".', focus: ['a0'] },
+			{ say: 'The analyzer lowercases the text and splits it into terms such as running, shoes and trail. It can also stem words, so "running" and "run" match.', show: ['a1', 'ae0'], focus: ['a1'] },
+			{ say: 'The index keeps, for each term, the list of documents that contain it. This is an inverted index: it points from words to documents.', show: ['a2', 'ae1', 'tbl'], focus: ['a2', 'tbl'] },
+			{ say: 'A search for "running shoes" goes through the same analyzer, then looks each term up in the index. It never reads every document.', show: ['a3', 'ae2'], focus: ['a3'] },
+			{ say: 'Running shoes matches both terms, so it scores highest and comes first. The other two products match one term each and rank below it.', show: ['a4', 'ae3'], pulse: ['a4'] }
+		]
+	},
+	{
+		id: 'aw-opensearch-query',
+		topic: 'aws',
+		group: 'opensearch-search',
+		title: 'A product search query',
+		blurb: 'How do filters and relevance work together?',
+		stage: { w: 360, h: 320 },
+		nodes: [
+			{ id: 'q', kind: 'doc', x: 16, y: 14, w: 328, title: 'POST /products/_search', lines: ['must:   match title "running shoes"', 'filter: term brand = Acme', 'filter: range price <= 100'], visible: true },
+			{ id: 'f', kind: 'box', x: 16, y: 120, w: 328, h: 44, label: 'Filters first', sub: 'yes or no, not scored, can be cached' },
+			{ id: 's', kind: 'box', x: 16, y: 190, w: 328, h: 44, label: 'Score what is left', sub: 'relevance of the title match' },
+			{ id: 'r', kind: 'box', x: 16, y: 260, w: 328, h: 44, label: 'Ranked hits and facets', sub: 'best first, plus counts per brand', tone: 'accent' },
+			{ id: 'ef', kind: 'edge', from: 'f', to: 's' },
+			{ id: 'es', kind: 'edge', from: 's', to: 'r' }
+		],
+		steps: [
+			{ say: 'The app sends one request. The must part is what the shopper typed; the filter parts are the choices they ticked in the sidebar.', focus: ['q'] },
+			{ say: 'Filters answer yes or no: is the brand Acme, is the price at most 100? They do not change the score and can be cached, so they are cheap.', show: ['f'], focus: ['f'] },
+			{ say: 'Only products that pass the filters are scored. The match on the title gives each one a relevance score, and the highest scores come first.', show: ['s', 'ef'], focus: ['s'] },
+			{ say: 'The response holds the ranked hits. It can also carry aggregations, such as the number of products per brand, to fill the filter sidebar.', show: ['r', 'es'], pulse: ['r'] }
+		]
+	},
+
+	// ───────────── opensearch-operations ─────────────
+	{
+		id: 'aw-opensearch-shards',
+		topic: 'aws',
+		group: 'opensearch-operations',
+		title: 'Shards, replicas and a failed node',
+		blurb: 'What keeps search working when a data node dies?',
+		stage: { w: 360, h: 340 },
+		nodes: [
+			{ id: 'na', kind: 'box', x: 8, y: 14, w: 108, h: 64, label: 'Node A', sub: 'P0', visible: true },
+			{ id: 'nb', kind: 'box', x: 126, y: 14, w: 108, h: 64, label: 'Node B', sub: 'P1', visible: true },
+			{ id: 'nc', kind: 'box', x: 244, y: 14, w: 108, h: 64, label: 'Node C', sub: 'P2', visible: true },
+			{ id: 'req', kind: 'box', x: 80, y: 150, w: 200, h: 44, label: 'Search request', sub: 'asks one copy of every shard' },
+			{ id: 'e1', kind: 'edge', from: 'req', to: 'na' },
+			{ id: 'e2', kind: 'edge', from: 'req', to: 'nb' },
+			{ id: 'e3', kind: 'edge', from: 'req', to: 'nc' },
+			{ id: 'note', kind: 'box', x: 16, y: 244, w: 328, h: 74, label: 'P = primary shard, R = replica copy', sub: 'a replica never lives on the same node as its primary' }
+		],
+		steps: [
+			{ say: 'An index is split into primary shards so no single node holds everything. Here the products index has three: P0, P1 and P2, one per data node.', focus: ['na', 'nb', 'nc'] },
+			{ say: 'Each primary has a replica, a copy on a different node. Replicas protect against failure and can also answer searches.', set: { na: { sub: 'P0 · R2' }, nb: { sub: 'P1 · R0' }, nc: { sub: 'P2 · R1' } }, show: ['note'], pulse: ['na', 'nb', 'nc'] },
+			{ say: 'A search goes to one copy of every shard, and the partial answers are merged into one ranked result.', show: ['req', 'e1', 'e2', 'e3'], focus: ['req'] },
+			{ say: 'Node B fails and primary P1 disappears. Its replica R1 on node C is promoted to primary, so every shard still has a live copy.', set: { nb: { tone: 'neg', sub: 'down' }, nc: { tone: 'accent', sub: 'P2 · P1 (promoted)' } }, hide: ['e2'], focus: ['nb', 'nc'] },
+			{ say: 'The cluster then rebuilds the lost copies on the nodes that remain. With no replicas, that shard would stay offline until restored from a snapshot.', set: { na: { sub: 'P0 · R2 · R1' }, nc: { sub: 'P2 · P1 · R0' } }, pulse: ['na', 'nc'] }
+		]
+	},
+	{
+		id: 'aw-opensearch-sync',
+		topic: 'aws',
+		group: 'opensearch-operations',
+		title: 'Keeping search in step with the database',
+		blurb: 'Where does the search index get its data?',
+		stage: { w: 360, h: 360 },
+		nodes: [
+			...stack('a', [
+				{ l: 'Product price edited', s: 'saved in the database first' },
+				{ l: 'Change event', s: 'outbox row, stream or queue' },
+				{ l: 'Indexer worker', s: 'reads the change' },
+				{ l: 'OpenSearch index', s: 'document updated' },
+				{ l: 'Search sees it', s: 'after the next refresh', tone: 'accent' }
+			]),
+			{ id: 'rule', kind: 'box', x: 240, y: 230, w: 104, h: 84, label: 'The index is a copy: rebuild it from the database any time', tone: 'warn' }
+		],
+		steps: [
+			{ say: 'A merchant changes a price. The database saves it first, because the database is the source of truth and the search index is not.', focus: ['a0'] },
+			{ say: 'The change is recorded as an event: a row in an outbox table, a database change stream, or a message on a queue.', show: ['a1', 'ae0'], focus: ['a1'] },
+			{ say: 'A worker reads each event and sends the updated document to OpenSearch, so the index follows the database.', show: ['a2', 'ae1'], focus: ['a2'] },
+			{ say: 'OpenSearch stores the new document. It appears in searches after the next refresh, usually within about a second: near real time, not instant.', show: ['a3', 'ae2', 'a4', 'ae3'], pulse: ['a3'] },
+			{ say: 'Because the index is only a copy, you can rebuild it from the database at any time, for example into a new index behind an alias.', show: ['rule'], focus: ['rule'] }
+		]
+	},
+
 	// ───────────── containers-ecr-ecs-eks ─────────────
 	{
 		id: 'aw-ecr-ecs-deploy',
