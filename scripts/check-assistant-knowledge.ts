@@ -15,6 +15,8 @@ const cases: [string, string[] | null][] = [
 	['difference between Elasticsearch and OpenSearch', ['elasticsearch']],
 	['How many shards should an index have', ['shard']],
 	['why three cluster manager nodes', ['cluster manager']],
+	['Why did Preppy use Capacitor instead of React Native?', ['capacitor']],
+	['How does the narration cache decide what to delete?', ['sentence cache']],
 	['How do database indexes speed up queries', ['index']],
 	['What does the event loop do', ['event loop']],
 	['Give me a hint', null],

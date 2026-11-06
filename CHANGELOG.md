@@ -4,6 +4,17 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [2.5.0] — 2026-11-06
+How Preppy was built: a new section that records every major decision behind the app.
+
+### Added
+- **How Preppy was built** (menu, under App). Fifteen topics in the same form as the other sections, each with written notes, runnable "Try it" snippets and animated lessons: why Preppy exists and how it grew from four projects into one offline app, the stack and what was left out, the real engines that run on the phone (Python, PostgreSQL, MongoDB queries, JavaScript) and how a stuck run is stopped, porting the Backend lab off its server, content as data, how the animated lessons and the video-style player work, the design system and its three looks, navigation and the Back button, the code keyboard, the on-device model, how the Assistant checks the notes and the web, the narration voices and their cache, how everything was checked, how releases are built and why updates keep your progress, and a log of trade-offs and known limits.
+- **32 animated lessons, 75 quiz questions and 24 "Try it" snippets** for it (basic to advanced). The snippets reproduce real logic from the app: the XP level formula, streaks, the history planner, the Enter-key indent rule, a notes search scorer, the narration cache key and more.
+- The Assistant searches this section too, so you can ask it why Preppy was built a certain way and see the topics listed under "Sources".
+
+### Changed
+- The README lists the new section and its counts are up to date (360 animated lessons, 21 drills).
+
 ## [2.4.1] — 2026-11-02
 Elasticsearch and OpenSearch join the AWS section.
 
