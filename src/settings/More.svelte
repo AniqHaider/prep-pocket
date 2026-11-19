@@ -610,6 +610,7 @@
 		<div class="lab">
 			<h2>About</h2>
 			<p>Preppy bundles the Backend lab (Python via Pyodide, SQL via real Postgres-in-WASM), computer science, AI, JavaScript, TypeScript, React, Next.js and database lessons with animated explainers, quizzes, playgrounds and drills, all offline. The AI assistant is optional.</p>
+			<p>Credits: the Google Cloud console screenshots in the Google Cloud lessons come from the Google Cloud documentation (docs.cloud.google.com), licensed under Creative Commons Attribution 4.0. Some are cropped or zoomed, and the lessons add outlines. Google Cloud is a trademark of Google LLC. The AWS console screens are redrawn illustrations, not screenshots.</p>
 		</div>
 	</section>
 	{/if}

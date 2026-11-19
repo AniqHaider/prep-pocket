@@ -4,6 +4,16 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [2.6.0] — 2026-11-19
+A Google Cloud section, and console screens in the cloud lessons.
+
+### Added
+- **Google Cloud** (menu, under Learn, next to AWS). 22 topics, 50 animated lessons, 112 quiz questions (basic to advanced) and 25 runnable "Try it" examples, in the same form as the AWS section: the request path, projects and billing (budgets and alerts), Cloud Storage and signed URLs, IAM and impersonation, the load balancer and Cloud CDN, DNS and certificates, Cloud Run, Artifact Registry and Cloud Build, GKE and Compute Engine, Cloud Run functions and API Gateway, Cloud SQL, Memorystore, Firestore and Spanner, Pub/Sub and Cloud Tasks, VPC, secrets, keys and Cloud Armor, BigQuery in the console and how it works, Cloud Logging, and Cloud Monitoring with alerts.
+- **Real console screenshots.** Thirteen of the lessons walk through screenshots from the Google Cloud documentation (budgets, Logs Explorer, Metrics Explorer, alert notifications, the BigQuery console). Each step zooms to the part it explains and outlines it, and each shows its credit line.
+- **Console screens in the AWS lessons.** 12 new lessons draw the S3, CloudFront, IAM, Route 53 and ACM, RDS, Lambda, SQS, CloudWatch, Secrets Manager and Billing consoles. AWS documentation images are not openly licensed, so these are redrawn illustrations, labelled as such.
+- **Pictures in lessons.** Lessons can now show an image, zoom into part of it and outline a region, and a console window frame for redrawn screens. Documented in `docs/explainers.md`.
+- The Assistant searches the Google Cloud section too, and Settings, About credits the Google Cloud documentation images (CC BY 4.0, sources in `public/lessons/gcp/CREDITS.md`).
+
 ## [2.5.0] — 2026-11-06
 How Preppy was built: a new section that records every major decision behind the app.
 

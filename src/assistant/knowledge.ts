@@ -14,6 +14,7 @@ import { nextjs } from '../db/nextjs';
 import { interview } from '../db/interview';
 import { pyai } from '../db/pyai';
 import { built } from '../db/built';
+import { gcp } from '../db/gcp';
 import type { LearnEngine } from '../db/types';
 
 export interface KnowledgeHit {
@@ -39,7 +40,7 @@ interface Chunk {
 	first: boolean;
 }
 
-const ENGINES: LearnEngine[] = [ai, pyai, cs, aws, javascript, typescript, react, nextjs, postgres, mysql, mongodb, interview, built];
+const ENGINES: LearnEngine[] = [ai, pyai, cs, aws, javascript, typescript, react, nextjs, postgres, mysql, mongodb, interview, built, gcp];
 
 export const STOP = new Set(
 	('a an and are as at be but by can could do does did for from had has have how i if in into is it its me my of on or our so than that the their them then there these they this to up us was we were what when where which who why will with would you your ' +

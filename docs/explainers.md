@@ -56,6 +56,15 @@ State is cumulative: step N shows everything up to N, so the player can jump to 
 5. **Be accurate.** Tables and numbers must add up and match what the caption says. Use realistic, small data (names like Asha, Ben, Chen; cities; order ids). Show real SQL / commands in `text` or `doc` nodes, never pseudo-code that would not run (unless the caption says so).
 6. Consistent layout across scenes of one topic helps: put "the query" at the top-left, the data below.
 
+## Pictures and console screens
+
+Two ways to show a cloud console (see `src/explain/scenes/consoleKit.ts`):
+
+- **A real screenshot**: an `image` node (`kind: 'image'`, `src: 'lessons/gcp/name.webp'`, `nw`/`nh` = the file's pixels, `w`/`h` = its box on the stage). The file lives in `public/lessons/...`. At 336 wide a console screenshot is tiny, so zoom: `set: { img: { view: { x, y, w } } }` (file pixels; `w` is the width shown, the height follows the box) moves and zooms smoothly. Mark the part with a `box` that has `shape: 'ring'`. Only use images whose licence allows it and always show a credit line (`credit()`), say so when a crop is shown, and list the source in `public/lessons/<set>/CREDITS.md`. Google Cloud documentation is CC BY 4.0; AWS documentation images are not openly licensed, so none are used.
+- **A redrawn console screen**: `consoleChrome()` draws a window frame (`shape: 'panel'`), a breadcrumb line and tabs; fill the content area with `table`, `doc`, `box` and `text` nodes. Label it as an illustration of the layout.
+
+Rings and panels are skipped by the overlap check, because they are meant to sit on or behind other nodes. `bun run content` also checks that an image file exists.
+
 ## Checking your work
 
 ```bash

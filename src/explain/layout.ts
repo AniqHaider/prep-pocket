@@ -43,6 +43,7 @@ export function rectOf(n: SceneNode): Rect | null {
 	switch (n.kind) {
 		case 'box':
 		case 'db':
+		case 'image':
 			return { x: n.x, y: n.y, w: n.w, h: n.h };
 		case 'table': {
 			const cw = n.colW ?? DEF_COL_W;

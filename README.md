@@ -4,7 +4,7 @@
 
 *A pocket study app for software engineers. (repo: `prep-pocket`; called Kata before 1.3.0)*
 
-[![Download APK](https://img.shields.io/badge/Download-Preppy%20v2.5.0%20APK-3DDC84?logo=android&logoColor=white)](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Preppy-v2.5.0.apk)
+[![Download APK](https://img.shields.io/badge/Download-Preppy%20v2.6.0%20APK-3DDC84?logo=android&logoColor=white)](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Preppy-v2.6.0.apk)
 
 > Changes per version: **[CHANGELOG.md](CHANGELOG.md)** · Design rules: **[docs/design.md](docs/design.md)**
 
@@ -15,10 +15,10 @@ One Android app (Android 16 / API 36, minSdk 33) that bundles four prep projects
 | Tab | What | Engine |
 |---|---|---|
 | **Backend lab** | 12 chapters, 76 Python + 24 SQL exercises + 47 quizzes, XP/streaks, growing architecture diagram | Python in **Pyodide** (WASM), SQL on real Postgres in **PGlite** (WASM) |
-| **Computer science** · **AI and agents** · **AWS** | Fundamentals (data structures, algorithms, memory, networks), AI (models, RAG, agents, harnesses, MCP) and AWS (S3, CloudFront, IAM, Route 53/ACM, RDS, OpenSearch, Lambda, queues, observability): each topic has notes, animated lessons, "Try it" toy models, and an 80-question quiz | animated SVG scenes; a sandboxed JS playground |
+| **Computer science** · **AI and agents** · **AWS** · **Google Cloud** | Fundamentals (data structures, algorithms, memory, networks), AI (models, RAG, agents, harnesses, MCP) AWS (S3, CloudFront, IAM, Route 53/ACM, RDS, OpenSearch, Lambda, queues, observability, with redrawn console screens) and Google Cloud (projects and billing, Cloud Storage, IAM, load balancing and CDN, Cloud Run, GKE, Cloud SQL, Pub/Sub, BigQuery, logging and monitoring, with real console screenshots from Google's documentation): each topic has notes, animated lessons, "Try it" toy models, and an 80-question quiz | animated SVG scenes; a sandboxed JS playground |
 | **JavaScript · TypeScript · React · Next.js** | Written notes and animated lessons for each, plus quizzes (JavaScript has its own 80; TypeScript, React and Next.js reuse the 500-question bank) and a JS/TS playground | same engine as above |
 | **How Preppy was built** | 15 topics, 32 animated lessons, 75 quiz questions and runnable snippets on every decision behind this app: the stack, the offline engines, the content model, the lesson player, design, Back navigation, the on-device model, the Assistant, narration, testing and releases | the same engine as the other learn sections |
-| **Visual lessons** | 360 short animated explainers (watch data move, step by step; keeps the screen on while it plays) with play/pause/step/speed and optional read-aloud; every Backend lab chapter also has a "Watch this chapter" button | data-driven SVG scenes, no dependencies |
+| **Visual lessons** | 422 short animated explainers (watch data move, step by step; keeps the screen on while it plays) with play/pause/step/speed and optional read-aloud; every Backend lab chapter also has a "Watch this chapter" button | data-driven SVG scenes, no dependencies |
 | **PostgreSQL · MySQL · MongoDB** | Each: 12 topics with notes and animated lessons, an 80-question quiz, and (PostgreSQL, MongoDB) a playground over a sample shop with a Try it button on every topic | PGlite (real Postgres in WASM), mingo (MongoDB query engine) |
 | **Svelte + TypeScript** | 100 MCQs with explanations + Svelte/TypeScript interview theory | plain Svelte 5 |
 | **React + Next + TS** | **500 MCQs** (200 React 19 · 200 Next.js 15/16 · 100 TypeScript), basic → advanced, every answer explained | plain Svelte 5 over the question bank from `react-next-typescript-prep` |
@@ -30,8 +30,8 @@ Copied from `backend-dojo`, `svelte-typescript-prep`, `react-next-typescript-pre
 The Backend lab's old FastAPI/Postgres/`claude`-CLI backend is replaced by on-device ports (`src/dojo/engine/`): same grading, XP, streak and diagram-unlock rules.
 
 ## Install on your phone
-Download **[Preppy-v2.5.0.apk](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Preppy-v2.5.0.apk)** (≈50 MB, debug-signed, arm64) from the [latest release](https://github.com/AniqHaider/prep-pocket/releases/latest), then:
-- **USB:** enable *Developer options → USB debugging*, then `adb install -r Preppy-v2.5.0.apk`
+Download **[Preppy-v2.6.0.apk](https://github.com/AniqHaider/prep-pocket/releases/latest/download/Preppy-v2.6.0.apk)** (≈50 MB, debug-signed, arm64) from the [latest release](https://github.com/AniqHaider/prep-pocket/releases/latest), then:
+- **USB:** enable *Developer options → USB debugging*, then `adb install -r Preppy-v2.6.0.apk`
 - **File transfer:** send the APK to the phone (Drive, Telegram, WhatsApp "document", Nearby Share, cable), open it, allow *Install unknown apps* for that app. Play Protect may warn about an unknown developer — that's expected for a self-built APK.
 
 ## AI (optional)
@@ -77,3 +77,6 @@ cd android && ./gradlew assembleDebug      # → app/build/outputs/apk/debug/app
 - Native code lives in `android/app/src/main/{cpp,java}` (`localllm.cpp` JNI bridge, `LocalLlmPlugin.java`, and `LocalTtsPlugin.java` for the narration voices); the APK is arm64-only and requires Android 13+ (minSdk 33).
 - Capacitor serves the app from `http://localhost` (a secure context) with cleartext allowed, so a LAN LLM over plain HTTP isn't blocked as mixed content.
 - Progress is stored in WebView localStorage; uninstalling the app erases it (use *Settings → Export*).
+
+## Credits
+The Google Cloud console screenshots in the Google Cloud lessons come from the [Google Cloud documentation](https://docs.cloud.google.com), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). They are converted to WebP, some are scaled down, and lessons crop or zoom them and add outlines. The sources are listed in [`public/lessons/gcp/CREDITS.md`](public/lessons/gcp/CREDITS.md). Google Cloud is a trademark of Google LLC. AWS documentation images are not openly licensed, so the AWS lessons use redrawn illustrations instead.

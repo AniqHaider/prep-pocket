@@ -32,8 +32,9 @@
 	import { interview } from './db/interview';
 	import { pyai } from './db/pyai';
 	import { built } from './db/built';
+	import { gcp } from './db/gcp';
 
-	type Tab = 'home' | 'dojo' | 'visual' | 'cs' | 'ai' | 'py' | 'aws' | 'js' | 'ts' | 'react' | 'next' | 'pg' | 'mysql' | 'mongo' | 'prep' | 'prep2' | 'drills' | 'interview' | 'built' | 'more';
+	type Tab = 'home' | 'dojo' | 'visual' | 'cs' | 'ai' | 'py' | 'aws' | 'gcp' | 'js' | 'ts' | 'react' | 'next' | 'pg' | 'mysql' | 'mongo' | 'prep' | 'prep2' | 'drills' | 'interview' | 'built' | 'more';
 	type IconName = 'dojo' | 'frontend' | 'react' | 'drills' | 'settings' | 'visual' | 'database' | 'table' | 'braces' | 'cpu' | 'bot' | 'cloud' | 'js' | 'shield' | 'component' | 'next' | 'briefcase' | 'home' | 'python' | 'layers';
 	const GROUPS: { title: string; items: { id: Tab; icon: IconName; label: string; sub: string }[] }[] = [
 		{
@@ -44,6 +45,7 @@
 				{ id: 'ai', icon: 'bot', label: 'AI and agents', sub: 'Models, RAG, agents, harnesses' },
 				{ id: 'py', icon: 'python', label: 'Python for AI', sub: 'NumPy, PyTorch, Hugging Face, RAG, MLOps' },
 				{ id: 'aws', icon: 'cloud', label: 'AWS', sub: 'S3, CloudFront, IAM, Lambda, queues' },
+				{ id: 'gcp', icon: 'cloud', label: 'Google Cloud', sub: 'Cloud Run, Storage, BigQuery, Pub/Sub, IAM' },
 				{ id: 'visual', icon: 'visual', label: 'Visual lessons', sub: 'Animated, step-by-step explainers' }
 			]
 		},
@@ -203,7 +205,7 @@
 </header>
 
 <div class="screen" class:pad={tab !== 'dojo'}>
-	{#if tab === 'home'}<Home groups={GROUPS} {last} onpick={pick} />{:else if tab === 'dojo'}<Dojo />{:else if tab === 'visual'}<Visual />{:else if tab === 'cs'}<Database engine={cs} />{:else if tab === 'ai'}<Database engine={ai} />{:else if tab === 'py'}<Database engine={pyai} />{:else if tab === 'aws'}<Database engine={aws} />{:else if tab === 'js'}<Database engine={javascript} />{:else if tab === 'ts'}<Database engine={typescript} />{:else if tab === 'react'}<Database engine={react} />{:else if tab === 'next'}<Database engine={nextjs} />{:else if tab === 'pg'}<Database engine={postgres} />{:else if tab === 'mysql'}<Database engine={mysql} />{:else if tab === 'mongo'}<Database engine={mongodb} />{:else if tab === 'prep'}<Prep />{:else if tab === 'prep2'}<Prep2 />{:else if tab === 'interview'}<Database engine={interview} />{:else if tab === 'built'}<Database engine={built} />{:else if tab === 'drills'}<Drills />{:else}<More />{/if}
+	{#if tab === 'home'}<Home groups={GROUPS} {last} onpick={pick} />{:else if tab === 'dojo'}<Dojo />{:else if tab === 'visual'}<Visual />{:else if tab === 'cs'}<Database engine={cs} />{:else if tab === 'ai'}<Database engine={ai} />{:else if tab === 'py'}<Database engine={pyai} />{:else if tab === 'aws'}<Database engine={aws} />{:else if tab === 'gcp'}<Database engine={gcp} />{:else if tab === 'js'}<Database engine={javascript} />{:else if tab === 'ts'}<Database engine={typescript} />{:else if tab === 'react'}<Database engine={react} />{:else if tab === 'next'}<Database engine={nextjs} />{:else if tab === 'pg'}<Database engine={postgres} />{:else if tab === 'mysql'}<Database engine={mysql} />{:else if tab === 'mongo'}<Database engine={mongodb} />{:else if tab === 'prep'}<Prep />{:else if tab === 'prep2'}<Prep2 />{:else if tab === 'interview'}<Database engine={interview} />{:else if tab === 'built'}<Database engine={built} />{:else if tab === 'drills'}<Drills />{:else}<More />{/if}
 </div>
 
 {#if $playlist}

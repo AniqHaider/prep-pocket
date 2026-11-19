@@ -2,7 +2,7 @@
 // animates between steps, so authoring a scene never needs code. See docs/explainers.md for the authoring guide.
 
 export type Tone = 'neutral' | 'accent' | 'warn' | 'neg';
-export type Topic = 'backend' | 'postgres' | 'mysql' | 'mongodb' | 'cs' | 'ai' | 'aws' | 'javascript' | 'typescript' | 'react' | 'nextjs' | 'pyai' | 'built';
+export type Topic = 'backend' | 'postgres' | 'mysql' | 'mongodb' | 'cs' | 'ai' | 'aws' | 'javascript' | 'typescript' | 'react' | 'nextjs' | 'pyai' | 'built' | 'gcp';
 
 interface Common {
 	id: string;
@@ -12,7 +12,9 @@ interface Common {
 }
 export type At = { x: number; y: number };
 
-export type BoxNode = Common & At & { kind: 'box'; w: number; h: number; label: string; sub?: string; shape?: 'rect' | 'pill' | 'circle' };
+export type BoxNode = Common & At & { kind: 'box'; w: number; h: number; label: string; sub?: string; shape?: 'rect' | 'pill' | 'circle' | 'ring' | 'panel' };
+/** A picture (a console screenshot) from `public/`. `src` is relative to the app root, e.g. `lessons/gcp/bq-results.webp`. `nw`/`nh` are the file's pixel size. `view` zooms into part of it: left/top in file pixels and the width shown (the height follows the node's aspect), settable per step so a step can zoom to the part it explains. A `box` with `shape: 'ring'` draws a highlight around a region, and `shape: 'panel'` an outlined window frame. Both are drawn behind or over other nodes on purpose, so the validator does not treat them as overlaps. */
+export type ImageNode = Common & At & { kind: 'image'; src: string; w: number; h: number; nw: number; nh: number; alt?: string; view?: { x: number; y: number; w: number } };
 /** A database cylinder. */
 export type DbNode = Common & At & { kind: 'db'; w: number; h: number; label: string; sub?: string };
 /** A table: header row + rows. `hl` lists highlighted row indexes (set per step via `set`). */
@@ -25,7 +27,7 @@ export type TokenNode = Common & At & { kind: 'token'; label?: string; r?: numbe
 /** An arrow between two nodes (by id) or points. Drawn in when shown. */
 export type EdgeNode = Common & { kind: 'edge'; from: string | At; to: string | At; label?: string; dashed?: boolean };
 
-export type SceneNode = BoxNode | DbNode | TableNode | DocNode | TextNode | TokenNode | EdgeNode;
+export type SceneNode = BoxNode | DbNode | TableNode | DocNode | TextNode | TokenNode | EdgeNode | ImageNode;
 
 export interface Step {
 	/** The caption for this step: one or two plain sentences, no jargon left unexplained. */

@@ -1,4 +1,5 @@
 import type { Scene, SceneNode, Tone } from '../types';
+import { awsConsoleScenes } from './awsConsole';
 
 /** AWS: the services an online store meets most. Ids `aw-*`; `group` = a topic id in src/db/aws.ts. A generic online store, no vendor names. */
 
@@ -15,6 +16,7 @@ const stack = (p: string, items: Item[], o: { x?: number; w?: number; y?: number
 };
 
 export const awsScenes: Scene[] = [
+	...awsConsoleScenes,
 	// ───────────── storefront-request-path ─────────────
 	{
 		id: 'aw-request-path',

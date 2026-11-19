@@ -53,7 +53,7 @@ console.log(answer({ path: '/orders/9', key: 'order:9' }));`
 		title: 'S3 storage',
 		level: 'basic',
 		summary: 'Know buckets, keys, prefixes, consistency, versioning and how to keep a bucket private.',
-		scenes: ['aw-s3-bucket-key', 'aw-s3-private-by-default'],
+		scenes: ['aw-s3-bucket-key', 'aw-s3-private-by-default', 'aw-console-s3-bpa'],
 		notes: md(
 			'**S3** stores **objects** (bytes plus metadata) in **buckets**. A bucket lives in one Region and its name is unique across AWS. An object is found by its **key**; the slashes in `products/42/front.jpg` are just characters, and a **prefix** is the start of a key. There are no true folders.',
 			'',
@@ -88,7 +88,7 @@ console.log('front.jpg now:', bucket.get('products/42/front.jpg'), '| objects:',
 		title: 'Presigned URLs and CORS',
 		level: 'mid',
 		summary: 'Let browsers upload and download directly with short-lived signed URLs, and understand the CORS rule that gates them.',
-		scenes: ['aw-presigned-upload', 'aw-cors-preflight'],
+		scenes: ['aw-presigned-upload', 'aw-cors-preflight', 'aw-console-s3-cors'],
 		notes: md(
 			'A **presigned URL** lets someone use S3 **without AWS credentials**. Your server signs a URL for one bucket, key and action (GET or PUT) with its own credentials and an **expiry**. Whoever holds the URL gets that one action until it expires, with the **permissions of the signer**.',
 			'',
@@ -130,7 +130,7 @@ console.log('different key  :', check('uploads/other.jpg', exp, sig, 1100));`
 		title: 'CloudFront caching',
 		level: 'mid',
 		summary: 'Predict hits and misses, set TTLs with Cache-Control, and ship new files without stale copies.',
-		scenes: ['aw-cf-hit-miss', 'aw-cf-versioned-assets', 'aw-cf-ttl-headers'],
+		scenes: ['aw-cf-hit-miss', 'aw-cf-versioned-assets', 'aw-cf-ttl-headers', 'aw-console-cloudfront-behaviors'],
 		notes: md(
 			'**CloudFront** serves content from **edge locations**. A request is looked up by its **cache key**: the URL plus the headers, cookies and query strings you choose to include. Found is a **hit**; not found is a **miss** and CloudFront fetches from the **origin** (S3, a load balancer, anything with HTTP).',
 			'',
@@ -185,7 +185,7 @@ console.log('good key:', handle('/home', 'Ben', '/home|Ben'));`
 		title: 'IAM basics',
 		level: 'basic',
 		summary: 'Tell users, roles and policies apart, and give an app access without keys in code.',
-		scenes: ['aw-iam-policy-role'],
+		scenes: ['aw-iam-policy-role', 'aw-console-iam-policy'],
 		notes: md(
 			'**IAM** controls who can do what. A **policy** is a JSON document of statements, each with an **Effect** (Allow or Deny), **Actions**, **Resources** and optional **Conditions**.',
 			'',
@@ -209,7 +209,7 @@ console.log('good key:', handle('/home', 'Ben', '/home|Ben'));`
 		title: 'IAM evaluation and STS',
 		level: 'advanced',
 		summary: 'Predict an allow or deny from several policies, and explain how roles hand out temporary credentials.',
-		scenes: ['aw-iam-evaluation', 'aw-sts-assume-role'],
+		scenes: ['aw-iam-evaluation', 'aw-sts-assume-role', 'aw-console-iam-last-accessed'],
 		notes: md(
 			'AWS starts every request at **deny**. Then: any **explicit Deny** in an applicable policy wins; otherwise the request needs an **Allow**. Inside one account, identity-based and resource-based policies are a **union**: either may supply the Allow. **Permissions boundaries** and organisation **SCPs** only **limit**: the action must also be inside them, and they never grant anything alone.',
 			'',
@@ -246,7 +246,7 @@ for (const a of ['s3:GetObject', 's3:DeleteObject', 'ec2:StartInstances']) conso
 		title: 'Route 53 and ACM',
 		level: 'basic',
 		summary: 'Point a domain at AWS resources with alias records and get a free HTTPS certificate in the right Region.',
-		scenes: ['aw-route53-alias', 'aw-acm-certificate'],
+		scenes: ['aw-route53-alias', 'aw-acm-certificate', 'aw-console-route53-acm'],
 		notes: md(
 			'**Route 53** hosts your DNS **zone**: the records for a domain. DNS forbids a **CNAME at the zone apex** (`example.com`), so Route 53 offers an **alias record**: it works at the apex, points at an AWS resource such as a CloudFront distribution or a load balancer, is answered as ordinary **A/AAAA** records, and queries to AWS targets are free. You cannot set a TTL on an alias to an AWS resource.',
 			'',
@@ -269,7 +269,7 @@ for (const a of ['s3:GetObject', 's3:DeleteObject', 'ec2:StartInstances']) conso
 		title: 'RDS and Aurora',
 		level: 'mid',
 		summary: 'Separate Multi-AZ failover from read replicas, and know what Aurora changes.',
-		scenes: ['aw-rds-multi-az', 'aw-read-replica-lag'],
+		scenes: ['aw-rds-multi-az', 'aw-read-replica-lag', 'aw-console-rds'],
 		notes: md(
 			'**RDS** runs a managed relational database (PostgreSQL, MySQL and others): AWS handles backups, patching windows and failover; you handle schema, queries and sizing. **Aurora** is AWS\'s own cloud-built engine with PostgreSQL- and MySQL-compatible editions and storage shared across zones.',
 			'',
@@ -450,7 +450,7 @@ console.log('The same ids land on different shards, so the count cannot just cha
 		title: 'Lambda and API Gateway',
 		level: 'mid',
 		summary: 'Explain cold starts, limits and when functions fit, and how API Gateway and EventBridge trigger them.',
-		scenes: ['aw-apigw-lambda'],
+		scenes: ['aw-apigw-lambda', 'aw-console-lambda'],
 		notes: md(
 			'**Lambda** runs a function on demand with no servers to manage, billed by invocations and run time. Each call runs in an **execution environment**; if none is free, Lambda creates one, a **cold start**, otherwise it reuses a warm one. Code outside the handler runs once per environment.',
 			'',
@@ -473,7 +473,7 @@ console.log('The same ids land on different shards, so the count cannot just cha
 		title: 'SQS and SNS',
 		level: 'mid',
 		summary: 'Decouple services with queues and topics, and make workers safe to retry.',
-		scenes: ['aw-sqs-visibility', 'aw-sns-fanout'],
+		scenes: ['aw-sqs-visibility', 'aw-sns-fanout', 'aw-console-sqs'],
 		notes: md(
 			'**SQS** is a managed **queue**: producers add messages, workers pull them. When a worker **receives** a message it is hidden for the **visibility timeout** (30 seconds by default). The worker **deletes** it on success; if it crashes, the message reappears. So delivery is **at-least-once**, and handlers must be **idempotent**.',
 			'',
@@ -584,7 +584,7 @@ console.log(assign([0, 1, 2], ['A', 'B', 'C', 'D']).join(' | '), '(D is idle)');
 		title: 'CloudWatch and X-Ray',
 		level: 'basic',
 		summary: 'Choose between metrics, logs, alarms and traces to find out what is wrong and where.',
-		scenes: ['aw-trace-slow-request'],
+		scenes: ['aw-trace-slow-request', 'aw-console-cloudwatch-alarm'],
 		notes: md(
 			'**CloudWatch** is the monitoring home on AWS:',
 			'',
@@ -623,7 +623,7 @@ console.log('p99    :', pct(99), 'ms');`
 		title: 'Secrets and parameters',
 		level: 'basic',
 		summary: 'Keep credentials out of code and choose between Secrets Manager and Parameter Store.',
-		scenes: ['aw-secret-injection'],
+		scenes: ['aw-secret-injection', 'aw-console-secrets'],
 		notes: md(
 			'Secrets such as database passwords and API keys must stay out of the repository, the image and the logs. AWS has two stores:',
 			'',
@@ -683,7 +683,7 @@ for (const [ip, count] of traffic) {
 		title: 'Responsibility and cost',
 		level: 'basic',
 		summary: 'Know which security jobs are yours, and the habits that keep an AWS bill predictable.',
-		scenes: ['aw-shared-responsibility'],
+		scenes: ['aw-shared-responsibility', 'aw-console-billing'],
 		notes: md(
 			'The **shared responsibility model**: AWS is responsible for the security **of** the cloud (facilities, hardware, network, and the software of managed services). You are responsible for security **in** the cloud: IAM, your data, configuration, and your own code. The more managed the service (S3, Lambda), the less you run; with EC2 you also patch the operating system.',
 			'',

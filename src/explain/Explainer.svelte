@@ -83,10 +83,21 @@
 					{@const lines = wrapText(n.label, charsFor(n.w))}
 					{@const sub = n.sub ? wrapText(n.sub, charsFor(n.w, 10.5)) : []}
 					{@const total = lines.length * 15 + (sub.length ? sub.length * 13 + 2 : 0)}
-					{#if n.shape === 'circle'}<ellipse class="shape" cx={n.w / 2} cy={n.h / 2} rx={n.w / 2} ry={n.h / 2} />
+					{#if n.shape === 'ring'}<rect class="shape ring" width={n.w} height={n.h} rx="5" />
+					{:else if n.shape === 'panel'}<rect class="shape panel" width={n.w} height={n.h} rx="9" />
+					{:else if n.shape === 'circle'}<ellipse class="shape" cx={n.w / 2} cy={n.h / 2} rx={n.w / 2} ry={n.h / 2} />
 					{:else}<rect class="shape" width={n.w} height={n.h} rx={n.shape === 'pill' ? n.h / 2 : 9} />{/if}
 					{#each lines as l, i}<text class="lbl" x={n.w / 2} y={n.h / 2 - total / 2 + 12 + i * 15} text-anchor="middle">{l}</text>{/each}
 					{#each sub as l, i}<text class="sub" x={n.w / 2} y={n.h / 2 - total / 2 + lines.length * 15 + 12 + i * 13} text-anchor="middle">{l}</text>{/each}
+				{:else if n.kind === 'image'}
+					{@const v = n.view ?? { x: 0, y: 0, w: n.nw }}
+					{@const sc = n.w / v.w}
+					<clipPath id="clip-{scene.id}-{n.id}"><rect width={n.w} height={n.h} rx="6" /></clipPath>
+					<g clip-path="url(#clip-{scene.id}-{n.id})">
+						<image class="pic" href={import.meta.env.BASE_URL + n.src} width={n.nw} height={n.nh} preserveAspectRatio="none" style="transform: scale({sc}) translate({-v.x}px, {-v.y}px)" />
+					</g>
+					<rect class="frame" width={n.w} height={n.h} rx="6" />
+					{#if n.alt}<title>{n.alt}</title>{/if}
 				{:else if n.kind === 'db'}
 					{@const lines = wrapText(n.label, charsFor(n.w))}
 					<path class="shape" d="M0 8 C0 -2.7 {n.w} -2.7 {n.w} 8 V{n.h - 8} C{n.w} {n.h + 2.7} 0 {n.h + 2.7} 0 {n.h - 8} Z" />
@@ -132,6 +143,10 @@
 	.tone-warn { --fill: var(--pill-warning-bg); --stroke: var(--warning); --ink: var(--text); }
 	.tone-neg { --fill: var(--pill-negative-bg); --stroke: var(--negative); --ink: var(--text); }
 	.shape { fill: var(--fill); stroke: var(--stroke); stroke-width: 1.5; transition: fill .4s, stroke .4s; }
+	.shape.panel { fill: none; stroke: var(--rule, var(--faint)); stroke-width: 1; }
+	.shape.ring { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+	.pic { transform-origin: 0 0; transition: transform .8s cubic-bezier(.4, 0, .2, 1); }
+	.frame { fill: none; stroke: var(--rule, var(--faint)); stroke-width: 1; }
 	.rim { fill: none; stroke: var(--stroke); stroke-width: 1.5; opacity: .6; }
 	.k-token .shape { fill: var(--accent); stroke: none; }
 	.k-token.tone-warn .shape { fill: var(--warning); }

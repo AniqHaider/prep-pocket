@@ -17,6 +17,8 @@ import { nextjs } from '../src/db/nextjs';
 import { interview } from '../src/db/interview';
 import { pyai } from '../src/db/pyai';
 import { built } from '../src/db/built';
+import { gcp } from '../src/db/gcp';
+import { existsSync } from 'node:fs';
 
 const filter = process.argv[2] ?? '';
 const errs: string[] = [];
@@ -24,8 +26,8 @@ const warns: string[] = [];
 const E = (where: string, msg: string) => errs.push(`${where}: ${msg}`);
 const W = (where: string, msg: string) => warns.push(`${where}: ${msg}`);
 const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B50}]/u;
-const engines = { postgres, mysql, mongodb, cs, ai, aws, javascript, typescript, react, nextjs, interview, pyai, built };
-const PREFIX = { postgres: 'pg-', mysql: 'my-', mongodb: 'mg-', cs: 'cs-', ai: 'ai-', aws: 'aw-', javascript: 'js-', typescript: 'ts-', react: 'rc-', nextjs: 'nx-', interview: 'iv-', pyai: 'pa-', built: 'bt-' } as const; // scene id prefix per engine
+const engines = { postgres, mysql, mongodb, cs, ai, aws, javascript, typescript, react, nextjs, interview, pyai, built, gcp };
+const PREFIX = { postgres: 'pg-', mysql: 'my-', mongodb: 'mg-', cs: 'cs-', ai: 'ai-', aws: 'aw-', javascript: 'js-', typescript: 'ts-', react: 'rc-', nextjs: 'nx-', interview: 'iv-', pyai: 'pa-', built: 'bt-', gcp: 'gc-' } as const; // scene id prefix per engine
 const CH = new Set(Array.from({ length: 12 }, (_, i) => `ch${i + 1}`));
 
 // ---------- scenes ----------
@@ -72,6 +74,10 @@ function checkScene(s: Scene, at: string) {
 				row.forEach((c, i) => { if (c.length * 6 > cw - 6) W(at, `table ${n.id} cell "${c}" may not fit colW ${cw}`); });
 			}
 		}
+		if (n.kind === 'image') {
+			if (!existsSync(new URL('../public/' + n.src, import.meta.url))) E(at, `image ${n.id}: public/${n.src} does not exist`);
+			if (Math.abs(n.w / n.h - n.nw / n.nh) > 0.35 && !n.view) W(at, `image ${n.id}: box aspect ${(n.w / n.h).toFixed(2)} differs from the file's ${(n.nw / n.nh).toFixed(2)} (it will stretch)`);
+		}
 		if (n.kind === 'doc') n.lines.forEach((l) => { if (l.length * 6.3 > n.w - 14) E(at, `doc ${n.id} line "${l}" is wider than the card (w=${n.w})`); });
 	}
 	s.steps.forEach((step, i) => {
@@ -86,7 +92,7 @@ function checkScene(s: Scene, at: string) {
 		step.set && Object.keys(step.set).forEach((id) => ref(id, 'set'));
 		// overlap check on what is visible after this step
 		const state = stateAt(s, i);
-		const vis = [...state.values()].filter((n) => n.shown && n.kind !== 'edge' && n.kind !== 'token' && n.kind !== 'text');
+		const vis = [...state.values()].filter((n) => n.shown && n.kind !== 'edge' && n.kind !== 'token' && n.kind !== 'text' && !(n.kind === 'box' && (n.shape === 'ring' || n.shape === 'panel'))); // rings and window frames are meant to sit on or behind other things
 		for (let a = 0; a < vis.length; a++)
 			for (let b = a + 1; b < vis.length; b++) {
 				const ra = rectOf(vis[a])!, rb = rectOf(vis[b])!;
