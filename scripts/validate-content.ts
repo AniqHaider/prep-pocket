@@ -18,6 +18,8 @@ import { interview } from '../src/db/interview';
 import { pyai } from '../src/db/pyai';
 import { built } from '../src/db/built';
 import { gcp } from '../src/db/gcp';
+import { auth } from '../src/db/auth';
+import { apis } from '../src/db/apis';
 import { existsSync } from 'node:fs';
 
 const filter = process.argv[2] ?? '';
@@ -26,8 +28,8 @@ const warns: string[] = [];
 const E = (where: string, msg: string) => errs.push(`${where}: ${msg}`);
 const W = (where: string, msg: string) => warns.push(`${where}: ${msg}`);
 const EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B50}]/u;
-const engines = { postgres, mysql, mongodb, cs, ai, aws, javascript, typescript, react, nextjs, interview, pyai, built, gcp };
-const PREFIX = { postgres: 'pg-', mysql: 'my-', mongodb: 'mg-', cs: 'cs-', ai: 'ai-', aws: 'aw-', javascript: 'js-', typescript: 'ts-', react: 'rc-', nextjs: 'nx-', interview: 'iv-', pyai: 'pa-', built: 'bt-', gcp: 'gc-' } as const; // scene id prefix per engine
+const engines = { postgres, mysql, mongodb, cs, ai, aws, javascript, typescript, react, nextjs, interview, pyai, built, gcp, auth, apis };
+const PREFIX = { postgres: 'pg-', mysql: 'my-', mongodb: 'mg-', cs: 'cs-', ai: 'ai-', aws: 'aw-', javascript: 'js-', typescript: 'ts-', react: 'rc-', nextjs: 'nx-', interview: 'iv-', pyai: 'pa-', built: 'bt-', gcp: 'gc-', auth: 'au-', apis: 'ap-' } as const; // scene id prefix per engine
 const CH = new Set(Array.from({ length: 12 }, (_, i) => `ch${i + 1}`));
 
 // ---------- scenes ----------

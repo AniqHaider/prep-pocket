@@ -4,6 +4,18 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [2.7.0] — 2026-11-24
+Auth and tokens, and a real API read in practice.
+
+### Added
+- **Auth and tokens** (menu, under Learn). 19 topics, 53 animated lessons, 95 quiz questions (basic to advanced) and 23 runnable "Try it" examples: authentication vs authorization, passwords and how to store them, sessions vs tokens, JWT and its classic mistakes, access and refresh tokens with rotation, **where a web app may keep a token** (localStorage, memory, httpOnly cookies, a backend-for-frontend), cookie attributes, CSRF, CORS and XSS, the **compliance rules around tokens, sessions and logs** (GDPR, cookie consent, PCI DSS, NIST SP 800-63B, OWASP ASVS; engineering guidance, not legal advice), OAuth 2.0 with PKCE, the other grants, OpenID Connect and its security best practice, MFA, TOTP and passkeys, API keys and service auth, authorization models, and a checklist for an online store. The standards were read from their primary sources.
+- **APIs in practice** (menu, under Learn). 14 topics, 42 animated lessons, 70 quiz questions and 14 "Try it" examples. Cardify Lite, the author's own API project, was started locally and called with curl and a real browser. Each lesson shows the real requests and responses, six use real screenshots of the admin and the demo store, and the practices it follows (fail-closed config, constant-time key checks, CORS by path, one shared validation schema, cache headers, idempotent saves, fail-safe clients) are explained next to what they bought. The gaps found in the same runs are listed honestly: a shared admin key kept in localStorage, no rate limiting, no security headers, two error shapes.
+- The Assistant searches both sections, so you can ask about PKCE, cookies or the admin key and see the topics under "Sources".
+
+### Changed
+- The release timeline in "How Preppy was built" includes this release.
+- The README lists the new sections and its counts are up to date (517 animated lessons).
+
 ## [2.6.0] — 2026-11-19
 A Google Cloud section, and console screens in the cloud lessons.
 

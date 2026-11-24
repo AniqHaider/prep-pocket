@@ -9,7 +9,7 @@
 
 	// One hue per section so a tile is recognisable at a glance; the tile colours come from it.
 	const HUE: Record<string, number> = {
-		dojo: 150, cs: 205, ai: 275, py: 48, aws: 28, gcp: 210, visual: 320, js: 52, ts: 215, react: 190, next: 240, pg: 220, mysql: 25, mongo: 140,
+		dojo: 150, cs: 205, ai: 275, py: 48, aws: 28, gcp: 210, auth: 0, apis: 170, visual: 320, js: 52, ts: 215, react: 190, next: 240, pg: 220, mysql: 25, mongo: 140,
 		prep: 12, prep2: 262, drills: 45, interview: 335
 	};
 	const hue = (id: string) => HUE[id] ?? 250; // kept for data attributes; the Midnight gold look draws every tile in gold

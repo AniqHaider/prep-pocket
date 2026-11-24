@@ -14,6 +14,8 @@ import { ai } from '../src/db/ai';
 import { aws } from '../src/db/aws';
 import { built } from '../src/db/built';
 import { gcp } from '../src/db/gcp';
+import { auth } from '../src/db/auth';
+import { apis } from '../src/db/apis';
 import { javascript } from '../src/db/javascript';
 import { typescript } from '../src/db/typescript';
 import { runScript } from '../src/db/playground/jsRun';
@@ -62,7 +64,7 @@ for (const t of mongodb.topics) {
 
 // JavaScript / TypeScript snippets run through the same pure runner the playground's worker uses. A snippet must finish without an
 // uncaught error or a "stopped" note, unless its label says it fails on purpose.
-for (const eng of [cs, ai, aws, javascript, typescript, built, gcp]) {
+for (const eng of [cs, ai, aws, javascript, typescript, built, gcp, auth, apis]) {
 	for (const t of eng.topics) {
 		for (const s of t.try ?? []) {
 			total++;
