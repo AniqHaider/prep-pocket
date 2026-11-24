@@ -1,375 +1,479 @@
 import type { Scene } from '../../types';
-import { shot, credit } from '../consoleKit';
 
-/** APIs in practice, part 2: the practices Cardify Lite's API follows and what each bought it. Ids `ap-*`; `group` = a topic id in src/db/apis/practices.ts.
- *  Every call and header shown here was captured by starting Cardify Lite locally; the admin key is always shown as <ADMIN_API_KEY>. */
-
+// Practices a real online store follows, seen in its API traffic. Names, hosts and ids are changed; the shapes are what was observed.
 export const apPractices: Scene[] = [
-	// ───────────── ap-fail-closed-config ─────────────
+	// ───────────── ap-bff-proxy ─────────────
 	{
-		id: 'ap-boot-check',
+		id: 'ap-proxy-hop',
 		topic: 'apis',
-		group: 'ap-fail-closed-config',
-		title: 'Refusing to start without a key',
-		blurb: 'What does the backend do at boot when the admin key is missing?',
-		stage: { w: 360, h: 340 },
-		nodes: [
-			{ id: 'b0', kind: 'box', x: 16, y: 14, w: 200, h: 44, label: 'main.ts starts', sub: 'a deploy, a restart', visible: true },
-			{ id: 'b1', kind: 'box', x: 16, y: 82, w: 200, h: 44, label: 'config.ts reads the env', sub: 'parsed with a zod schema' },
-			{ id: 'b2', kind: 'box', x: 16, y: 150, w: 200, h: 44, label: 'Is ADMIN_API_KEY 8+ chars?', sub: 'no default value' },
-			{ id: 'b3', kind: 'box', x: 16, y: 218, w: 150, h: 44, label: 'Yes: server listens', sub: '127.0.0.1:4100' },
-			{ id: 'b4', kind: 'box', x: 186, y: 218, w: 150, h: 44, label: 'No: process exits', sub: 'nothing listens' },
-			{ id: 'e0', kind: 'edge', from: 'b0', to: 'b1' },
-			{ id: 'e1', kind: 'edge', from: 'b1', to: 'b2' },
-			{ id: 'e2', kind: 'edge', from: 'b2', to: 'b3' },
-			{ id: 'e3', kind: 'edge', from: 'b2', to: 'b4' },
-			{ id: 'g', kind: 'text', x: 16, y: 296, w: 328, text: 'buildApp checks again: it throws if the key is empty, so the admin routes can never be built open.', size: 'sm' }
-		],
-		steps: [
-			{ say: 'A deploy or a restart starts the backend. The first thing main.ts does is load the configuration.', focus: ['b0'] },
-			{ say: 'config.ts parses the environment with a zod schema. PORT and HOST have defaults. ADMIN_API_KEY has none.', show: ['b1', 'e0'], focus: ['b1'] },
-			{ say: 'The schema asks one question about the key: is it a string of at least 8 characters? Its message says what to do if not.', show: ['b2', 'e1'], focus: ['b2'] },
-			{ say: 'A long enough key: the config is typed, buildApp runs, and the server listens on its port.', show: ['b3', 'e2'], set: { b3: { tone: 'accent' } } },
-			{ say: 'An empty or short key: the process exits at once. There is no moment where the admin API is up but unprotected.', show: ['b4', 'e3'], set: { b4: { tone: 'neg' } }, pulse: ['b4'] },
-			{ say: 'A second guard sits where the key is used: buildApp throws if it is empty, even if some other code skipped the loader.', show: ['g'], focus: ['g'] }
-		]
-	},
-	{
-		id: 'ap-boot-refusal',
-		topic: 'apis',
-		group: 'ap-fail-closed-config',
-		title: 'What the refusal looked like',
-		blurb: 'What did the server print when started with no key and with a short key?',
-		stage: { w: 360, h: 300 },
-		nodes: [
-			{ id: 'd', kind: 'doc', x: 16, y: 14, w: 328, title: 'ADMIN_API_KEY= (empty); output condensed', lines: ['ZodError: [', '  { "code": "too_small", "minimum": 8,', '    "message": "ADMIN_API_KEY must be set', '      (min 8 chars) — refusing to start', '      with an open admin API",', '    "path": [ "ADMIN_API_KEY" ] }', ']'] },
-			{ id: 't', kind: 'table', x: 16, y: 176, colW: 108, cols: ['Key given', 'Outcome', 'Port'], rows: [['(empty)', 'exits at once', 'not opened'], ['short (5 chars)', 'exits at once', 'not opened'], ['8+ chars', 'runs', 'listening']] },
-			{ id: 'n', kind: 'text', x: 16, y: 284, w: 328, text: 'Limits: a raw stack trace, and 8 characters is a low floor.', size: 'sm' }
-		],
-		steps: [
-			{ say: 'Started with an empty key, the server printed a ZodError. Its message names the variable and the rule.', show: ['d'], focus: ['d'] },
-			{ say: 'Started with ADMIN_API_KEY empty, the process exited at once and nothing listened on the port.', show: ['t'], set: { t: { hl: [0] } } },
-			{ say: 'A 5-character key got the same refusal and the same message.', set: { t: { hl: [1] } } },
-			{ say: 'Only a key of 8 characters or more lets the server start; the README dev default passes, so change it before real use.', set: { t: { hl: [2] } } },
-			{ say: 'Honest limits: the failure is a raw stack trace, not a one-line message, and an 8-character floor still lets weak keys in.', show: ['n'], focus: ['n'] }
-		]
-	},
-
-	// ───────────── ap-key-auth ─────────────
-	{
-		id: 'ap-key-compare',
-		topic: 'apis',
-		group: 'ap-key-auth',
-		title: 'Comparing keys without leaking',
-		blurb: 'How does the backend check the admin key?',
-		stage: { w: 360, h: 340 },
-		nodes: [
-			{ id: 'b0', kind: 'box', x: 16, y: 14, w: 200, h: 44, label: 'Header x-admin-key', sub: 'the only place a key is read', visible: true },
-			{ id: 'b1', kind: 'box', x: 16, y: 82, w: 200, h: 44, label: 'Same length as the key?', sub: 'checked first' },
-			{ id: 'b2', kind: 'box', x: 236, y: 82, w: 108, h: 44, label: 'No: false', sub: 'so 401' },
-			{ id: 'b3', kind: 'box', x: 16, y: 150, w: 200, h: 44, label: 'timingSafeEqual(a, b)', sub: 'compares every byte' },
-			{ id: 'b4', kind: 'box', x: 16, y: 218, w: 150, h: 44, label: 'Equal: handler runs', sub: 'settings returned' },
-			{ id: 'b5', kind: 'box', x: 186, y: 218, w: 150, h: 44, label: 'Not equal: 401', sub: 'same body as any 401' },
-			{ id: 'e0', kind: 'edge', from: 'b0', to: 'b1' },
-			{ id: 'e1', kind: 'edge', from: 'b1', to: 'b2' },
-			{ id: 'e2', kind: 'edge', from: 'b1', to: 'b3' },
-			{ id: 'e3', kind: 'edge', from: 'b3', to: 'b4' },
-			{ id: 'e4', kind: 'edge', from: 'b3', to: 'b5' },
-			{ id: 'g', kind: 'text', x: 16, y: 296, w: 328, text: 'timingSafeEqual throws if the lengths differ, so the length check has to come first.', size: 'sm' }
-		],
-		steps: [
-			{ say: 'The admin routes read the key from one header, x-admin-key. A query string or a cookie is never looked at.', focus: ['b0'] },
-			{ say: 'keyMatches turns both keys into bytes and first checks that the lengths are equal.', show: ['b1', 'e0'], focus: ['b1'] },
-			{ say: 'A different length returns false straight away. That leaks only the length, never how close a guess was.', show: ['b2', 'e1'], set: { b2: { tone: 'neg' } } },
-			{ say: 'Same length: timingSafeEqual compares all the bytes in constant time, so a wrong guess takes the same time wherever it differs.', show: ['b3', 'e2'], focus: ['b3'] },
-			{ say: 'A match lets the route handler run and return the settings.', show: ['b4', 'e3'], set: { b4: { tone: 'accent' } } },
-			{ say: 'A mismatch is answered with the same 401 as every other failure.', show: ['b5', 'e4'], set: { b5: { tone: 'neg' } } },
-			{ say: 'The order matters: Node\'s timingSafeEqual throws on buffers of different length, so a wrong-length key would raise an error instead of getting a clean 401.', show: ['g'], focus: ['g'] }
-		]
-	},
-	{
-		id: 'ap-key-401s',
-		topic: 'apis',
-		group: 'ap-key-auth',
-		title: 'One 401 for every wrong key',
-		blurb: 'What does a caller learn from a wrong key?',
-		stage: { w: 360, h: 270 },
-		nodes: [
-			{ id: 't', kind: 'table', x: 16, y: 14, colW: 108, cols: ['Call', 'Key sent', 'Status'], rows: [['10', 'none', '401'], ['11', 'nope-nope', '401'], ['12', 'x (1 char)', '401'], ['13', '<ADMIN_API_KEY>', '200']] },
-			{ id: 'd', kind: 'doc', x: 16, y: 150, w: 328, title: 'Body of all three 401s', lines: ['{"error":"invalid or missing x-admin-key"}'] },
-			{ id: 'n', kind: 'text', x: 16, y: 236, w: 328, text: 'Same status, same body: a guess teaches the caller nothing.', size: 'sm' }
-		],
-		steps: [
-			{ say: 'Four admin calls with GET on the settings of the demo merchant, each with a different key.', show: ['t'], focus: ['t'] },
-			{ say: 'Call 10 sent no key at all: the answer is 401.', set: { t: { hl: [0] } } },
-			{ say: 'A wrong key of the right length: 401.', set: { t: { hl: [1] } } },
-			{ say: 'A key of the wrong length: also 401, and not a crash, because the length is checked before the comparison.', set: { t: { hl: [2] } } },
-			{ say: 'The three bodies are identical. The message even covers "missing" and "wrong" in one sentence.', show: ['d'], set: { t: { hl: [0, 1, 2] } } },
-			{ say: 'Only the right key, call 13, gets a 200. Everything else looks the same from outside, so a caller cannot tell a near miss.', show: ['n'], set: { t: { hl: [3] } } }
-		]
-	},
-	{
-		id: 'ap-key-url-log',
-		topic: 'apis',
-		group: 'ap-key-auth',
-		title: 'Header versus URL, and the limits',
-		blurb: 'Why must the key stay out of the URL, and what is still missing?',
+		group: 'ap-bff-proxy',
+		title: 'The browser never calls the service',
+		blurb: 'Why does the page ask its own server instead of the apps service?',
 		stage: { w: 360, h: 330 },
 		nodes: [
-			{ id: 'a', kind: 'doc', x: 16, y: 14, w: 328, title: 'Request log line, key sent in a header', lines: ['"method":"GET",', '"url":"/cardify/admin/demostore/settings",', '"remoteAddress":"127.0.0.1"'] },
-			{ id: 'b', kind: 'doc', x: 16, y: 106, w: 328, title: 'Request log line, key sent in the URL (call 33)', lines: ['"method":"GET",', '"url":"/cardify/admin/demostore/settings', '  ?x-admin-key=<ADMIN_API_KEY>",'] },
-			{ id: 't', kind: 'table', x: 16, y: 206, colW: 156, cols: ['Limit seen', 'Evidence'], rows: [['One shared key', 'no per-user keys'], ['No rate limit', '60 wrong, 60 x 401'], ['No rotation', 'key set by env only'], ['Stored in the browser', 'localStorage, plain']] }
+			{ id: 'b', kind: 'box', x: 16, y: 14, w: 164, h: 44, label: 'Browser', sub: 'the store page', visible: true },
+			{ id: 's', kind: 'box', x: 16, y: 108, w: 164, h: 44, label: 'Store server', sub: '/api/v1/apps/installed' },
+			{ id: 'u', kind: 'box', x: 16, y: 202, w: 164, h: 44, label: 'Apps service', sub: 'private upstream' },
+			{ id: 'e1', kind: 'edge', from: 'b', to: 's', label: 'same origin' },
+			{ id: 'e2', kind: 'edge', from: 's', to: 'u', label: 'with credentials' },
+			{ id: 'd1', kind: 'doc', x: 196, y: 14, w: 152, title: 'Browser sends', lines: ['GET /api/v1/apps/', ' installed?surface=', 'Cookie: locale=en'] },
+			{ id: 'd2', kind: 'doc', x: 196, y: 108, w: 152, title: 'Server adds', lines: ['storefront token', 'x-merchant-id: <id>', 'x-forwarded-for: <ip>'] },
+			{ id: 'd3', kind: 'doc', x: 196, y: 202, w: 152, title: 'Answer back', lines: ['200 {"apps":[]}', '0.7 to 2.0 s (dev)'] },
+			{ id: 'note', kind: 'text', x: 16, y: 292, w: 328, text: 'The route is force-dynamic: the answer is per merchant, so it is never cached and served to another shop.', size: 'sm' }
 		],
 		steps: [
-			{ say: 'The key travels in a header. The server\'s request log records the method, URL and address, not the headers.', show: ['a'], focus: ['a'] },
-			{ say: 'A probe sent the key as ?x-admin-key=... instead. The server answered 401: only the header is accepted.', show: ['b'], focus: ['b'] },
-			{ say: 'But the log line holds the whole URL, key included. Anything in a URL ends up in logs, history and proxies.', set: { b: { hl: [1, 2] } } },
-			{ say: 'Limits seen in the same runs. First, one shared key for every admin: no names, so no record of who changed what.', show: ['t'], set: { t: { hl: [0] } } },
-			{ say: 'Sixty wrong keys in a row all got 401. Nothing slowed or blocked them, so key strength is the only defence.', set: { t: { hl: [1] } } },
-			{ say: 'The key comes only from the environment: there is no route to rotate it, and a rotation means a restart.', set: { t: { hl: [2] } } },
-			{ say: 'The admin page keeps the key in localStorage in plain text, so any script on that page could read it.', set: { t: { hl: [3] } } }
+			{ say: 'The store page needs the list of installed apps. It does not call the apps service. It asks its own server, on the same origin.', focus: ['b'] },
+			{ say: 'The call carries only what the browser already has for that origin, such as cookies. No token and no store address.', show: ['s', 'e1', 'd1'], focus: ['s'] },
+			{ say: 'The store server adds the credentials: the storefront token, the merchant header and the shopper IP. They never leave the server.', show: ['d2'], focus: ['d2'] },
+			{ say: 'It then calls the apps service, which only the server can reach with those credentials.', show: ['u', 'e2'], focus: ['u'] },
+			{ say: 'The answer comes back through the server. In dev mode the real call took 0.7 to 2.0 seconds and returned 200.', show: ['d3'], focus: ['d3'] },
+			{ say: 'If the service cannot be reached, the handler does not fail the page. It answers 200 with an empty list instead.', set: { u: { tone: 'neg', sub: 'unreachable' }, d3: { lines: ['200 {"apps":[]}', 'service was down'] } }, pulse: ['u'] },
+			{ say: 'Because the answer belongs to one merchant, the route opts out of caching with force-dynamic.', show: ['note'], focus: ['note'] }
+		]
+	},
+	{
+		id: 'ap-proxy-calls',
+		topic: 'apis',
+		group: 'ap-bff-proxy',
+		title: 'What the proxy routes answered',
+		blurb: 'What came back from the store\'s own routes in the real run?',
+		stage: { w: 360, h: 250 },
+		nodes: [
+			{
+				id: 't',
+				kind: 'table',
+				x: 16,
+				y: 14,
+				colW: 108,
+				cols: ['Request', 'Status', 'Body'],
+				rows: [
+					['apps/installed', '200', '{"apps":[]}'],
+					['menu main-menu', '200', 'menu JSON'],
+					['menu ../../etc', '400', 'null'],
+					['menu a.b c', '400', 'null'],
+					['menu unknown', '200', 'null']
+				],
+				visible: true
+			},
+			{ id: 'd', kind: 'doc', x: 16, y: 164, w: 328, title: 'Three outcomes', lines: ['data    : 200 and JSON', 'nothing : 200 and null', 'refused : 400 and null'] }
+		],
+		steps: [
+			{ say: 'Five requests against the store\'s own routes, and what each answered. The table is real output from the run.', focus: ['t'] },
+			{ say: 'The apps route answered 200 with an empty list. The browser asked the store, and the store asked the service.', set: { t: { hl: [0] } } },
+			{ say: 'A menu handle that is allowed gets the menu back as JSON.', set: { t: { hl: [1] } } },
+			{ say: 'Handles with dots, slashes or spaces never reach the upstream. The route answers 400 with null before any call is made.', set: { t: { hl: [2, 3] } } },
+			{ say: 'A well-formed handle with no menu behind it gets 200 and null. The route documents that unknown means null, not an error.', set: { t: { hl: [4] } } },
+			{ say: 'So one route has three outcomes: data, null for nothing there, and a quick refusal for a malformed handle.', show: ['d'], set: { t: { hl: [] } } }
+		]
+	},
+	{
+		id: 'ap-handle-guard',
+		topic: 'apis',
+		group: 'ap-bff-proxy',
+		title: 'A handle that cannot walk the path',
+		blurb: 'How does the nav-menu route keep a visitor\'s handle from reaching other paths?',
+		stage: { w: 360, h: 330 },
+		nodes: [
+			{ id: 'b0', kind: 'box', x: 16, y: 14, w: 190, h: 44, label: 'Handle from the URL', sub: 'chosen by the visitor', visible: true },
+			{ id: 'b1', kind: 'box', x: 16, y: 98, w: 190, h: 44, label: 'Allowed characters only?', sub: 'letters, digits, _ and -' },
+			{ id: 'b2', kind: 'box', x: 16, y: 182, w: 190, h: 44, label: 'Call the upstream', sub: 'menu fetch, cached' },
+			{ id: 'b3', kind: 'box', x: 232, y: 98, w: 112, h: 44, label: 'Refuse 400', sub: 'body null', tone: 'neg' },
+			{ id: 'e1', kind: 'edge', from: 'b0', to: 'b1' },
+			{ id: 'e2', kind: 'edge', from: 'b1', to: 'b2', label: 'yes' },
+			{ id: 'e3', kind: 'edge', from: 'b1', to: 'b3' },
+			{ id: 'd', kind: 'doc', x: 16, y: 242, w: 328, title: 'The real handles', lines: ['main-menu : allowed, 200 and menu', '../../etc : refused, 400', 'a.b c     : refused, 400'] }
+		],
+		steps: [
+			{ say: 'The handle in the URL is chosen by the visitor, so for a public proxy it is untrusted input.', focus: ['b0'] },
+			{ say: 'The route allows only letters, digits, underscore and hyphen. Anything else stops here.', show: ['b1', 'e1'], focus: ['b1'] },
+			{ say: 'A clean handle is passed on to the upstream menu fetch, which is cached.', show: ['b2', 'e2'] },
+			{ say: 'Dots, slashes and spaces get a 400 and a null body. The upstream is never called.', show: ['b3', 'e3'], pulse: ['b3'] },
+			{ say: 'The real calls match: main-menu was served, and ../../etc and a.b c were refused with 400.', show: ['d'], focus: ['d'] },
+			{ say: 'Without the check, a handle like ../../x could be glued into the upstream URL and reach other paths of the internal API. The check removes that whole class of bug.', set: { b1: { tone: 'accent' } }, pulse: ['b1'] }
 		]
 	},
 
-	// ───────────── ap-cors-by-path ─────────────
+	// ───────────── ap-webhook-security ─────────────
 	{
-		id: 'ap-cors-paths',
+		id: 'ap-webhook-sign',
 		topic: 'apis',
-		group: 'ap-cors-by-path',
-		title: 'Two CORS rules, chosen by path',
-		blurb: 'Which origins may read which routes?',
-		stage: { w: 360, h: 356 },
+		group: 'ap-webhook-security',
+		title: 'What the sender signs',
+		blurb: 'How is a webhook delivery signed?',
+		stage: { w: 360, h: 340 },
 		nodes: [
-			{ id: 't', kind: 'table', x: 16, y: 14, colW: 156, cols: ['Path starts with', 'Answers'], rows: [['/cardify/sdk/', 'any origin (*)'], ['/cardify/admin/', 'listed origins only']] },
-			{ id: 'p', kind: 'doc', x: 16, y: 104, w: 328, title: 'Public config response (call 04)', lines: ['access-control-allow-origin: *', 'cross-origin-resource-policy: cross-origin', 'cache-control: no-store'] },
-			{ id: 'q', kind: 'doc', x: 16, y: 200, w: 328, title: 'Admin preflight, listed origin (call 21)', lines: ['allow-origin: http://localhost:5173', 'vary: Origin', 'allow-methods: GET,PUT,OPTIONS', 'allow-headers: content-type,x-admin-key'] },
-			{ id: 'n', kind: 'text', x: 16, y: 318, w: 328, text: 'Vary: Origin stops a cache reusing one origin\'s answer for another. (access-control- prefix dropped.)', size: 'sm' }
+			{ id: 'd1', kind: 'doc', x: 16, y: 14, w: 328, title: 'Delivery headers', lines: ['x-platform-timestamp: 1764000000', 'x-platform-event-id: evt_123', 'x-platform-signature: <hex digest>'], visible: true },
+			{ id: 'd2', kind: 'doc', x: 16, y: 106, w: 328, title: 'Body (raw bytes)', lines: ['{"type":"product.updated",', ' "data":{"handle":"<handle>"}}'] },
+			{ id: 's', kind: 'box', x: 16, y: 186, w: 328, h: 44, label: 'Signed string: timestamp, a dot, the raw body', sub: '1764000000.{"type":"product.updated",...}' },
+			{ id: 'm', kind: 'box', x: 16, y: 260, w: 328, h: 44, label: 'HMAC-SHA256 with the shared secret', sub: 'hex digest goes in x-platform-signature' },
+			{ id: 'e', kind: 'edge', from: 's', to: 'm' },
+			{ id: 'note', kind: 'text', x: 16, y: 328, w: 328, text: 'The secret never travels. Only the digest does.', size: 'sm' }
 		],
 		steps: [
-			{ say: 'One hook in app.ts picks the CORS rule by the start of the URL path, not one rule for the whole server.', show: ['t'], focus: ['t'] },
-			{ say: 'The SDK and the public config belong to every storefront, so any origin may read them.', set: { t: { hl: [0] } } },
-			{ say: 'Call 04, from the origin https://some-store.example: allow-origin is *, plus a resource policy that lets other sites embed the file.', show: ['p'], focus: ['p'] },
-			{ say: 'The admin routes are different. Only an origin on the allow-list gets CORS headers at all.', set: { t: { hl: [1] } } },
-			{ say: 'Call 21, the preflight from the admin page: its own origin is echoed back, with the methods and headers it needs.', show: ['q'], focus: ['q'] },
-			{ say: 'The origin is echoed, not *, so the response varies by caller. Vary: Origin tells caches to keep the answers apart.', show: ['n'], focus: ['n'] }
+			{ say: 'A signed delivery has three headers: when it was sent, which delivery it is, and the signature.', focus: ['d1'] },
+			{ say: 'The body is JSON, such as a product.updated event with a handle. The sender signs the exact raw bytes, not a re-formatted copy.', show: ['d2'], focus: ['d2'] },
+			{ say: 'It builds one string: the timestamp, a dot, then the raw body. The timestamp is inside what is signed.', show: ['s'], focus: ['s'] },
+			{ say: 'It runs HMAC-SHA256 over that string with a shared secret and sends the hex digest in the signature header.', show: ['m', 'e'], focus: ['m'] },
+			{ say: 'The secret never travels. A copied request cannot be given a new timestamp, because the new string would need a new digest.', show: ['note'] },
+			{ say: 'The event id is not for security. It is the correlation id the receiver logs, so one delivery can be followed end to end.', focus: ['d1'], pulse: ['d1'] }
 		]
 	},
 	{
-		id: 'ap-cors-preflight',
+		id: 'ap-webhook-verify',
 		topic: 'apis',
-		group: 'ap-cors-by-path',
-		title: 'Preflight: allowed or not',
-		blurb: 'What does a preflight look like for a listed and an unlisted origin?',
-		stage: { w: 360, h: 340 },
+		group: 'ap-webhook-security',
+		title: 'What the receiver checks',
+		blurb: 'In what order does the webhook route accept or refuse a delivery?',
+		stage: { w: 360, h: 370 },
 		nodes: [
-			{ id: 'b0', kind: 'box', x: 16, y: 14, w: 200, h: 40, label: 'Page sends OPTIONS', sub: 'Origin, method, headers', visible: true },
-			{ id: 'b1', kind: 'box', x: 16, y: 78, w: 200, h: 40, label: 'Backend answers 204', sub: 'for every OPTIONS' },
-			{ id: 'b2', kind: 'box', x: 16, y: 142, w: 200, h: 40, label: 'CORS headers present?', sub: 'only for a listed origin' },
-			{ id: 'b3', kind: 'box', x: 16, y: 206, w: 150, h: 40, label: 'Yes: PUT is sent', sub: 'localhost:5173' },
-			{ id: 'b4', kind: 'box', x: 186, y: 206, w: 150, h: 40, label: 'No: PUT is dropped', sub: 'evil.example' },
-			{ id: 't', kind: 'table', x: 16, y: 262, colW: 108, cols: ['Origin', 'CORS headers', 'Real request'], rows: [['localhost:5173', 'yes', 'is sent'], ['evil.example', 'none', 'is blocked']] },
+			{ id: 'b0', kind: 'box', x: 16, y: 14, w: 200, h: 44, label: 'Read the raw body', sub: 'before any parsing', visible: true },
+			{ id: 'b1', kind: 'box', x: 16, y: 86, w: 200, h: 44, label: 'Timestamp within the window?', sub: 'about 5 minutes either way' },
+			{ id: 'b2', kind: 'box', x: 16, y: 158, w: 200, h: 44, label: 'Signature matches?', sub: 'recompute, then compare' },
+			{ id: 'b3', kind: 'box', x: 16, y: 230, w: 200, h: 44, label: 'Accept: purge, answer 200', sub: 'purged: tags, paths' },
+			{ id: 'r', kind: 'box', x: 236, y: 122, w: 108, h: 44, label: 'Refuse 401', sub: 'same body', tone: 'neg' },
 			{ id: 'e0', kind: 'edge', from: 'b0', to: 'b1' },
 			{ id: 'e1', kind: 'edge', from: 'b1', to: 'b2' },
 			{ id: 'e2', kind: 'edge', from: 'b2', to: 'b3' },
-			{ id: 'e3', kind: 'edge', from: 'b2', to: 'b4' }
+			{ id: 'e3', kind: 'edge', from: 'b1', to: 'r', dashed: true },
+			{ id: 'e4', kind: 'edge', from: 'b2', to: 'r', dashed: true },
+			{ id: 'd', kind: 'doc', x: 16, y: 288, w: 328, title: 'Real probes', lines: ['no signature  : 401 and a requestId', 'bad signature : 401, same shape', 'PUT           : 405'] }
 		],
 		steps: [
-			{ say: 'Before a PUT with a custom header, the browser asks permission first: an OPTIONS request with the Origin, method and headers it wants.', focus: ['b0'] },
-			{ say: 'The backend answers every OPTIONS with 204 No Content. The answer itself is empty.', show: ['b1', 'e0'], focus: ['b1'] },
-			{ say: 'What matters is whether the CORS headers are on that 204. The hook adds them only when the origin is on the allow-list.', show: ['b2', 'e1'], focus: ['b2'] },
-			{ say: 'localhost:5173 is listed: the headers are present, so the browser goes ahead and sends the PUT.', show: ['b3', 'e2'], set: { b3: { tone: 'accent' } } },
-			{ say: 'https://evil.example is not listed: still a 204, but with no CORS headers, so the browser drops the real request.', show: ['b4', 'e3'], set: { b4: { tone: 'neg' } } },
-			{ say: 'Real results from calls 21 and 22, side by side.', show: ['t'], set: { t: { hl: [1] } } }
+			{ say: 'A delivery arrives. The route first reads the raw body, because the signature covers the exact bytes.', focus: ['b0'] },
+			{ say: 'It checks the timestamp. A delivery outside about plus or minus five minutes is stale, so a recorded request cannot be replayed later.', show: ['b1', 'e0'], focus: ['b1'] },
+			{ say: 'It recomputes the HMAC from the timestamp and body with its own copy of the secret and compares it with the header.', show: ['b2', 'e1'], focus: ['b2'] },
+			{ say: 'Only a match reaches the purge. The answer is 200 with the tags and paths that were purged.', show: ['b3', 'e2'], focus: ['b3'] },
+			{ say: 'Anything else gets 401. Unsigned and badly signed requests look the same: one body, a different requestId each time.', show: ['r', 'e3', 'e4'], pulse: ['r'] },
+			{ say: 'Both real probes got the same 401 shape, so a caller learns nothing about how close its guess was.', show: ['d'], focus: ['d'] },
+			{ say: 'With no secret configured the route refuses every delivery. Unsigned requests pass only if an explicit local-development flag is set.', set: { b2: { tone: 'accent' } }, pulse: ['b2'] }
 		]
 	},
 	{
-		id: 'ap-cors-not-auth',
+		id: 'ap-webhook-responses',
 		topic: 'apis',
-		group: 'ap-cors-by-path',
-		title: 'CORS is not authentication',
-		blurb: 'What does CORS stop, and what does it not?',
-		stage: { w: 360, h: 340 },
+		group: 'ap-webhook-security',
+		title: 'The answers a delivery can get',
+		blurb: 'Which status codes does the webhook route use, and what does each mean?',
+		stage: { w: 360, h: 330 },
 		nodes: [
-			{ id: 'a', kind: 'doc', x: 16, y: 14, w: 328, title: 'Call 23: the right key from another origin', lines: ['GET /cardify/admin/demostore/settings', 'Origin: https://evil.example', 'x-admin-key: <ADMIN_API_KEY>'] },
-			{ id: 'r', kind: 'doc', x: 16, y: 106, w: 328, title: 'The reply', lines: ['200 OK', 'content-type: application/json', '(no access-control-allow-origin header)', '{"enabled":true,"design":"overlay",...}'] },
-			{ id: 'b1', kind: 'box', x: 16, y: 220, w: 152, h: 52, label: 'Browser page elsewhere', sub: 'cannot read the reply' },
-			{ id: 'b2', kind: 'box', x: 190, y: 220, w: 150, h: 52, label: 'curl or a script', sub: 'ignores CORS, reads it' },
-			{ id: 'n', kind: 'text', x: 16, y: 304, w: 328, text: 'A script already running on the admin\'s own origin is trusted by the browser, so CORS cannot tell it from the admin.', size: 'sm' }
+			{
+				id: 't',
+				kind: 'table',
+				x: 16,
+				y: 14,
+				colW: 108,
+				cols: ['Status', 'Meaning', 'Seen'],
+				rows: [
+					['200', 'tags purged', 'documented'],
+					['400', 'malformed body', 'documented'],
+					['401', 'bad signature', 'seen live'],
+					['405', 'wrong method', 'seen live'],
+					['413', 'body too large', 'documented'],
+					['500', 'internal error', 'documented']
+				],
+				visible: true
+			},
+			{ id: 'd1', kind: 'doc', x: 16, y: 184, w: 328, title: 'A 401 body', lines: ['{"error":"Invalid signature",', ' "requestId":"wh_<uuid>"}'] },
+			{ id: 'd2', kind: 'doc', x: 16, y: 258, w: 328, title: 'GET is a health probe', lines: ['{"status":"healthy",', ' "timestamp":"<iso>"}'] }
 		],
 		steps: [
-			{ say: 'A real probe: the correct key, but the request claims to come from https://evil.example.', show: ['a'], focus: ['a'] },
-			{ say: 'The server still answers 200 with the full settings. The key was right, and the server does not judge the origin when the key matches.', show: ['r'], focus: ['r'] },
-			{ say: 'What differs is that no access-control-allow-origin header came back. A browser page on that origin may not read the reply.', show: ['b1'], set: { b1: { tone: 'accent' } } },
-			{ say: 'A non-browser client, such as curl, never enforces CORS. The key is the only gate there.', show: ['b2'], set: { b2: { tone: 'warn' } } },
-			{ say: 'And a script injected into the allowed admin page is, to the browser, the admin. CORS protects reading across origins, not who holds the key.', show: ['n'], focus: ['n'] }
+			{ say: 'Every answer a delivery can get is a status the sender can act on. The table lists them, and marks which ones were seen live.', focus: ['t'] },
+			{ say: 'Success is 200 with the purged tags and paths.', set: { t: { hl: [0] } } },
+			{ say: '400 means the body was malformed and 413 means it was too large. Both are refused before any work is done.', set: { t: { hl: [1, 4] } } },
+			{ say: '401 means the signature was missing or wrong. The body carries a requestId to quote when reporting a failed delivery.', show: ['d1'], set: { t: { hl: [2] } } },
+			{ say: '405: only POST handles a delivery. A PUT to the route got 405 in the real probe.', set: { t: { hl: [3] } } },
+			{ say: '500 means an internal error. Every response has a requestId, so sender and receiver can find the same delivery in their logs.', set: { t: { hl: [5] } } },
+			{ say: 'A GET on the same route is a health probe. It says healthy and a time, and reveals nothing about secrets or configuration.', show: ['d2'], set: { t: { hl: [] } } }
 		]
 	},
 
-	// ───────────── ap-validation ─────────────
+	// ───────────── ap-caching-isr ─────────────
 	{
-		id: 'ap-validate-edge',
+		id: 'ap-isr-flow',
 		topic: 'apis',
-		group: 'ap-validation',
-		title: 'Checks before any work',
-		blurb: 'What is checked on a settings save before it reaches the database?',
-		stage: { w: 360, h: 340 },
+		group: 'ap-caching-isr',
+		title: 'ISR: serve fast, refresh later',
+		blurb: 'How does a page stay fast and still get fresh data?',
+		stage: { w: 360, h: 420 },
 		nodes: [
-			{ id: 'b0', kind: 'box', x: 16, y: 14, w: 200, h: 44, label: 'PUT .../settings', sub: 'with the key header', visible: true },
-			{ id: 'b1', kind: 'box', x: 16, y: 82, w: 200, h: 44, label: 'Merchant id matches?', sub: '^[a-z0-9]{6,32}$' },
-			{ id: 'b2', kind: 'box', x: 16, y: 150, w: 200, h: 44, label: 'Body passes SettingsSchema?', sub: 'enums, hex colours, ranges' },
-			{ id: 'b3', kind: 'box', x: 16, y: 218, w: 200, h: 44, label: 'Repo saves the row', sub: 'parameterised query' },
-			{ id: 'r1', kind: 'box', x: 236, y: 82, w: 108, h: 44, label: 'No: 400', sub: 'invalid id' },
-			{ id: 'r2', kind: 'box', x: 236, y: 150, w: 108, h: 44, label: 'No: 400', sub: 'plus issues' },
+			{ id: 'v', kind: 'box', x: 16, y: 14, w: 200, h: 44, label: 'Visitor', sub: 'asks for a product page', visible: true },
+			{ id: 'c', kind: 'box', x: 16, y: 98, w: 200, h: 44, label: 'Cached page', sub: 'HTML from the last render' },
+			{ id: 'r', kind: 'box', x: 16, y: 182, w: 200, h: 44, label: 'Render on the server', sub: 'reads data, builds HTML' },
+			{ id: 'p', kind: 'box', x: 16, y: 266, w: 200, h: 44, label: 'Platform API', sub: 'catalog reads' },
+			{ id: 'e1', kind: 'edge', from: 'v', to: 'c' },
+			{ id: 'e2', kind: 'edge', from: 'c', to: 'r', dashed: true },
+			{ id: 'e3', kind: 'edge', from: 'r', to: 'p' },
+			{ id: 'd1', kind: 'doc', x: 16, y: 330, w: 328, title: 'Headers on the real page answers', lines: ['x-nextjs-cache: HIT', 'x-nextjs-prerender: 1', 'cache-control: no-store, must-revalidate (dev)'] }
+		],
+		steps: [
+			{ say: 'A product page uses incremental static regeneration: built once, cached, and refreshed on a schedule instead of on every visit.', focus: ['v'] },
+			{ say: 'A visit is answered from the cached page. The real page headers said x-nextjs-cache HIT and x-nextjs-prerender 1.', show: ['c', 'e1', 'd1'], focus: ['c'] },
+			{ say: 'The cached page was made by rendering on the server, which reads the data it needs.', show: ['r', 'e2'] },
+			{ say: 'Those reads go to the platform API. Because the page and the reads are cached, most visits never reach it.', show: ['p', 'e3'], focus: ['p'] },
+			{ say: 'revalidate is 3600. After an hour the next visit still gets the cached page, and a fresh render starts in the background.', set: { c: { tone: 'warn', sub: 'older than 3600 s' } }, pulse: ['r'] },
+			{ say: 'generateStaticParams lists handles to build ahead of time. dynamicParams = true lets a handle that was not listed be rendered on its first request.', set: { c: { tone: 'neutral', sub: 'HTML from the last render' } }, focus: ['r'] },
+			{ say: 'The result is fast pages, few upstream calls, and data at most an hour old unless a webhook purges it sooner.', set: { c: { tone: 'accent' } }, pulse: ['c'] }
+		]
+	},
+	{
+		id: 'ap-cache-tags',
+		topic: 'apis',
+		group: 'ap-caching-isr',
+		title: 'Tags connect reads to purges',
+		blurb: 'How does a purge find exactly the pages that changed?',
+		stage: { w: 360, h: 310 },
+		nodes: [
+			{
+				id: 't',
+				kind: 'table',
+				x: 16,
+				y: 14,
+				colW: 164,
+				cols: ['Tag', 'Meaning'],
+				rows: [
+					['product:{handle}', 'one product'],
+					['collection:{handle}', 'one collection'],
+					['products', 'lists of products'],
+					['collections', 'lists of collections']
+				],
+				visible: true
+			},
+			{ id: 'd', kind: 'doc', x: 16, y: 150, w: 328, title: 'The two sides of the contract', lines: ['read side : tags the cached read', 'event side: names tags to purge', 'same strings from one shared module'] },
+			{ id: 'x', kind: 'box', x: 16, y: 252, w: 328, h: 44, label: 'Tests fail if a tag has no purging event', sub: 'or if the planner invents a tag' }
+		],
+		steps: [
+			{ say: 'Cached reads carry tags, short labels that say what a cached entry is about. Four tag shapes appear in the contract.', focus: ['t'] },
+			{ say: 'A read about one thing gets a tag with its handle: one product, one collection.', set: { t: { hl: [0, 1] } } },
+			{ say: 'Lists get a plain tag with no handle, because a created or deleted item changes the list.', set: { t: { hl: [2, 3] } } },
+			{ say: 'A purge only reaches a page if the read that built it attached the same tag. Both sides take the strings from one shared module.', show: ['d'], set: { t: { hl: [] } } },
+			{ say: 'Invariant tests guard the contract: one fails if a tag has no event that purges it, or if the planner invents a tag.', show: ['x'], focus: ['x'] },
+			{ say: 'That is why a webhook can purge exactly the pages that changed instead of flushing the whole cache.', focus: ['d', 'x'] }
+		]
+	},
+	{
+		id: 'ap-purge-warm',
+		topic: 'apis',
+		group: 'ap-caching-isr',
+		title: 'Purge, then warm',
+		blurb: 'What happens between a webhook and the next visitor?',
+		stage: { w: 360, h: 330 },
+		nodes: [
+			{ id: 'd', kind: 'doc', x: 16, y: 14, w: 328, title: 'The event', lines: ['{"type":"product.updated",', ' "data":{"handle":"<handle>"}}'], visible: true },
+			{ id: 'b0', kind: 'box', x: 16, y: 90, w: 328, h: 38, label: 'Verify the signature and the payload', sub: 'shared handler, same for every store' },
+			{ id: 'b1', kind: 'box', x: 16, y: 150, w: 328, h: 38, label: 'Plan the tags', sub: 'which tags does this event touch?' },
+			{ id: 'b2', kind: 'box', x: 16, y: 210, w: 328, h: 38, label: 'Purge the tags', sub: 'pages carrying them are now stale' },
+			{ id: 'b3', kind: 'box', x: 16, y: 270, w: 328, h: 38, label: 'Warm the pages', sub: 'pre-render created or updated pages' },
 			{ id: 'e0', kind: 'edge', from: 'b0', to: 'b1' },
 			{ id: 'e1', kind: 'edge', from: 'b1', to: 'b2' },
-			{ id: 'e2', kind: 'edge', from: 'b2', to: 'b3' },
-			{ id: 'e3', kind: 'edge', from: 'b1', to: 'r1' },
-			{ id: 'e4', kind: 'edge', from: 'b2', to: 'r2' },
-			{ id: 'g', kind: 'text', x: 16, y: 294, w: 328, text: 'One shared zod schema (shared/src/schema.ts): the admin form and the server apply the same rules.', size: 'sm' }
+			{ id: 'e2', kind: 'edge', from: 'b2', to: 'b3' }
 		],
 		steps: [
-			{ say: 'A save arrives with the right key. Authentication is done, but nothing about the request is trusted yet.', focus: ['b0'] },
-			{ say: 'First the merchant id in the URL is checked against a strict pattern: 6 to 32 lowercase letters or digits.', show: ['b1', 'e0'], focus: ['b1'] },
-			{ say: 'A bad id, such as BAD!, DemoStore or abc, gets a 400 before anything else runs.', show: ['r1', 'e3'], set: { r1: { tone: 'neg' } } },
-			{ say: 'Then the body goes through SettingsSchema: allowed designs, 6-digit hex colours, a radius from 0 to 24, true or false toggles.', show: ['b2', 'e1'], focus: ['b2'] },
-			{ say: 'A body that breaks any rule gets a 400 with the list of every problem found.', show: ['r2', 'e4'], set: { r2: { tone: 'neg' } } },
-			{ say: 'Only a valid id and a valid body reach the repo, which writes the row with a parameterised query, not a string built from input.', show: ['b3', 'e2'], set: { b3: { tone: 'accent' } } },
-			{ say: 'The admin form uses the very same schema, so the page and the API cannot drift apart on what is valid.', show: ['g'], focus: ['g'] }
+			{ say: 'A product.updated event names the handle that changed. It is signed like any other delivery.', focus: ['d'] },
+			{ say: 'The shared handler verifies the signature and validates the payload before it does anything else.', show: ['b0'], focus: ['b0'] },
+			{ say: 'It plans which tags the event touches. A product event names that product, and a created or deleted item also touches the lists.', show: ['b1', 'e0'], focus: ['b1'] },
+			{ say: 'It purges those tags. Every cached page whose read carried one of them is now stale.', show: ['b2', 'e1'], focus: ['b2'] },
+			{ say: 'Then it pre-renders the created or updated pages, so the first real visitor gets a cache hit instead of paying for a cold render.', show: ['b3', 'e2'], focus: ['b3'] },
+			{ say: 'If no base address is configured, the handler logs that warming is disabled. It does not skip the step silently.', set: { b3: { tone: 'warn', sub: 'disabled: logged, not silent' } }, pulse: ['b3'] }
 		]
 	},
-	{
-		id: 'ap-validate-issues',
-		topic: 'apis',
-		group: 'ap-validation',
-		title: 'A 400 that says what is wrong',
-		blurb: 'What does the server say when a save has several bad values?',
-		stage: { w: 360, h: 240 },
-		nodes: [
-			{ id: 'd', kind: 'doc', x: 16, y: 14, w: 328, title: 'Call 14: four bad fields (issues, shortened)', lines: ['enabled', '  Expected boolean, received string', 'design', '  Invalid enum value ... received "neon"', 'options.accentColor', '  must be a 6-digit hex colour like #ed186f', 'options.radius', '  Number must be less than or equal to 24'] },
-			{ id: 'n', kind: 'text', x: 16, y: 220, w: 328, text: 'Every wrong field comes back in one answer, with the rule that was broken.', size: 'sm' }
-		],
-		steps: [
-			{ say: 'A PUT sent enabled as "yes", design as "neon", accentColor as "red" and radius 99. The answer was 400 with {"error":"invalid settings","issues":[...]}.', show: ['d'], focus: ['d'] },
-			{ say: 'First issue: enabled must be true or false, and a string arrived.', set: { d: { hl: [0, 1] } } },
-			{ say: 'Second: design is not one of the five allowed designs. The real message lists them all.', set: { d: { hl: [2, 3] } } },
-			{ say: 'Third: the colour is not 6-digit hex. The schema\'s own message gives an example, #ed186f.', set: { d: { hl: [4, 5] } } },
-			{ say: 'Fourth: a radius of 99 is over the maximum of 24. Each issue also carries a path, such as options.radius.', set: { d: { hl: [6, 7] } } },
-			{ say: 'The caller learns every wrong field in one round trip, which is why the admin can show a useful error.', show: ['n'], focus: ['n'] }
-		]
-	},
-	{
-		id: 'ap-validate-limits',
-		topic: 'apis',
-		group: 'ap-validation',
-		title: 'What the framework answers itself',
-		blurb: 'Which answers come from Fastify, and how do they look?',
-		stage: { w: 360, h: 300 },
-		nodes: [
-			{ id: 't', kind: 'table', x: 16, y: 14, colW: 156, cols: ['Case', 'Status'], rows: [['No content-type', '415'], ['Malformed JSON', '400, connection closed'], ['Body over 1 MiB', '413, connection closed'], ['Unknown route', '404'], ['Valid, unseen id', '200 with defaults']] },
-			{ id: 'd', kind: 'doc', x: 16, y: 170, w: 328, title: 'A framework error body (call 19)', lines: ['{"statusCode":415,', ' "code":"FST_ERR_CTP_INVALID_MEDIA_TYPE",', ' "error":"Unsupported Media Type",', ' "message":"Unsupported Media Type"}'] },
-			{ id: 'n', kind: 'text', x: 16, y: 280, w: 328, text: 'Two error shapes: {"error": "..."} from the app, this one from Fastify.', size: 'sm' }
-		],
-		steps: [
-			{ say: 'Some checks are Fastify defaults, not Cardify Lite code. A PUT with no content-type header gets 415.', show: ['t'], set: { t: { hl: [0] } } },
-			{ say: 'Malformed JSON gets 400, and the connection is closed. The body is never parsed into settings.', set: { t: { hl: [1] } } },
-			{ say: 'A body over the 1 MiB default limit gets 413 after a 100 Continue, so an oversized upload is cut off at the limit.', set: { t: { hl: [2] } } },
-			{ say: 'A valid but never-seen merchant id is not a 404: it gets the default settings, so ids cannot be probed to see who exists.', set: { t: { hl: [4] } } },
-			{ say: 'These framework errors have their own JSON shape, different from the app\'s {"error": "..."}.', show: ['d'], focus: ['d'] },
-			{ say: 'A client has to read both shapes. One shared shape would be simpler, and it is a small gap worth closing.', show: ['n'], focus: ['n'] }
-		]
-	},
-
-	// ───────────── ap-caching-versioning ─────────────
 	{
 		id: 'ap-cache-headers',
 		topic: 'apis',
-		group: 'ap-caching-versioning',
-		title: 'Cache headers by resource',
-		blurb: 'Which resources may a browser reuse, and which must it ask for again?',
+		group: 'ap-caching-isr',
+		title: 'The headers that really arrived',
+		blurb: 'What cache-control did the real responses carry?',
 		stage: { w: 360, h: 290 },
 		nodes: [
-			{ id: 't', kind: 'table', x: 16, y: 14, colW: 156, cols: ['Resource', 'Headers'], rows: [['Public config', 'no-store'], ['SDK bundles', 'public, max-age=0'], ['SDK bundles', 'etag, last-modified'], ['Admin settings', 'none sent']] },
-			{ id: 'd', kind: 'doc', x: 16, y: 152, w: 328, title: 'Bundle, call 24: intent against arrival', lines: ['source says: cache-control: no-cache', 'arrives:     cache-control: public, max-age=0', 'etag: W/"36d-1a16322b462"'] },
-			{ id: 'n', kind: 'text', x: 16, y: 262, w: 328, text: 'Check the headers that arrive, not only the code.', size: 'sm' }
+			{
+				id: 't',
+				kind: 'table',
+				x: 16,
+				y: 14,
+				colW: 164,
+				cols: ['Response', 'cache-control'],
+				rows: [
+					['page (dev mode)', 'no-store'],
+					['/api/ answer 200', 'public, s-maxage=600'],
+					['/api/ 400 and 401', 'public, s-maxage=600'],
+					['sitemap.xml', 'public, must-revalidate']
+				],
+				visible: true
+			},
+			{ id: 'd', kind: 'doc', x: 16, y: 150, w: 328, title: 'The rule on every /api/ route', lines: ['public, max-age=0, s-maxage=600,', 'stale-while-revalidate=3600'] },
+			{ id: 'note', kind: 'text', x: 16, y: 232, w: 328, text: 'Compare the headers that arrive with the intent, and scope a blanket rule to the routes that want it.', size: 'sm' }
 		],
 		steps: [
-			{ say: 'The public config is the one thing that must never be stale, so it is no-store: the browser never keeps it.', show: ['t'], set: { t: { hl: [0] } } },
-			{ say: 'The SDK files are served by a static plugin with max-age=0: the browser may keep them but must ask before reusing.', set: { t: { hl: [1] } } },
-			{ say: 'To make that asking cheap, the files carry an ETag and a last-modified date.', set: { t: { hl: [2] } } },
-			{ say: 'Admin settings responses carry no cache-control at all; they are only fetched with the key, by the admin page.', set: { t: { hl: [3] } } },
-			{ say: 'A real finding: the source sets no-cache for the bundles, but the header that arrives is public, max-age=0. The plugin\'s default won.', show: ['d'], focus: ['d'] },
-			{ say: 'The effect is much the same, but only a look at the real response showed the difference.', show: ['n'], focus: ['n'] }
+			{ say: 'These are cache-control values from the real responses, in dev mode. Four kinds of response, three different answers.', focus: ['t'] },
+			{ say: 'In dev mode the pages told the browser not to store them. What a production edge does is a separate setting.', set: { t: { hl: [0] } } },
+			{ say: 'Every route under /api/ carried one blanket rule, set once in the framework config.', show: ['d'], set: { t: { hl: [1] } } },
+			{ say: 'The same rule rode on the 400 answers to bad handles and on the 401 answers to unsigned deliveries. A shared cache may keep a GET refusal for 600 seconds.', set: { t: { hl: [2] } } },
+			{ say: 'A generated file such as the sitemap sets its own, stricter rule: public, but revalidate before reuse.', set: { t: { hl: [3] } } },
+			{ say: 'A header rule in the config wins over what a route sets for itself, so look at what really arrives.', show: ['note'], set: { t: { hl: [] } } }
+		]
+	},
+
+	// ───────────── ap-shopper-ip-rate-limits ─────────────
+	{
+		id: 'ap-shopper-why',
+		topic: 'apis',
+		group: 'ap-shopper-ip-rate-limits',
+		title: 'One server, many shoppers',
+		blurb: 'Why must a server say who the shopper is?',
+		stage: { w: 360, h: 270 },
+		nodes: [
+			{ id: 's1', kind: 'box', x: 16, y: 14, w: 100, h: 40, label: 'Shopper A', visible: true },
+			{ id: 's2', kind: 'box', x: 16, y: 74, w: 100, h: 40, label: 'Shopper B', visible: true },
+			{ id: 's3', kind: 'box', x: 16, y: 134, w: 100, h: 40, label: 'Shopper C', visible: true },
+			{ id: 'st', kind: 'box', x: 140, y: 74, w: 100, h: 40, label: 'Store server' },
+			{ id: 'gw', kind: 'box', x: 264, y: 74, w: 80, h: 40, label: 'Gateway' },
+			{ id: 'e1', kind: 'edge', from: 's1', to: 'st' },
+			{ id: 'e2', kind: 'edge', from: 's2', to: 'st' },
+			{ id: 'e3', kind: 'edge', from: 's3', to: 'st' },
+			{ id: 'e4', kind: 'edge', from: 'st', to: 'gw' },
+			{ id: 'd', kind: 'doc', x: 16, y: 190, w: 328, title: 'What the gateway counts', lines: ['without IP: 1 client (the server)'] }
+		],
+		steps: [
+			{ say: 'Three shoppers load pages at the same time. The store server makes the platform calls for them.', focus: ['s1', 's2', 's3'] },
+			{ say: 'Every call leaves from the one store server, so they all arrive from the same address.', show: ['st', 'e1', 'e2', 'e3'], focus: ['st'] },
+			{ say: 'The platform gateway rate-limits per shopper IP and per merchant, so it needs to know who is who.', show: ['gw', 'e4'], focus: ['gw'] },
+			{ say: 'If the server does not say who the shopper is, all three look like one client and share one limit. A busy hour can rate-limit everybody.', show: ['d'], set: { gw: { tone: 'warn' } } },
+			{ say: 'Forward the shopper IP and the gateway counts three clients, each with its own limit.', set: { d: { lines: ['without IP: 1 client (the server)', 'with IP   : 3 clients, 3 limits'] }, gw: { tone: 'accent' } }, pulse: ['d'] },
+			{ say: 'The apps route does exactly this: it forwards the shopper IP on its uncached call, once per page view.', focus: ['st'] }
 		]
 	},
 	{
-		id: 'ap-etag-304',
+		id: 'ap-xff-trust',
 		topic: 'apis',
-		group: 'ap-caching-versioning',
-		title: 'Asking again costs almost nothing',
-		blurb: 'What does a revalidation of the loader look like?',
+		group: 'ap-shopper-ip-rate-limits',
+		title: 'Which address can be trusted',
+		blurb: 'Which entry of x-forwarded-for is the shopper?',
 		stage: { w: 360, h: 330 },
 		nodes: [
-			{ id: 'b0', kind: 'box', x: 16, y: 14, w: 200, h: 44, label: 'Browser holds a copy', sub: 'etag W/"36d-1a16322b462"', visible: true },
-			{ id: 'b1', kind: 'box', x: 16, y: 82, w: 200, h: 44, label: 'GET with If-None-Match', sub: 'max-age=0, so it asks' },
-			{ id: 'b2', kind: 'box', x: 16, y: 150, w: 200, h: 44, label: 'Backend compares the ETag', sub: 'same file or not' },
-			{ id: 'b3', kind: 'box', x: 16, y: 218, w: 150, h: 44, label: '304: headers only', sub: 'reuse the copy' },
-			{ id: 'b4', kind: 'box', x: 186, y: 218, w: 150, h: 44, label: '200: the new file', sub: 'after a rebuild' },
-			{ id: 'g', kind: 'text', x: 16, y: 292, w: 328, text: 'Call 29: 304 Not Modified, with the same etag and no body.', size: 'sm' },
+			{ id: 'd1', kind: 'doc', x: 16, y: 14, w: 328, title: 'x-forwarded-for as the server receives it', lines: ['x-forwarded-for: 10.0.0.1, 203.0.113.7'], visible: true },
+			{ id: 't', kind: 'table', x: 16, y: 76, colW: 108, cols: ['Entry', 'Written by', 'Trust'], rows: [['10.0.0.1', 'the shopper', 'never'], ['203.0.113.7', 'load balancer', 'yes']] },
+			{ id: 'd2', kind: 'doc', x: 16, y: 162, w: 328, title: 'Headers the shopper controls (ignored)', lines: ['cf-connecting-ip', 'true-client-ip', 'x-real-ip'] },
+			{ id: 'd3', kind: 'doc', x: 16, y: 252, w: 328, title: 'Reading it', lines: ['trusted hops = 1  ->  right-most entry', 'a client port is stripped'] }
+		],
+		steps: [
+			{ say: 'The header lists addresses left to right as the request passed proxies. The shopper can write anything in it before the first proxy.', focus: ['d1'] },
+			{ say: 'The left entry here is whatever the shopper claimed. It is not evidence of anything.', show: ['t'], set: { t: { hl: [0] } } },
+			{ say: 'The right-most entry was appended by the load balancer the server trusts, so it is the one address nobody can fake.', set: { t: { hl: [1] } } },
+			{ say: 'Other headers that carry a client address are ignored too, because they come from the shopper.', show: ['d2'], set: { t: { hl: [] } } },
+			{ say: 'The number of trusted hops is configurable and is one by default, so a second trusted proxy moves the position. A port on the address is stripped.', show: ['d3'], focus: ['d3'] },
+			{ say: 'The result is one address per shopper, passed to the platform as x-forwarded-for.', focus: ['t'], set: { t: { hl: [1] } } }
+		]
+	},
+	{
+		id: 'ap-uncached-only',
+		topic: 'apis',
+		group: 'ap-shopper-ip-rate-limits',
+		title: 'Only on uncached fetches',
+		blurb: 'Why does the shopper IP never ride on a cached read, and what is a 429?',
+		stage: { w: 360, h: 330 },
+		nodes: [
+			{ id: 'a', kind: 'doc', x: 16, y: 14, w: 328, title: 'Cached read (tags, revalidate)', lines: ['key = url + request headers'], visible: true },
+			{ id: 'b', kind: 'doc', x: 16, y: 106, w: 328, title: 'Uncached route (no-store)', lines: ['fetch(url, no-store, shopper ip)', 'nothing stored: no entry per ip'] },
+			{ id: 'c', kind: 'box', x: 16, y: 192, w: 328, h: 44, label: 'A 429 from the gateway', sub: 'treated like a 5xx: backend unavailable', tone: 'warn' },
+			{ id: 'd', kind: 'box', x: 16, y: 266, w: 328, h: 44, label: 'The read reports success: false', sub: 'not "not found": the page keeps its last good copy' },
+			{ id: 'e', kind: 'edge', from: 'c', to: 'd' }
+		],
+		steps: [
+			{ say: 'Next builds the key of a cached fetch from the URL and the request headers. Keep that in mind when adding a header.', focus: ['a'] },
+			{ say: 'A per-shopper header on a cached fetch makes a new entry for every IP. The cache fills with near-duplicates and stops helping.', set: { a: { lines: ['key = url + request headers', 'x-forwarded-for ip-1 -> entry 1', 'x-forwarded-for ip-2 -> entry 2'] } }, pulse: ['a'] },
+			{ say: 'So the shopper IP goes only on uncached fetches, such as the apps route. ISR renders send no shopper IP at all.', show: ['b'], focus: ['b'] },
+			{ say: 'When the gateway rate-limits a call, it answers 429.', show: ['c'], focus: ['c'] },
+			{ say: 'A 429 counts as backend unavailable, like a 5xx. The read reports failure, not "not found", so the page keeps its last good copy.', show: ['d', 'e'], focus: ['d'] },
+			{ say: 'Static generation at build time can run with lower concurrency for the same reason: a 429 fails one page render, and ISR keeps the previous page.', pulse: ['d'] },
+			{ say: 'Rule of thumb: identify the shopper only where nothing is cached, and treat a rate limit as an outage, never as an empty catalog.', set: { d: { tone: 'accent' } } }
+		]
+	},
+
+	// ───────────── ap-fail-soft ─────────────
+	{
+		id: 'ap-soft-defaults',
+		topic: 'apis',
+		group: 'ap-fail-soft',
+		title: 'Empty, not broken',
+		blurb: 'Where does the store return a default instead of failing?',
+		stage: { w: 360, h: 290 },
+		nodes: [
+			{
+				id: 't',
+				kind: 'table',
+				x: 16,
+				y: 14,
+				colW: 164,
+				cols: ['When this fails', 'The page gets'],
+				rows: [
+					['apps service down', 'an empty list'],
+					['menu handle unknown', 'null'],
+					['optional config 404', 'a working page'],
+					['tracker script blocked', 'a working page']
+				],
+				visible: true
+			},
+			{ id: 'd', kind: 'doc', x: 16, y: 140, w: 328, title: 'Seen in the run', lines: ['apps       : 200 {"apps":[]}', 'unknown menu: 200 null', 'optional cfg: 404, cached 300 s', 'trackers    : 16 loads blocked'] },
+			{ id: 'note', kind: 'text', x: 16, y: 262, w: 328, text: 'An optional feature must never take the store down.', size: 'sm' }
+		],
+		steps: [
+			{ say: 'Several parts of the store return a default instead of failing the page. The table lists four of them.', focus: ['t'] },
+			{ say: 'The apps route turns an unreachable service into an empty list. The page simply shows no apps.', set: { t: { hl: [0] } } },
+			{ say: 'An unknown nav-menu handle answers null. The caller handles a missing menu without an error.', set: { t: { hl: [1] } } },
+			{ say: 'An optional configuration call to a session backend answered 404, cached for 300 seconds. The page loaded anyway.', show: ['d'], set: { t: { hl: [2] } } },
+			{ say: 'With the tracker scripts blocked, 16 loads over four page views, every page still rendered and worked.', set: { t: { hl: [3] } } },
+			{ say: 'A missing apps list or a blocked tracker is a small loss. A failed page is a lost sale.', show: ['note'], set: { t: { hl: [] } } }
+		]
+	},
+	{
+		id: 'ap-silent-bug',
+		topic: 'apis',
+		group: 'ap-fail-soft',
+		title: 'The bug a silent fallback hid',
+		blurb: 'How can a good fallback hide a real misconfiguration?',
+		stage: { w: 360, h: 380 },
+		nodes: [
+			{ id: 'b0', kind: 'box', x: 16, y: 14, w: 328, h: 38, label: 'Operator sets only the public merchant id', sub: 'one id, two env names', visible: true },
+			{ id: 'b1', kind: 'box', x: 16, y: 74, w: 328, h: 38, label: 'The server-only variable stays empty', sub: 'the example file ships it empty' },
+			{ id: 'b2', kind: 'box', x: 16, y: 134, w: 328, h: 38, label: 'Upstream gets an empty merchant header', sub: 'the platform answers 400', tone: 'neg' },
+			{ id: 'b3', kind: 'box', x: 16, y: 194, w: 328, h: 38, label: 'The handler degrades to an empty list', sub: 'it answers 200 {"apps":[]}' },
+			{ id: 'b4', kind: 'box', x: 16, y: 254, w: 328, h: 38, label: 'No apps on the page, no error anywhere', sub: 'the fallback hid the bug', tone: 'warn' },
 			{ id: 'e0', kind: 'edge', from: 'b0', to: 'b1' },
 			{ id: 'e1', kind: 'edge', from: 'b1', to: 'b2' },
 			{ id: 'e2', kind: 'edge', from: 'b2', to: 'b3' },
-			{ id: 'e3', kind: 'edge', from: 'b2', to: 'b4' }
+			{ id: 'e3', kind: 'edge', from: 'b3', to: 'b4' },
+			{ id: 'd', kind: 'doc', x: 16, y: 306, w: 328, title: 'The fixes', lines: ['empty env var: use ||, not ??', 'accept either name, and log it'] }
 		],
 		steps: [
-			{ say: 'The browser already has cardify-loader.js (877 bytes) and remembers its ETag.', focus: ['b0'] },
-			{ say: 'Because max-age is 0, the next use asks the server first, sending the remembered ETag in If-None-Match.', show: ['b1', 'e0'], focus: ['b1'] },
-			{ say: 'The backend compares that ETag with the file on disk.', show: ['b2', 'e1'], focus: ['b2'] },
-			{ say: 'Unchanged: a 304 with headers only. The browser reuses its copy and no file bytes travel.', show: ['b3', 'e2'], set: { b3: { tone: 'accent' } } },
-			{ say: 'Changed, for example after pnpm build:sdk: a 200 with the new file and a new ETag.', show: ['b4', 'e3'], set: { b4: { tone: 'warn' } } },
-			{ say: 'The real call 29 confirms the 304. Fresh code is always one cheap question away.', show: ['g'], focus: ['g'] }
+			{ say: 'A real bug that a code comment describes. The merchant id lived under two names, a public one and a server-only one, and an operator set only the public one.', focus: ['b0'] },
+			{ say: 'The server-only variable stayed empty. The example env file ships it empty, so it was present but empty.', show: ['b1', 'e0'], focus: ['b1'] },
+			{ say: 'The call to the upstream went out with an empty merchant header, and the platform answered 400.', show: ['b2', 'e1'], focus: ['b2'] },
+			{ say: 'The handler is built to degrade when the service fails, so it turned that 400 into an empty list and a 200.', show: ['b3', 'e2'], focus: ['b3'] },
+			{ say: 'The page rendered with no apps and no error anywhere. The fallback worked so well that it hid the bug.', show: ['b4', 'e3'], pulse: ['b4'] },
+			{ say: 'Two fixes in the code: treat an empty value as unset with ||, because ?? only falls back on undefined, and accept either name.', show: ['d'], focus: ['d'] },
+			{ say: 'The third fix is the lesson of this topic: whatever you swallow, log it.', set: { d: { lines: ['empty env var: use ||, not ??', 'accept either name, and LOG it'] } }, pulse: ['d'] }
 		]
 	},
 	{
-		id: 'ap-version-fingerprint',
+		id: 'ap-log-swallowed',
 		topic: 'apis',
-		group: 'ap-caching-versioning',
-		title: 'Does the loader need to act?',
-		blurb: 'When does the loader ask, and when does it change the page?',
-		stage: { w: 360, h: 290 },
+		group: 'ap-fail-soft',
+		title: 'Degrade, but say so',
+		blurb: 'How can a fallback stay quiet for the visitor and loud for the team?',
+		stage: { w: 360, h: 330 },
 		nodes: [
-			{ id: 'd', kind: 'doc', x: 16, y: 14, w: 328, title: 'The loader asks for the config when', lines: ['the page loads', 'the window gets focus', 'the tab becomes visible', 'never on a timer'] },
-			{ id: 't', kind: 'table', x: 16, y: 128, colW: 108, cols: ['version', 'enabled', 'Loader does'], rows: [['0', 'false', 'nothing'], ['1795534284949', 'true', 'load widget'], ['1795534284949', 'true', 'nothing (seen)'], ['1795534290000', 'false', 'stop widget']] },
-			{ id: 'n', kind: 'text', x: 16, y: 262, w: 328, text: 'Fingerprint = version:enabled. Only a changed fingerprint does any work. (Example values.)', size: 'sm' }
+			{ id: 'd1', kind: 'doc', x: 16, y: 14, w: 328, title: 'Silent fallback', lines: ['try { upstream() }', 'catch { return [] }', '// nobody ever knows'], visible: true },
+			{ id: 'd2', kind: 'doc', x: 16, y: 106, w: 328, title: 'Fallback that says so', lines: ['try { upstream() }', 'catch (e) { warnOnce(label, e);', '            return [] }'] },
+			{ id: 'r', kind: 'box', x: 16, y: 206, w: 328, h: 44, label: 'One log line per kind of failure', sub: 'label, status, error, request id' },
+			{ id: 's', kind: 'box', x: 16, y: 272, w: 328, h: 44, label: 'Someone can alert on it', sub: 'the 400 above would have shown up' },
+			{ id: 'e', kind: 'edge', from: 'r', to: 's' }
 		],
 		steps: [
-			{ say: 'loader.ts has no timer. It asks for the config on page load, when the window gets focus, and when the tab becomes visible.', show: ['d'], focus: ['d'] },
-			{ say: 'So a tab left open in the background never calls the backend, and a merchant coming back from the admin gets the change at once.', show: ['t'], set: { t: { hl: [0] } } },
-			{ say: 'Never saved: version 0 and off, so there is nothing to do and the native cards stay.', set: { t: { hl: [0] } } },
-			{ say: 'A save sets the version to the time of the save. Seeing enabled true, the loader fetches the widget and applies the design.', set: { t: { hl: [1] } } },
-			{ say: 'The next focus brings the same version and enabled: the fingerprint is unchanged, so nothing happens.', set: { t: { hl: [2] } } },
-			{ say: 'Switched off later: a new version with enabled false stops the widget and the native cards come back.', set: { t: { hl: [3] } } },
-			{ say: 'The loader writes the fingerprint down only after success, so a failed load is retried on the next focus.', show: ['n'], focus: ['n'] }
-		]
-	},
-	{
-		id: 'ap-focus-refresh',
-		topic: 'apis',
-		group: 'ap-caching-versioning',
-		title: 'The storefront changes on focus',
-		blurb: 'What does the storefront tab do when the merchant switches Cardify on?',
-		stage: { w: 360, h: 270 },
-		nodes: [
-			shot('p1', 'lessons/apis/demo-before.webp', 1100, 481, { w: 336, y: 10, alt: 'The demo storefront with its own cards' }),
-			shot('p2', 'lessons/apis/demo-after.webp', 1100, 481, { w: 336, y: 10, alt: 'The demo storefront after Cardify is switched on', visible: false }),
-			credit('c', 175, 'Screenshot: Cardify Lite, run locally'),
-			{ id: 'd', kind: 'doc', x: 16, y: 190, w: 328, lines: ['admin tab  PUT  .../settings           200', 'this tab   GET  /sdk/config/demostore  200', 'this tab   GET  /sdk/cardify-widget.js 200'] }
-		],
-		steps: [
-			{ say: 'The demo storefront with Cardify off. These are the store\'s own cards, and the loader has asked for the config once.', focus: ['p1'] },
-			{ say: 'Meanwhile, in the admin tab, the merchant switched Cardify on and picked Editorial. The admin saved it with a PUT.', show: ['d'], set: { d: { hl: [0] } } },
-			{ say: 'Back on this tab, the focus event makes the loader ask for the config again. The page itself has not changed yet.', set: { d: { hl: [1] } } },
-			{ say: 'Now enabled is true, so it loads the widget bundle. The cards are restyled with no page reload.', hide: ['p1'], show: ['p2'], set: { d: { hl: [2] } }, focus: ['p2'] },
-			{ say: 'The native cards are only hidden, never removed, and no timer was needed: one fetch on focus did it all.', focus: ['p2', 'd'] }
+			{ say: 'Degrading is right for a page: a missing apps list should not take down the store.', focus: ['d1'] },
+			{ say: 'But a bare catch removes the only signal that something is wrong. Nobody ever learns that the fallback is in use.', set: { d1: { lines: ['try { upstream() }', 'catch { return [] }', '// nobody ever knows'] } }, pulse: ['d1'] },
+			{ say: 'The same fallback can log what it swallowed: a label, the error and the status.', show: ['d2'], focus: ['d2'] },
+			{ say: 'Log once per kind, not once per request, so a failing service does not flood the logs.', show: ['r'], focus: ['r'] },
+			{ say: 'With the 400 logged, the empty merchant header bug would have been found on the first day.', show: ['s', 'e'], focus: ['s'] },
+			{ say: 'Degrade for the visitor, be loud for the team.', set: { r: { tone: 'accent' }, s: { tone: 'accent' } }, pulse: ['s'] }
 		]
 	}
 ];

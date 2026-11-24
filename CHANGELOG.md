@@ -4,6 +4,17 @@ All notable changes to Preppy (called Kata before 1.3.0). Format follows [Keep a
 [GitHub releases](https://github.com/AniqHaider/prep-pocket/releases) (APK attached to each). Updates install over the
 previous version and keep your progress as long as the APK is signed with the same key (see `SETUP-WINDOWS.md`, B3).
 
+## [2.8.0] — 2026-11-24
+APIs in practice is rebuilt around a real online store.
+
+### Changed
+- **APIs in practice now teaches from a real online store's API traffic.** A Next.js storefront was run locally and browsed like a visitor, with every tracker and write request blocked, and each lesson comes from what it really did. 15 topics, 44 animated lessons, 75 quiz questions and 13 runnable "Try it" examples: the system map, which calls the server makes and which the browser makes, the store's own routes called by hand (with their real 200, 400, 401, 404 and 405 answers), what one page view costs (counts of calls per page and per host), status codes and headers, the same-origin proxy that keeps credentials on the server, signed webhooks with replay protection, tagged caching with webhook purges, shopper-aware rate limits, degrading softly, configuration that fails loudly, the third-party script surface, what a visitor's browser ends up storing, observability, and a balanced review with a prioritised fix list.
+- The store, company, platform and vendor names, hosts, ids and handles are changed in every lesson, and the first lesson says so. The paths, statuses, headers and counts are what was observed.
+- This replaces the Cardify Lite lessons that 2.7.0 shipped in this section.
+
+### Fixed
+- Counts in the README and the release timeline in "How Preppy was built" are up to date (519 animated lessons).
+
 ## [2.7.0] — 2026-11-24
 Auth and tokens, and a real API read in practice.
 

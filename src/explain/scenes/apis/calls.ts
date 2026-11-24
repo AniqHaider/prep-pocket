@@ -1,664 +1,421 @@
-import type { Scene, SceneNode } from '../../types';
-import { credit, ring, shot } from '../consoleKit';
+import type { Scene } from '../../types';
 
-/** APIs in practice, part 1: reading a real API by calling it (Cardify Lite, run locally). Ids `ap-*`; `group` = a topic id in src/db/apis/calls.ts. */
-
-type View = { x: number; y: number; w: number };
-const FULL = (nw: number): View => ({ x: 0, y: 0, w: nw });
-
-/** A ring round a region given in FILE pixels, for a picture box at (bx, by) of width bw that shows `view`. */
-const rg = (id: string, bx: number, by: number, bw: number, view: View, fx: number, fy: number, fw: number, fh: number, pad = 3): SceneNode => {
-	const s = bw / view.w;
-	return ring(id, Math.round(bx + (fx - view.x) * s - pad), Math.round(by + (fy - view.y) * s - pad), Math.round(fw * s + pad * 2), Math.round(fh * s + pad * 2));
-};
-
-const SHOT_CREDIT = 'Screenshot: Cardify Lite, run locally';
-
-// the browser run, one line per request (times are ms since the run began)
-const logRow = (ms: string | number, who: string, call: string, status: string) => `${String(ms).padStart(4)} ${who.padEnd(5)} ${call.padEnd(26)} ${status}`;
+// Reading a real online store's API traffic. Names, hosts, ids and handles are changed; paths, methods, statuses, headers and counts are as observed.
 
 export const apCalls: Scene[] = [
-	// ───────────── ap-map ─────────────
+	// ───────────── ap-store-map ─────────────
 	{
 		id: 'ap-system-map',
 		topic: 'apis',
-		group: 'ap-map',
-		title: 'The parts of Cardify Lite',
-		blurb: 'Which part calls which route, and which routes need a key?',
-		stage: { w: 360, h: 320 },
+		group: 'ap-store-map',
+		title: 'The store on one page',
+		blurb: 'Who talks to whom when a visitor opens an online store?',
+		stage: { w: 360, h: 424 },
 		nodes: [
-			{ id: 'sf', kind: 'box', x: 16, y: 14, w: 150, h: 52, label: 'Storefront', sub: 'port 4200, loader script', visible: true },
-			{ id: 'be', kind: 'box', x: 80, y: 130, w: 200, h: 56, label: 'Backend', sub: 'port 4100, Fastify' },
-			{ id: 'ad', kind: 'box', x: 194, y: 14, w: 150, h: 52, label: 'Admin website', sub: 'port 5173, React' },
-			{ id: 'st', kind: 'db', x: 120, y: 238, w: 120, h: 40, label: 'Settings', sub: 'memory or MySQL' },
-			{ id: 'e1', kind: 'edge', from: 'sf', to: 'be', label: 'public config', tone: 'accent' },
-			{ id: 'e2', kind: 'edge', from: 'ad', to: 'be', label: 'key needed', tone: 'warn' },
-			{ id: 'e3', kind: 'edge', from: 'be', to: 'st' }
+			{ id: 'br', kind: 'box', x: 16, y: 10, w: 150, h: 44, label: 'Browser', sub: 'the visitor', visible: true },
+			{ id: 'sv', kind: 'box', x: 194, y: 10, w: 150, h: 44, label: 'Store server', sub: 'pages, /api routes', visible: true },
+			{ id: 'e0', kind: 'edge', from: 'br', to: 'sv', visible: true },
+			{ id: 'pl', kind: 'box', x: 194, y: 110, w: 150, h: 44, label: 'Platform APIs', sub: 'catalog, cart, search' },
+			{ id: 'e1', kind: 'edge', from: 'sv', to: 'pl' },
+			{ id: 'e2', kind: 'edge', from: 'br', to: 'pl' },
+			{ id: 'vd', kind: 'box', x: 16, y: 110, w: 150, h: 44, label: 'Vendor scripts', sub: 'login, checkout, ads' },
+			{ id: 'e3', kind: 'edge', from: 'br', to: 'vd' },
+			{ id: 'an', kind: 'box', x: 16, y: 210, w: 150, h: 44, label: 'Analytics', sub: 'event collector' },
+			{ id: 'e4', kind: 'edge', from: 'vd', to: 'an' },
+			{ id: 'wh', kind: 'box', x: 194, y: 210, w: 150, h: 44, label: 'Webhook calls', sub: 'platform tells the store' },
+			{ id: 'e5', kind: 'edge', from: 'pl', to: 'wh' },
+			{ id: 'ca', kind: 'box', x: 16, y: 268, w: 328, h: 40, label: 'Caches', sub: 'Data Cache by tag, finished pages' },
+			{ id: 'nt', kind: 'doc', x: 16, y: 322, w: 328, title: 'About these lessons', lines: ['- names, hosts, ids and handles are changed', '- paths, statuses, headers, counts are real', '- tracker loads and writes were blocked', '- the store ran locally, in dev mode'] }
 		],
 		steps: [
-			{ say: 'A storefront includes one script tag, the loader. That script is its only link to Cardify Lite.', focus: ['sf'] },
-			{ say: 'The backend keeps one settings record per merchant and serves the SDK files. It listens on port 4100.', show: ['be'], focus: ['be'] },
-			{ say: 'The loader reads the public config route, GET /cardify/sdk/config/:merchantId. No key is needed, because every shopper\'s page makes this call.', show: ['e1'], focus: ['e1'] },
-			{ say: 'The admin website is where a merchant edits the settings.', show: ['ad'], focus: ['ad'] },
-			{ say: 'The admin calls GET and PUT on the admin settings route, and every call carries the x-admin-key header.', show: ['e2'], focus: ['e2'] },
-			{ say: 'Settings are kept in memory by default and in MySQL when DATABASE_URL is set.', show: ['st', 'e3'], set: { st: { tone: 'accent' } }, focus: ['st'] }
+			{ say: 'A visitor’s browser asks the store’s own Next.js server for a page. The server renders it, often from a cache.', focus: ['sv'] },
+			{ say: 'To build the page, the server reads the commerce platform’s APIs. Catalog data comes this way, with a merchant id header.', show: ['pl', 'e1'], focus: ['pl'] },
+			{ say: 'Some calls skip the server: the browser asks the platform directly for the cart, reviews, search and recommendations.', show: ['e2'], focus: ['br'] },
+			{ say: 'The page also loads vendor scripts for login, checkout and ads. Those scripts send events to an analytics collector.', show: ['vd', 'e3', 'an', 'e4'], focus: ['vd'] },
+			{ say: 'Caches sit in between. The server keeps reads in a Data Cache by tag, and finished pages are reused until they are revalidated.', show: ['ca'], set: { ca: { tone: 'accent' } } },
+			{ say: 'Webhooks run the other way. The platform calls the store when a product changes, so the right cache entries can be purged.', show: ['wh', 'e5'], focus: ['wh'] },
+			{ say: 'Names, hosts, ids and handles in these lessons were changed. The paths, statuses, headers and counts are what was observed.', show: ['nt'] }
 		]
 	},
 	{
-		id: 'ap-settings-resource',
+		id: 'ap-lanes-key',
 		topic: 'apis',
-		group: 'ap-map',
-		title: 'The settings resource',
-		blurb: 'What is in the one object this API reads and writes?',
-		stage: { w: 360, h: 312 },
+		group: 'ap-store-map',
+		title: 'Five lanes of traffic',
+		blurb: 'Which caller talks to which destination, and about what?',
+		stage: { w: 360, h: 280 },
 		nodes: [
 			{
-				id: 'd',
-				kind: 'doc',
-				x: 16,
+				id: 't',
+				kind: 'table',
+				x: 24,
 				y: 14,
-				w: 328,
-				title: 'Public config after a save (merchant demostore)',
-				lines: [
-					'{',
-					'  "enabled": true,',
-					'  "design": "overlay",',
-					'  "options": {',
-					'    "accentColor": "#ed186f",',
-					'    "textColor": "#111111",',
-					'    "backgroundColor": "#ffffff",',
-					'    "radius": 12,',
-					'    "imageRatio": "4/5",',
-					'    "showBadge": true,',
-					'    "showQuickBuy": true,',
-					'    "showRating": true,',
-					'    "showCompareAt": false',
-					'  },',
-					'  "version": 1795534284949',
-					'}'
+				colW: 104,
+				cols: ['Who calls', 'Goes to', 'For example'],
+				rows: [
+					['Server', 'Platform API', 'catalog read'],
+					['Browser', 'Platform API', 'cart, reviews'],
+					['Browser', 'Store /api', 'apps list'],
+					['Platform', 'Store /api', 'webhook'],
+					['Browser', 'Vendor host', 'login, ads']
 				],
-				hl: [],
 				visible: true
-			}
+			},
+			{ id: 'rule', kind: 'doc', x: 16, y: 170, w: 328, title: 'Reading the traffic', lines: ['for each call ask three things:', '  who makes it?', '  where does it go?', '  why is it in that lane?'] }
 		],
 		steps: [
-			{ say: 'Everything this API stores for a merchant is one object. This is the real answer from the public config route after a save.', focus: ['d'] },
-			{ say: 'enabled is the main switch: should the storefront use Cardify cards at all?', set: { d: { hl: [1] } } },
-			{ say: 'design is one of five names: classic, minimal, overlay, hover-reveal or editorial.', set: { d: { hl: [2] } } },
-			{ say: 'Three colours, each a 6-digit hex value. That is the only colour format the server accepts.', set: { d: { hl: [4, 5, 6] } } },
-			{ say: 'radius rounds the corners (0 to 24) and imageRatio sets the picture shape.', set: { d: { hl: [7, 8] } } },
-			{ say: 'Four toggles show or hide the badge, quick buy, rating and crossed-out compare price.', set: { d: { hl: [9, 10, 11, 12] } } },
-			{ say: 'version is added by the server: the time of the last save in milliseconds. A merchant that never saved has version 0 and the defaults.', set: { d: { hl: [14] } } }
+			{ say: 'Every call in this store falls into one of five lanes. This table is the key for reading its traffic.', focus: ['t'] },
+			{ say: 'The server reads the catalog from the platform while rendering, so visitors get a ready page.', set: { t: { hl: [0] } } },
+			{ say: 'The browser calls the platform directly for personal or live data: the cart, reviews, search and recommendations.', set: { t: { hl: [1] } } },
+			{ say: 'The browser also calls the store’s own /api routes. The apps list goes through one so the store’s credentials stay on the server.', set: { t: { hl: [2] } } },
+			{ say: 'The platform calls the store back with webhooks when a product changes.', set: { t: { hl: [3] } } },
+			{ say: 'Vendor hosts serve scripts for login, checkout and ads, and those scripts then call their own services.', set: { t: { hl: [4] } } },
+			{ say: 'Three questions turn a pile of URLs into a reading: who makes the call, where does it go, and why is it in that lane?', show: ['rule'], set: { t: { hl: [] } } }
 		]
 	},
 
-	// ───────────── ap-first-calls ─────────────
+	// ───────────── ap-server-vs-browser ─────────────
 	{
-		id: 'ap-health-call',
+		id: 'ap-server-reads',
 		topic: 'apis',
-		group: 'ap-first-calls',
-		title: 'The first call: /health',
-		blurb: 'What does a plain curl call show, line by line?',
-		stage: { w: 360, h: 240 },
+		group: 'ap-server-vs-browser',
+		title: 'What the server reads',
+		blurb: 'Which calls happen on the server, out of the visitor’s sight?',
+		stage: { w: 360, h: 296 },
 		nodes: [
-			{ id: 'rq', kind: 'doc', x: 16, y: 14, w: 328, lines: ['$ curl -i http://127.0.0.1:4100/health'], visible: true },
-			{
-				id: 'rs',
-				kind: 'doc',
-				x: 16,
-				y: 66,
-				w: 328,
-				title: 'What comes back',
-				lines: ['HTTP/1.1 200 OK', 'content-type: application/json; charset=utf-8', 'content-length: 11', '', '{"ok":true}'],
-				hl: []
-			},
-			{ id: 'note', kind: 'text', x: 16, y: 212, w: 328, text: 'Open on purpose: no key was sent and none was needed.', size: 'sm' }
+			{ id: 'b0', kind: 'box', x: 16, y: 14, w: 170, h: 44, label: 'Page request', sub: 'a visitor asks the store', visible: true },
+			{ id: 'b1', kind: 'box', x: 16, y: 86, w: 170, h: 44, label: 'Store server', sub: 'renders the page', visible: true },
+			{ id: 'e0', kind: 'edge', from: 'b0', to: 'b1', visible: true },
+			{ id: 'b2', kind: 'box', x: 16, y: 158, w: 170, h: 44, label: 'Platform catalog API', sub: 'a GET read' },
+			{ id: 'e1', kind: 'edge', from: 'b1', to: 'b2' },
+			{ id: 'b3', kind: 'box', x: 16, y: 230, w: 170, h: 44, label: 'Data Cache', sub: 'keeps the answer by tag' },
+			{ id: 'e2', kind: 'edge', from: 'b2', to: 'b3', label: 'stored' },
+			{ id: 'd1', kind: 'doc', x: 196, y: 158, w: 148, title: 'Sent with the read', lines: ['x-merchant-id: <id>', 'no shopper IP'] },
+			{ id: 'd2', kind: 'doc', x: 196, y: 230, w: 148, title: 'Kept under tags', lines: ['tag: product:<handle>', 'tag: collections'] }
 		],
 		steps: [
-			{ say: 'One command, one request. The -i flag makes curl print the response headers as well as the body.', focus: ['rq'] },
-			{ say: 'The status line comes first: the HTTP version, the code 200 and its reason, OK.', show: ['rs'], set: { rs: { hl: [0] } } },
-			{ say: 'Then headers, which describe the body: JSON text, 11 bytes long.', set: { rs: { hl: [1, 2] } } },
-			{ say: 'A blank line ends the headers. The body is {"ok":true}: health only says that the server is up.', set: { rs: { hl: [4] } } },
-			{ say: 'Health is open on purpose, so an uptime checker can call it without any secret.', show: ['note'], set: { rs: { hl: [] } }, focus: ['note'] }
+			{ say: 'While rendering a page, the store’s server does the reading. The visitor’s browser never sees these calls.', focus: ['b1'] },
+			{ say: 'It asks the platform’s catalog API for the data, sending a merchant id header.', show: ['b2', 'e1', 'd1'], focus: ['b2'] },
+			{ say: 'The answer is kept in the server’s Data Cache under tags, such as one tag per product and one for the collections list.', show: ['b3', 'e2', 'd2'], focus: ['b3'] },
+			{ say: 'This lane sends no shopper IP, so one answer can serve many visitors. That is what makes caching safe here.', set: { d1: { hl: [1] } } },
+			{ say: 'Later a webhook can purge exactly the tags that changed, and the next visit rebuilds only the pages that used them.', set: { b3: { tone: 'accent' }, d2: { hl: [0] } } },
+			{ say: 'Secrets are safe in this lane because the code runs on the server. The cost: you will not find these calls in the browser’s network panel.', set: { b2: { tone: 'warn' } }, focus: ['b2'] }
 		]
 	},
 	{
-		id: 'ap-config-call',
+		id: 'ap-browser-direct',
 		topic: 'apis',
-		group: 'ap-first-calls',
-		title: 'Reading the public config answer',
-		blurb: 'What do the headers say about how this answer may be used?',
-		stage: { w: 360, h: 312 },
+		group: 'ap-server-vs-browser',
+		title: 'Calls the browser makes itself',
+		blurb: 'What does a page ask the platform for directly, and how is it allowed?',
+		stage: { w: 360, h: 340 },
+		nodes: [
+			{ id: 'pg', kind: 'box', x: 16, y: 14, w: 150, h: 44, label: 'Page', sub: 'in the browser', visible: true },
+			{ id: 'pf', kind: 'box', x: 194, y: 14, w: 150, h: 44, label: 'Platform API', sub: 'cart, reviews, search', visible: true },
+			{ id: 'e0', kind: 'edge', from: 'pg', to: 'pf', label: 'GET', visible: true },
+			{ id: 'd1', kind: 'doc', x: 16, y: 86, w: 328, title: 'Request (the cart call)', lines: ['GET <platform>/v1/cart?storeId=<id>', 'headers: accept, content-type, x-merchant-id'] },
+			{ id: 'd2', kind: 'doc', x: 16, y: 158, w: 328, title: 'Answer (cart, reviews, search)', lines: ['access-control-allow-origin: <page origin>'] },
+			{ id: 'd3', kind: 'doc', x: 16, y: 214, w: 328, title: 'Answer (recommendations list)', lines: ['access-control-allow-origin: *', 'cache-control: public, max-age=60'] },
+			{ id: 'nt', kind: 'box', x: 16, y: 286, w: 328, h: 40, label: 'CORS lets the page read the answer', sub: 'a browser rule, not a login' }
+		],
+		steps: [
+			{ say: 'Some calls skip the store’s server. The page itself asks the platform for the cart, reviews, search results and recommendations.', focus: ['e0'] },
+			{ say: 'The cart request carried a merchant id header. The server cannot add one here, so the page sends it.', show: ['d1'], set: { d1: { hl: [1] } } },
+			{ say: 'The platform answered with the page’s own origin: an allow-list it checks and then echoes back. The browser lets the page read the reply.', show: ['d2'], set: { d2: { hl: [0] } } },
+			{ say: 'Public data can be wide open: the recommendations list answered with a star and a one-minute cache.', show: ['d3'], set: { d3: { hl: [0] } } },
+			{ say: 'CORS is the platform telling browsers which pages may read its answers. It is a browser rule, not a login.', show: ['nt'], set: { nt: { tone: 'accent' } } },
+			{ say: 'The price: the page now depends on the platform’s CORS rules, and anyone who opens the network panel can see the API’s shape.', set: { pg: { tone: 'warn' } }, focus: ['pg'] }
+		]
+	},
+	{
+		id: 'ap-where-it-lives',
+		topic: 'apis',
+		group: 'ap-server-vs-browser',
+		title: 'Where should this call live?',
+		blurb: 'Which lane fits a call, given its secrets, audience and caching?',
+		stage: { w: 360, h: 270 },
 		nodes: [
 			{
-				id: 'h',
-				kind: 'doc',
-				x: 16,
+				id: 't',
+				kind: 'table',
+				x: 24,
 				y: 14,
-				w: 328,
-				title: 'GET /cardify/sdk/config/demostore',
-				lines: [
-					'HTTP/1.1 200 OK',
-					'access-control-allow-origin: *',
-					'cross-origin-resource-policy: cross-origin',
-					'cache-control: no-store',
-					'content-type: application/json; charset=utf-8',
-					'content-length: 240'
+				colW: 156,
+				cols: ['If the call...', 'Put it'],
+				rows: [
+					['needs a secret', 'server or proxy'],
+					['is the same for all', 'server, cached by tag'],
+					['is personal to a visitor', 'browser, if CORS allows'],
+					['must be live', 'browser or proxy']
 				],
-				hl: [],
+				visible: true
+			},
+			{ id: 'ex', kind: 'doc', x: 16, y: 150, w: 328, title: 'Examples from the store', lines: ['catalog read   -> server', 'cart, search   -> browser', 'reviews        -> browser', 'apps list      -> proxy'] }
+		],
+		steps: [
+			{ say: 'Four questions decide the lane. They are about secrets, audience and freshness, not about taste.', focus: ['t'] },
+			{ say: 'A call that needs a secret must not reach the browser. Make it on the server, or let a proxy route make it for the page.', set: { t: { hl: [0] } } },
+			{ say: 'A call with the same answer for everybody belongs on the server, where one cached fetch serves many visitors.', set: { t: { hl: [1] } } },
+			{ say: 'A call that is personal to a visitor, like the cart, can run in the browser when the API’s CORS allows the page.', set: { t: { hl: [2] } } },
+			{ say: 'A call that must be live cannot sit in a cache. The browser or a proxy route fits, depending on secrets and CORS.', set: { t: { hl: [3] } } },
+			{ say: 'In this store: the catalog is read on the server, the cart and search in the browser, and the apps list through a proxy.', show: ['ex'], set: { t: { hl: [] } } }
+		]
+	},
+
+	// ───────────── ap-own-routes ─────────────
+	{
+		id: 'ap-own-health',
+		topic: 'apis',
+		group: 'ap-own-routes',
+		title: 'Health and the webhook probe',
+		blurb: 'What do the store’s two probe routes tell you, and what do they hide?',
+		stage: { w: 360, h: 240 },
+		nodes: [
+			{ id: 'd1', kind: 'doc', x: 16, y: 14, w: 328, title: 'GET /health', lines: ['-> 200', '{"success":true,"data":null}'] },
+			{ id: 'd2', kind: 'doc', x: 16, y: 90, w: 328, title: 'GET /api/webhooks/cache-invalidation', lines: ['-> 200', '{"status":"healthy",', ' "timestamp":"<iso>"}'] },
+			{ id: 'nt', kind: 'box', x: 16, y: 182, w: 328, h: 44, label: 'A deeper check is a separate job', sub: 'whether the cache and platform are reachable' }
+		],
+		steps: [
+			{ say: 'The simplest door is a health route. It answers 200 with an empty data field.', show: ['d1'], focus: ['d1'] },
+			{ say: 'It checks nothing behind it, so a 200 only proves that the server process is up, not that the cache or the platform is reachable.', set: { d1: { hl: [1] } } },
+			{ say: 'The webhook route has its own probe on GET. It answers healthy together with a timestamp.', show: ['d2'], focus: ['d2'] },
+			{ say: 'The probe says nothing about configuration: no secret, no version, no hosts. A probe should not help an attacker.', set: { d2: { hl: [1, 2] } } },
+			{ say: 'If you need to know the dependencies are reachable, ask for that explicitly with a deeper check.', show: ['nt'], set: { nt: { tone: 'accent' } } }
+		]
+	},
+	{
+		id: 'ap-own-nav-apps',
+		topic: 'apis',
+		group: 'ap-own-routes',
+		title: 'The menu and apps routes',
+		blurb: 'How do the nav-menu and apps-list routes answer good and bad input?',
+		stage: { w: 360, h: 320 },
+		nodes: [
+			{ id: 'd1', kind: 'doc', x: 16, y: 10, w: 328, title: 'A known menu', lines: ['GET /api/nav-menu/main-menu', '-> 200 {"handle":"main-menu",', '   "title":"Main Menu","items":[...]}'] },
+			{ id: 'd2', kind: 'doc', x: 16, y: 98, w: 328, title: 'Characters that are not allowed', lines: ['GET /api/nav-menu/..%2F..%2Fetc', '-> 400 null'] },
+			{ id: 'd3', kind: 'doc', x: 16, y: 170, w: 328, title: 'A menu that does not exist', lines: ['GET /api/nav-menu/no-such-menu', '-> 200 null'] },
+			{ id: 'd4', kind: 'doc', x: 16, y: 242, w: 328, title: 'Installed apps list', lines: ['GET /api/v1/apps/installed?surface=...', '-> 200 {"apps":[]}  (0.7 to 2.0 s, dev)'] }
+		],
+		steps: [
+			{ say: 'A known menu handle returns 200 with the menu: its handle, title and items. The route is a proxy to the platform.', show: ['d1'], set: { d1: { hl: [1] } } },
+			{ say: 'Only letters, digits, underscore and hyphen are allowed. Anything else is refused before the proxy forwards a request.', show: ['d2'], set: { d2: { hl: [1] } } },
+			{ say: 'A well-formed handle that does not exist answers 200 with null: the route returns what the platform returned.', show: ['d3'], set: { d3: { hl: [1] } } },
+			{ say: 'The apps list route is dynamic on purpose: its answer is per merchant, so it must not be cached and served to another shop.', show: ['d4'] },
+			{ say: 'It took 0.7 to 2 seconds in dev mode because each call goes on to the apps service. If that service is unreachable the route returns an empty list.', set: { d4: { hl: [1] } }, focus: ['d4'] }
+		]
+	},
+	{
+		id: 'ap-own-refusals',
+		topic: 'apis',
+		group: 'ap-own-routes',
+		title: 'Refusals: 401 and 405',
+		blurb: 'How does the store refuse a request it will not handle?',
+		stage: { w: 360, h: 310 },
+		nodes: [
+			{ id: 'd1', kind: 'doc', x: 16, y: 10, w: 328, title: 'POST webhook, no signature', lines: ['POST /api/webhooks/cache-invalidation', '-> 401 {"error":"Invalid signature",', '   "requestId":"wh_<uuid>"}'] },
+			{ id: 'd2', kind: 'doc', x: 16, y: 98, w: 328, title: 'POST, bad signature header', lines: ['x-webhook-signature: sha256=deadbeef', '-> 401, same body, new requestId'] },
+			{ id: 'd3', kind: 'doc', x: 16, y: 170, w: 328, title: 'The wrong method', lines: ['PUT webhook route -> 405', 'GET /api/data-source-options -> 405'] },
+			{ id: 'nt', kind: 'box', x: 16, y: 246, w: 328, h: 44, label: 'Refuse, but give nothing away', sub: 'same 401, a request id to quote' }
+		],
+		steps: [
+			{ say: 'A webhook POST with no signature is refused with 401 and a short JSON body. The body carries a request id.', show: ['d1'], set: { d1: { hl: [1, 2] } } },
+			{ say: 'A POST with a made-up signature header gets the same 401, and the same body shape with a new request id.', show: ['d2'], set: { d2: { hl: [1] } } },
+			{ say: 'Because both cases look alike, a caller cannot tell how close it came. The request id is what you quote when reporting a failed delivery.', set: { d1: { hl: [] }, d2: { hl: [] } }, show: ['nt'] },
+			{ say: 'A different problem gets a different status: a method the route does not handle is 405, on the webhook route and on the data-source route.', show: ['d3'], set: { d3: { hl: [0, 1] } } },
+			{ say: 'So 401 means “who are you”, 405 means “not that way”, and neither one reveals how the route works inside.', set: { nt: { tone: 'accent' } }, focus: ['nt'] }
+		]
+	},
+
+	// ───────────── ap-page-load-calls ─────────────
+	{
+		id: 'ap-pageview-counts',
+		topic: 'apis',
+		group: 'ap-page-load-calls',
+		title: 'One page view, counted',
+		blurb: 'How many requests does a single page view really cause?',
+		stage: { w: 360, h: 270 },
+		nodes: [
+			{
+				id: 't',
+				kind: 'table',
+				x: 24,
+				y: 14,
+				colW: 78,
+				cols: ['Page', 'Store', 'Outside', 'Hosts'],
+				rows: [
+					['home', '9', '21', '9'],
+					['collection', '9', '16', '9'],
+					['product', '9', '20', '10'],
+					['search', '9', '18', '10']
+				],
 				visible: true
 			},
 			{
 				id: 'b',
-				kind: 'doc',
-				x: 16,
-				y: 152,
-				w: 328,
-				title: 'Body (wrapped here for reading)',
-				lines: [
-					'{"enabled":false,"design":"classic",',
-					'"options":{"accentColor":"#111111",',
-					'"textColor":"#111111",',
-					'"backgroundColor":"#ffffff","radius":8,',
-					'"imageRatio":"4/5","showBadge":true,',
-					'"showQuickBuy":true,"showRating":true,',
-					'"showCompareAt":true},"version":0}'
-				],
-				hl: []
-			}
-		],
-		steps: [
-			{ say: 'The same kind of call to the public config route, for a merchant that never saved. The status is 200 and the headers say how the answer may be used.', focus: ['h'] },
-			{ say: 'access-control-allow-origin: * means a page on any website may read this response in a browser, which any storefront needs.', set: { h: { hl: [1] } } },
-			{ say: 'cross-origin-resource-policy: cross-origin lets any site load the response as a resource.', set: { h: { hl: [2] } } },
-			{ say: 'cache-control: no-store: nothing may cache the answer, so a switch flipped in the admin shows on the next read.', set: { h: { hl: [3] } } },
-			{ say: 'The body is the merchant\'s settings. Nothing was saved, so enabled is false and the design is classic.', show: ['b'], set: { h: { hl: [] }, b: { hl: [0] } } },
-			{ say: '"version":0 marks "never saved". After a save the same call returns a version in milliseconds.', set: { b: { hl: [6] } } }
-		]
-	},
-	{
-		id: 'ap-bad-id-call',
-		topic: 'apis',
-		group: 'ap-first-calls',
-		title: 'Good and bad merchant ids',
-		blurb: 'Which ids does the config route accept, and what does it say to the others?',
-		stage: { w: 360, h: 300 },
-		nodes: [
-			{
-				id: 't',
 				kind: 'table',
-				x: 16,
-				y: 14,
-				colW: 110,
-				cols: ['Merchant id', 'Status', 'Meaning'],
-				rows: [
-					['demostore', '200', 'the settings'],
-					['nobodyhere', '200', 'defaults'],
-					['NOT_VALID!', '400', 'bad characters'],
-					['DemoStore', '400', 'capital letters'],
-					['abc', '400', 'too short']
-				],
-				hl: [],
-				visible: true
-			},
-			{ id: 'err', kind: 'doc', x: 16, y: 166, w: 328, title: 'Body of every 400 here', lines: ['{"error":"invalid merchant id"}'], hl: [] },
-			{ id: 'rule', kind: 'text', x: 16, y: 262, w: 328, text: 'The rule: lowercase letters and digits, 6 to 32 characters.', size: 'sm' }
-		],
-		steps: [
-			{ say: 'The same route called with five different ids. Two are accepted and three are not.', focus: ['t'] },
-			{ say: 'Valid ids get 200. A merchant that never saved gets the defaults, not an error.', set: { t: { hl: [0, 1] } } },
-			{ say: 'NOT_VALID!, DemoStore and abc are refused with 400 before any lookup happens.', set: { t: { hl: [2, 3, 4] } } },
-			{ say: 'All three 400s have the same short body, and they still carry the CORS headers, so a page can read the error.', show: ['err'], set: { err: { hl: [0] } } },
-			{ say: 'The rule behind them is written in one pattern: lowercase letters and digits, 6 to 32 characters.', show: ['rule'], set: { t: { hl: [] }, err: { hl: [] } }, focus: ['rule'] }
-		]
-	},
-
-	// ───────────── ap-admin-calls ─────────────
-	{
-		id: 'ap-admin-401',
-		topic: 'apis',
-		group: 'ap-admin-calls',
-		title: 'Four keys, one answer',
-		blurb: 'What does the admin route say to a missing, wrong or right key?',
-		stage: { w: 360, h: 262 },
-		nodes: [
-			{
-				id: 't',
-				kind: 'table',
-				x: 16,
-				y: 14,
-				colW: 112,
-				cols: ['Header sent', 'Status', 'Body'],
-				rows: [
-					['none', '401', 'same body'],
-					['nope-nope', '401', 'same body'],
-					['x', '401', 'same body'],
-					['<ADMIN_API_KEY>', '200', 'the settings']
-				],
-				hl: [],
-				visible: true
-			},
-			{ id: 'body', kind: 'doc', x: 16, y: 146, w: 328, title: 'The body of all three 401s', lines: ['{"error":"invalid or missing x-admin-key"}'], hl: [] },
-			{ id: 'note', kind: 'text', x: 16, y: 232, w: 328, text: 'A caller learns nothing about how close a guess was.', size: 'sm' }
-		],
-		steps: [
-			{ say: 'Four calls to GET /cardify/admin/demostore/settings, each with a different x-admin-key header.', focus: ['t'] },
-			{ say: 'No header at all: the answer is 401.', set: { t: { hl: [0] } } },
-			{ say: 'A wrong key, and a one-character key: 401 as well.', set: { t: { hl: [1, 2] } } },
-			{ say: 'All three have the identical body. The server does not say which part was wrong.', show: ['body'], set: { body: { hl: [0] } } },
-			{ say: 'The right key, written here as <ADMIN_API_KEY>, returns 200 and the settings.', set: { t: { hl: [3] }, body: { hl: [] } } },
-			{ say: 'So a caller learns nothing about whether a guess was missing, short or close.', show: ['note'], set: { t: { hl: [] } }, focus: ['note'] }
-		]
-	},
-	{
-		id: 'ap-admin-put-400',
-		topic: 'apis',
-		group: 'ap-admin-calls',
-		title: 'A PUT with four mistakes',
-		blurb: 'How does the API describe what is wrong with a body?',
-		stage: { w: 360, h: 360 },
-		nodes: [
-			{
-				id: 'rq',
-				kind: 'doc',
-				x: 16,
-				y: 14,
-				w: 328,
-				title: 'PUT body (the other fields were valid)',
-				lines: ['{"enabled":"yes",', '"design":"neon",', '"options":{"accentColor":"red",', '"radius":99, ...}}'],
-				hl: [],
-				visible: true
-			},
-			{
-				id: 'rs',
-				kind: 'doc',
-				x: 16,
-				y: 122,
-				w: 328,
-				title: '400 Bad Request (issues, laid out to read)',
-				lines: [
-					'{"error":"invalid settings","issues":[',
-					'path ["enabled"]',
-					'  Expected boolean, received string',
-					'path ["design"]',
-					"  Invalid enum value. Expected 'classic' |",
-					"  'minimal' | 'overlay' | 'hover-reveal' |",
-					"  'editorial', received 'neon'",
-					'path ["options","accentColor"]',
-					'  must be a 6-digit hex colour like #ed186f',
-					'path ["options","radius"]',
-					'  Number must be less than or equal to 24',
-					']}'
-				],
-				hl: []
-			}
-		],
-		steps: [
-			{ say: 'A PUT with four mistakes: a string for a boolean, an unknown design, a colour name instead of hex, and a radius over 24.', focus: ['rq'] },
-			{ say: 'The server answers 400 with an error and a list of issues, one for each mistake.', show: ['rs'], set: { rs: { hl: [0] } } },
-			{ say: 'First: enabled should be true or false, but a string arrived.', set: { rq: { hl: [0] }, rs: { hl: [1, 2] } } },
-			{ say: 'Second: neon is not a design, and the message lists the five allowed ones.', set: { rq: { hl: [1] }, rs: { hl: [3, 4, 5, 6] } } },
-			{ say: 'Third: the colour must be six hex digits, like #ed186f.', set: { rq: { hl: [2] }, rs: { hl: [7, 8] } } },
-			{ say: 'Fourth: radius may be at most 24.', set: { rq: { hl: [3] }, rs: { hl: [9, 10] } } },
-			{ say: 'One request, four precise messages. A form can mark every wrong field at once.', set: { rq: { hl: [] }, rs: { hl: [] } }, focus: ['rs'] }
-		]
-	},
-	{
-		id: 'ap-admin-put-ok',
-		topic: 'apis',
-		group: 'ap-admin-calls',
-		title: 'Saving twice: what comes back',
-		blurb: 'What changes when a valid request is repeated?',
-		stage: { w: 360, h: 220 },
-		nodes: [
-			{
-				id: 'v',
-				kind: 'table',
-				x: 16,
-				y: 14,
-				colW: 110,
-				cols: ['Call', 'Settings', 'Version'],
-				rows: [
-					['PUT (first)', 'overlay, #ed186f', '1795534284883'],
-					['PUT (again)', 'same', '1795534284949'],
-					['GET public', 'same', '1795534284949']
-				],
-				hl: []
-			},
-			{ id: 'rq', kind: 'doc', x: 16, y: 112, w: 328, title: 'PUT body, both times', lines: ['{"enabled":true,"design":"overlay",', '"options":{"accentColor":"#ed186f",', '"radius":12, ...}}'], hl: [], visible: true }
-		],
-		steps: [
-			{ say: 'A valid body for PUT /cardify/admin/demostore/settings. It is sent twice, with the same content.', focus: ['rq'] },
-			{ say: 'The first PUT returns 200 with the saved settings and a version, 1795534284883.', show: ['v'], set: { v: { hl: [0] } } },
-			{ say: 'The identical PUT again returns the same settings. Only the version moved on, to 1795534284949.', set: { v: { hl: [1] } } },
-			{ say: 'A public GET right afterwards shows the same settings and that same version.', set: { v: { hl: [2] } } },
-			{ say: 'Repeating the request left the same state, which is what makes a PUT safe to retry.', set: { v: { hl: [] } }, focus: ['v'] }
-		]
-	},
-	{
-		id: 'ap-admin-edge-cases',
-		topic: 'apis',
-		group: 'ap-admin-calls',
-		title: 'Other ways a client goes wrong',
-		blurb: 'Which status does each malformed request get?',
-		stage: { w: 360, h: 262 },
-		nodes: [
-			{
-				id: 'e',
-				kind: 'table',
-				x: 16,
-				y: 14,
-				colW: 112,
-				cols: ['Mistake', 'Answer', 'Notes'],
-				rows: [
-					['no content-type', '415', 'framework shape'],
-					['bad JSON text', '400', 'closes the link'],
-					['body over 1 MiB', '413', 'closes the link'],
-					['DELETE or POST', '404', 'route not found']
-				],
-				hl: [],
-				visible: true
-			},
-			{
-				id: 'fb',
-				kind: 'doc',
-				x: 16,
+				x: 24,
 				y: 150,
-				w: 328,
-				title: 'Body of the 415',
-				lines: ['{"statusCode":415,', '"code":"FST_ERR_CTP_INVALID_MEDIA_TYPE",', '"error":"Unsupported Media Type",', '"message":"Unsupported Media Type"}'],
-				hl: []
-			}
-		],
-		steps: [
-			{ say: 'Four more ways a client can go wrong. Each gets its own answer.', focus: ['e'] },
-			{ say: 'No content-type: application/json: the framework refuses the body with 415 Unsupported Media Type.', show: ['fb'], set: { e: { hl: [0] }, fb: { hl: [] } } },
-			{ say: 'Text that is not JSON, such as {"enabled": tru, gets 400, and the connection is closed.', set: { e: { hl: [1] } } },
-			{ say: 'A body over 1 MiB first gets 100 Continue, then 413 Payload Too Large, and the connection is closed.', set: { e: { hl: [2] } } },
-			{ say: 'A DELETE or POST on a route that only knows GET and PUT gets 404, not 405.', set: { e: { hl: [3] } } }
-		]
-	},
-
-	// ───────────── ap-website-calls ─────────────
-	{
-		id: 'ap-web-first-load',
-		topic: 'apis',
-		group: 'ap-website-calls',
-		title: 'The storefront loads the loader',
-		blurb: 'What does the storefront ask the backend when Cardify is off?',
-		stage: { w: 360, h: 300 },
-		nodes: [
-			shot('pic', 'lessons/apis/demo-before.webp', 1100, 481, { x: 12, y: 12, w: 336, h: 147, alt: 'The demo storefront showing its own product cards' }),
-			credit('cr', 176, SHOT_CREDIT),
-			rg('r1', 12, 12, 336, { x: 60, y: 290, w: 400 }, 89, 419, 75, 31),
-			{
-				id: 'rq',
-				kind: 'doc',
-				x: 16,
-				y: 186,
-				w: 328,
-				title: 'Requests the page made',
-				lines: ['1. GET /cardify/sdk/cardify-loader.js', '   ?store=demostore  -> 200', '2. GET /cardify/sdk/config/demostore', '   -> 200  enabled: false', '(no widget request: Cardify is off)'],
-				hl: []
-			}
-		],
-		steps: [
-			{ say: 'The demo storefront before anything is switched on. These are the shop\'s own cards.', focus: ['pic'] },
-			{ say: 'Each card is the store\'s own: a name, a price and a plain Quick buy button.', set: { pic: { view: { x: 60, y: 290, w: 400 } } }, show: ['r1'] },
-			{ say: 'The page includes one script. The browser fetched the loader and passed the merchant in ?store=demostore.', hide: ['r1'], set: { pic: { view: FULL(1100) }, rq: { hl: [0, 1] } }, show: ['rq'] },
-			{ say: 'The loader\'s first act is to read the public config for that merchant.', set: { rq: { hl: [2, 3] } } },
-			{ say: 'The config says Cardify is off, so the loader stops there. The widget file is never requested.', set: { rq: { hl: [4] } } }
-		]
-	},
-	{
-		id: 'ap-web-admin-keys',
-		topic: 'apis',
-		group: 'ap-website-calls',
-		title: 'Connecting the admin with a key',
-		blurb: 'What does the admin send, and what does the page show?',
-		stage: { w: 360, h: 280 },
-		nodes: [
-			shot('pic', 'lessons/apis/admin-wrong-key.webp', 1100, 284, { x: 12, y: 12, w: 336, h: 87, alt: 'The Cardify admin after a wrong key' }),
-			credit('cr', 116, SHOT_CREDIT),
-			rg('rk', 12, 12, 336, FULL(1100), 434, 124, 349, 32),
-			rg('rc', 12, 12, 336, { x: 520, y: 20, w: 560 }, 795, 123, 82, 33),
-			rg('rp1', 12, 12, 336, { x: 520, y: 20, w: 560 }, 864, 34, 180, 26),
-			rg('rp2', 12, 12, 336, { x: 520, y: 20, w: 560 }, 964, 35, 79, 24),
-			{
-				id: 'rq',
-				kind: 'doc',
-				x: 16,
-				y: 130,
-				w: 328,
-				title: 'The call behind Connect',
-				lines: ['GET /cardify/admin/demostore/settings', 'x-admin-key: wrong-key-123', '-> 401', '{"error":"invalid or missing x-admin-key"}'],
-				hl: []
-			},
-			{ id: 'dbl', kind: 'text', x: 16, y: 250, w: 328, text: 'First load, no key stored: two identical GETs, both 401 (React StrictMode in development).', size: 'sm' }
-		],
-		steps: [
-			{ say: 'In the admin, a wrong key was typed into the Admin key field. The field shows dots, so the key is masked on screen.', show: ['rk'], focus: ['pic'] },
-			{ say: 'Pressing Connect saves the typed key and the merchant id, then calls the API with them.', hide: ['rk'], set: { pic: { view: { x: 520, y: 20, w: 560 } } }, show: ['rc'] },
-			{ say: 'The call is a GET on the admin settings route with the typed key in the x-admin-key header.', hide: ['rc'], show: ['rq'], set: { rq: { hl: [0, 1] } } },
-			{ say: 'The answer is 401, and the page shows the server\'s own message in a red pill.', show: ['rp1'], set: { rq: { hl: [2, 3] } } },
-			{
-				say: 'With the right key the same call returns 200, and the pill says Connected.',
-				hide: ['rp1'],
-				show: ['rp2'],
-				set: { pic: { src: 'lessons/apis/admin-connected.webp' }, rq: { hl: [2], lines: ['GET /cardify/admin/demostore/settings', 'x-admin-key: <ADMIN_API_KEY>', '-> 200', '{"enabled":false,"design":"classic", ...}'] } }
-			},
-			{ say: 'On the very first load, before any key is stored, the admin sends the same GET twice (React StrictMode in development), and both get 401.', hide: ['rp2'], show: ['dbl'], set: { rq: { hl: [] } }, focus: ['dbl'] }
-		]
-	},
-	{
-		id: 'ap-web-one-put',
-		topic: 'apis',
-		group: 'ap-website-calls',
-		title: 'Three edits, one save',
-		blurb: 'How does the admin avoid sending a request for every click?',
-		stage: { w: 360, h: 200 },
-		nodes: [
-			shot('pic', 'lessons/apis/admin-saved.webp', 1100, 481, { x: 12, y: 12, w: 336, h: 147, alt: 'The Cardify admin after the edits' }),
-			credit('cr', 176, SHOT_CREDIT),
-			rg('rt', 12, 12, 336, { x: 560, y: 0, w: 540 }, 978, 43, 49, 29),
-			rg('rb', 12, 12, 336, { x: 50, y: 170, w: 540 }, 74, 378, 180, 20),
-			{
-				id: 'tl',
-				kind: 'table',
-				x: 16,
-				y: 14,
-				colW: 110,
-				cols: ['Edit', 'Change', 'Request'],
+				colW: 156,
+				title: 'Blocked by the test, on every page',
+				cols: ['What', 'How many'],
 				rows: [
-					['1', 'switch on', 'none yet'],
-					['2', 'Editorial', 'none yet'],
-					['3', 'badge off', 'none yet'],
-					['500 ms quiet', 'save', 'one PUT, 200']
-				],
-				hl: []
-			},
-			{
-				id: 'pb',
-				kind: 'doc',
-				x: 16,
-				y: 14,
-				w: 328,
-				title: 'The PUT body',
-				lines: ['{"enabled":true,"design":"editorial",', '"options":{"accentColor":"#111111",', '"textColor":"#111111","backgroundColor":', '"#ffffff","radius":8,"imageRatio":"4/5",', '"showBadge":false,"showQuickBuy":true,', '"showRating":true,"showCompareAt":true}}'],
-				hl: []
+					['tracker script loads', '4'],
+					['write requests (POST)', '4 to 5']
+				]
 			}
 		],
 		steps: [
-			{ say: 'After three quick edits in the admin the switch is on and Product badge is unticked. The Editorial design was picked further down the page.', focus: ['pic'] },
-			{ say: 'The first edit: the main switch, turned on.', set: { pic: { view: { x: 560, y: 0, w: 540 } } }, show: ['rt'] },
-			{ say: 'The third edit: Product badge, unticked. The three edits came within about 300 ms of each other.', hide: ['rt'], set: { pic: { view: { x: 50, y: 170, w: 540 } } }, show: ['rb'] },
-			{ say: 'Each edit restarted a 500 ms timer. None of them sent a request.', hide: ['pic', 'cr', 'rb'], show: ['tl'], set: { tl: { hl: [0, 1, 2] } } },
-			{ say: 'When 500 ms passed with no new edit, one PUT went out.', set: { tl: { hl: [3] } } },
-			{ say: 'Its body is the whole settings object, here with showBadge false and the design editorial.', hide: ['tl'], show: ['pb'], set: { pb: { hl: [4] } } },
-			{
-				say: 'Later the accent colour changed to #ed186f. The same body with that one value different went out as a second PUT after another quiet 500 ms.',
-				set: { pb: { hl: [1], lines: ['{"enabled":true,"design":"editorial",', '"options":{"accentColor":"#ed186f",', '"textColor":"#111111","backgroundColor":', '"#ffffff","radius":8,"imageRatio":"4/5",', '"showBadge":false,"showQuickBuy":true,', '"showRating":true,"showCompareAt":true}}'] } }
-			}
+			{ say: 'Four page views, four rows. Store counts requests to the store itself, Outside counts successful calls to other hosts.', focus: ['t'] },
+			{ say: 'Nine requests to the store each time. Three of them are the same apps-list call, so only seven are different.', set: { t: { hl: [0, 1, 2, 3] } } },
+			{ say: 'The busiest column is Outside: 16 to 21 successful calls per page, spread over 9 or 10 different hosts.', set: { t: { hl: [0, 2] } } },
+			{ say: 'On top of that, the test blocked four tracker script loads and four or five write requests on every page.', show: ['b'], set: { t: { hl: [] } } },
+			{ say: 'Counting like this is a cheap first review: duplicates, many hosts and writes on page load show up before any code is read.', set: { b: { hl: [0, 1] } } }
 		]
 	},
 	{
-		id: 'ap-web-focus-refresh',
+		id: 'ap-apps-three-times',
 		topic: 'apis',
-		group: 'ap-website-calls',
-		title: 'The storefront notices the change',
-		blurb: 'How does an open storefront tab pick up a saved setting without a reload?',
-		stage: { w: 360, h: 312 },
-		nodes: [
-			shot('pic', 'lessons/apis/demo-before.webp', 1100, 481, { x: 12, y: 12, w: 336, h: 147, alt: 'The demo storefront' }),
-			credit('cr', 176, SHOT_CREDIT),
-			rg('rz', 12, 12, 336, { x: 70, y: 300, w: 400 }, 80, 390, 170, 70),
-			{
-				id: 'ev',
-				kind: 'doc',
-				x: 16,
-				y: 190,
-				w: 328,
-				title: 'What the storefront tab did',
-				lines: ['focus event on the storefront tab', 'GET /cardify/sdk/config/demostore -> 200', '   enabled: true, a newer version', 'GET /cardify/sdk/cardify-widget.js -> 200', 'no page reload'],
-				hl: []
-			}
-		],
-		steps: [
-			{ say: 'While the merchant used the admin in another tab, the storefront tab kept showing the shop\'s own cards.', focus: ['pic'] },
-			{ say: 'Switching back to the storefront tab fires the window focus event, and the loader listens for it.', show: ['ev'], set: { ev: { hl: [0] } } },
-			{ say: 'It reads the public config again. This time enabled is true, with a newer version.', set: { ev: { hl: [1, 2] } } },
-			{ say: 'Because Cardify is now on, the loader fetches the widget bundle.', set: { ev: { hl: [3] } } },
-			{ say: 'The cards are restyled in place, with no reload.', set: { pic: { src: 'lessons/apis/demo-after.webp' }, ev: { hl: [4] } }, focus: ['pic'] },
-			{ say: 'Same products, new design: serif names, ratings and a price with a discount chip.', set: { pic: { view: { x: 70, y: 300, w: 400 } } }, show: ['rz'] },
-			{ say: 'There is no timer. The loader reads again on page load, on focus and when the tab becomes visible, so idle tabs cost the backend nothing.', hide: ['rz'], set: { pic: { view: FULL(1100) }, ev: { hl: [] } }, focus: ['ev'] }
-		]
-	},
-	{
-		id: 'ap-web-network-log',
-		topic: 'apis',
-		group: 'ap-website-calls',
-		title: 'The whole run as a request log',
-		blurb: 'Which requests did the two pages make, in order?',
-		stage: { w: 360, h: 250 },
-		nodes: [
-			{
-				id: 'log',
-				kind: 'doc',
-				x: 16,
-				y: 14,
-				w: 328,
-				title: 'Requests to the backend (ms since the run began)',
-				lines: [
-					logRow('ms', 'page', 'call', 'status'),
-					logRow(246, 'demo', 'GET loader.js', '200'),
-					logRow(282, 'demo', 'GET config/demostore', '200'),
-					logRow(1909, 'admin', 'GET cardify-widget.js', '200'),
-					logRow(1910, 'admin', 'GET settings (no key) x2', '401'),
-					logRow(3237, 'admin', 'GET settings (wrong key)', '401'),
-					logRow(4545, 'admin', 'GET settings (right key)', '200'),
-					logRow(6400, 'admin', 'PUT settings (3 edits)', '200'),
-					logRow(7905, 'admin', 'PUT settings (colour)', '200'),
-					logRow(9014, 'demo', 'GET config/demostore', '200'),
-					logRow(9015, 'demo', 'GET cardify-widget.js', '200')
-				],
-				hl: [],
-				visible: true
-			}
-		],
-		steps: [
-			{ say: 'Every request the two pages sent to the backend during the run, in order. The times are in milliseconds since the run began.', focus: ['log'] },
-			{ say: 'The storefront: the loader, then the config. Nothing else, because Cardify was off.', set: { log: { hl: [1, 2] } } },
-			{ say: 'The admin opened with no key: the widget for its preview tiles, then the settings call twice, both refused.', set: { log: { hl: [3, 4] } } },
-			{ say: 'A wrong key is refused. The right key is accepted.', set: { log: { hl: [5, 6] } } },
-			{ say: 'Two saves, 1.5 seconds apart, however many edits came before each of them.', set: { log: { hl: [7, 8] } } },
-			{ say: 'Back in the storefront: the config again, then the widget, because Cardify is now on.', set: { log: { hl: [9, 10] } } }
-		]
-	},
-
-	// ───────────── ap-status-and-errors ─────────────
-	{
-		id: 'ap-status-codes',
-		topic: 'apis',
-		group: 'ap-status-and-errors',
-		title: 'Nine status codes, three groups',
-		blurb: 'Which statuses did this API return, and what does each one mean?',
+		group: 'ap-page-load-calls',
+		title: 'The same call, three times',
+		blurb: 'How long did the repeated apps-list call take each time?',
 		stage: { w: 360, h: 290 },
 		nodes: [
-			{
-				id: 't',
-				kind: 'table',
-				x: 16,
-				y: 14,
-				colW: 112,
-				cols: ['Status', 'Seen on', 'Meaning'],
-				rows: [
-					['200', 'most calls', 'OK, body returned'],
-					['204', 'preflight', 'No Content'],
-					['304', 'loader file', 'Not Modified'],
-					['400', 'bad id or body', 'request is wrong'],
-					['401', 'no or wrong key', 'not authenticated'],
-					['403', 'path traversal', 'refused to serve'],
-					['404', 'unknown route', 'no such route'],
-					['413', 'body over 1 MiB', 'body too large'],
-					['415', 'no content-type', 'wrong media type']
-				],
-				hl: [],
-				visible: true
-			},
-			{ id: 'note', kind: 'text', x: 16, y: 262, w: 328, text: 'A DELETE or POST on a GET-only route got 404. 405 with an Allow header would say more.', size: 'sm' }
+			{ id: 'd1', kind: 'doc', x: 16, y: 8, w: 328, title: 'Every page view', lines: ['GET /api/v1/apps/installed?surface=...  x3', 'answers {"apps":[]} each time'] },
+			...[980, 1030, 1178, 1234, 1727, 2051, 668, 714, 898, 825, 849, 958].map((ms, i) => ({
+				id: `r${i}`,
+				kind: 'box' as const,
+				x: 14 + i * 27,
+				y: 250 - Math.round((ms / 2051) * 120),
+				w: 22,
+				h: Math.round((ms / 2051) * 120),
+				label: '',
+				tone: 'accent' as const
+			})),
+			{ id: 'ax', kind: 'text', x: 180, y: 272, text: 'the 12 calls, in the order the answers arrived', size: 'sm', anchor: 'middle' }
 		],
 		steps: [
-			{ say: 'Nine status codes appeared during the runs. They fall into three groups.', focus: ['t'] },
-			{ say: '2xx and 3xx: it worked. 200 returns a body, 204 only headers, and 304 says the cached copy is still good.', set: { t: { hl: [0, 1, 2] } } },
-			{ say: '400, 401 and 403: the request or the caller is the problem. 401 is about who you are, 403 about what you may do.', set: { t: { hl: [3, 4, 5] } } },
-			{ say: '404, 413 and 415: no such route, a body that is too large, and a body in a format the server will not read.', set: { t: { hl: [6, 7, 8] } } },
-			{ say: 'One more detail: the 404 for a wrong method. The route exists for other methods, so 405 Method Not Allowed would be more precise.', set: { t: { hl: [] } }, show: ['note'], focus: ['note'] }
+			{ say: 'On each page view the browser asked the store’s own /api for the installed apps list three times, and got the same empty list.', show: ['d1'], set: { d1: { hl: [0] } } },
+			{ say: 'Twelve calls over four page views. Each bar is one call: the shortest took 0.67 seconds and the longest 2.05 seconds, in dev mode.', show: ['r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10', 'r11', 'ax'] },
+			{ say: 'The tallest bar is a full two seconds for an answer that was empty.', set: { r5: { tone: 'warn' } }, focus: ['r5'] },
+			{ say: 'Each call goes to the store’s server, which asks the apps service: a hop per call, repeated three times for the same answer.', set: { d1: { hl: [1] } } },
+			{ say: 'Fix options: fetch it once, share the result between widgets, or cache it per page, so the visitor does not wait three times.', set: { r5: { tone: 'accent' }, d1: { hl: [] } } }
 		]
 	},
 	{
-		id: 'ap-error-shapes',
+		id: 'ap-direct-calls',
 		topic: 'apis',
-		group: 'ap-status-and-errors',
-		title: 'Two shapes of error body',
-		blurb: 'Why is it harder to write a client when errors have two shapes?',
-		stage: { w: 360, h: 330 },
+		group: 'ap-page-load-calls',
+		title: 'Calls the page made to outside APIs',
+		blurb: 'Which calls did the browser send itself, and how did each CORS answer look?',
+		stage: { w: 360, h: 300 },
 		nodes: [
 			{
-				id: 'app',
-				kind: 'doc',
-				x: 16,
+				id: 't',
+				kind: 'table',
+				x: 24,
 				y: 14,
-				w: 328,
-				title: 'The app\'s shape',
-				lines: ['{"error":"invalid or missing x-admin-key"}', '{"error":"invalid merchant id"}', '{"error":"invalid settings","issues":[...]}'],
+				colW: 104,
+				cols: ['Call', 'Headers', 'CORS answer'],
+				rows: [
+					['cart', 'merchant id', 'page origin'],
+					['reviews (2)', 'merchant id', 'page origin'],
+					['search', 'merchant id', 'page origin'],
+					['recommendations', 'none extra', '*'],
+					['login widget', 'id + request id', '*']
+				],
 				visible: true
 			},
-			{
-				id: 'fw',
-				kind: 'doc',
-				x: 16,
-				y: 104,
-				w: 328,
-				title: 'The framework\'s shape',
-				lines: ['{"statusCode":415,', '"code":"FST_ERR_CTP_INVALID_MEDIA_TYPE",', '"error":"Unsupported Media Type",', '"message":"Unsupported Media Type"}']
-			},
-			{
-				id: 'cl',
-				kind: 'doc',
-				x: 16,
-				y: 210,
-				w: 328,
-				title: 'The admin\'s helper (api.ts)',
-				lines: ['if (!res.ok) throw new Error(', '  body.error ?? `Request failed (${res.status})`', ');']
-			},
-			{ id: 'note', kind: 'text', x: 16, y: 312, w: 328, text: 'It works for both only because both have an error field.', size: 'sm' }
+			{ id: 'd', kind: 'doc', x: 16, y: 164, w: 328, title: 'Header names seen', lines: ['cart, search: accept, content-type,', '  merchant id header', 'reviews: accept, merchant id header,', '  and a merchant-mid header'] }
 		],
 		steps: [
-			{ say: 'Errors the app writes itself have one field, error. The settings error adds a list of issues.', focus: ['app'] },
-			{ say: 'Errors the framework writes for 415, 413, bad JSON and unknown routes have four fields: statusCode, code, error and message.', show: ['fw'], focus: ['fw'] },
-			{ say: 'The admin\'s helper reads body.error, and falls back to "Request failed (status)" when there is none.', show: ['cl'], focus: ['cl'] },
-			{ say: 'It copes with both shapes, but only because both happen to have an error field. A client should not depend on luck.', show: ['note'], focus: ['note'] },
-			{ say: 'Better: one shape for every error, such as always error plus message, so every client reads errors the same way.', focus: ['app', 'fw'] }
+			{ say: 'These are the calls the page sent straight to outside APIs, with the header names and the CORS answer for each.', focus: ['t'] },
+			{ say: 'The cart call carried a merchant id header and got the page origin back, which means the platform checked an allow-list.', set: { t: { hl: [0] } } },
+			{ say: 'The two review calls, a list and an average, did the same. One more header named the merchant a second way.', set: { t: { hl: [1] } } },
+			{ say: 'Search, on the search page, also carried the merchant id and was answered with the page origin.', set: { t: { hl: [2] } } },
+			{ say: 'The recommendations calls and the login widget’s config calls were answered with a star: any origin may read them.', set: { t: { hl: [3, 4] } } },
+			{ say: 'The names of the headers are in the request; the values were ids, which is why this lesson shows only the names.', show: ['d'], set: { t: { hl: [] } } }
+		]
+	},
+	{
+		id: 'ap-optional-404',
+		topic: 'apis',
+		group: 'ap-page-load-calls',
+		title: 'A 404 the page shrugged off',
+		blurb: 'What happens when an optional call fails and the page does not care?',
+		stage: { w: 360, h: 270 },
+		nodes: [
+			{ id: 'pg', kind: 'box', x: 16, y: 14, w: 150, h: 44, label: 'A page script', sub: 'asks for optional config', visible: true },
+			{ id: 'ep', kind: 'box', x: 194, y: 14, w: 150, h: 44, label: 'Config endpoint', sub: 'an optional SDK config', visible: true },
+			{ id: 'e0', kind: 'edge', from: 'pg', to: 'ep', label: 'GET', visible: true },
+			{ id: 'd1', kind: 'doc', x: 16, y: 86, w: 328, title: 'The answer', lines: ['404', 'cache-control: public, max-age=300,', '  stale-while-revalidate=86400', 'access-control-allow-origin: *'] },
+			{ id: 'ok', kind: 'box', x: 16, y: 200, w: 328, h: 44, label: 'The page carried on', sub: 'it did not need the answer' }
+		],
+		steps: [
+			{ say: 'A script on the page asks a session-backend endpoint for an optional SDK config. The page does not depend on it.', focus: ['ep'] },
+			{ say: 'The endpoint answered 404, and the page still worked.', show: ['d1'], set: { d1: { hl: [0] } } },
+			{ say: 'The answer even said it could be cached for five minutes, and kept for a day while a fresh one is fetched.', set: { d1: { hl: [1, 2] } } },
+			{ say: 'The page carried on, so whatever made the call does not depend on the answer.', show: ['ok'], set: { ok: { tone: 'accent' } } },
+			{ say: 'An optional call should fail softly, and a cached failure protects the endpoint from being asked on every single page view.', focus: ['ok'] }
+		]
+	},
+
+	// ───────────── ap-status-and-headers ─────────────
+	{
+		id: 'ap-status-table',
+		topic: 'apis',
+		group: 'ap-status-and-headers',
+		title: 'Statuses seen, and what they meant',
+		blurb: 'Which status did each kind of request get from the store?',
+		stage: { w: 360, h: 260 },
+		nodes: [
+			{
+				id: 't',
+				kind: 'table',
+				x: 24,
+				y: 14,
+				colW: 104,
+				cols: ['Status', 'Seen on', 'Meaning'],
+				rows: [
+					['200', 'pages, health', 'served'],
+					['200 + noindex', 'unknown product', 'soft not-found'],
+					['200 null', 'unknown menu', 'nothing found'],
+					['400', 'bad menu handle', 'rejected input'],
+					['401', 'unsigned webhook', 'not allowed'],
+					['404', 'unknown route', 'no such page'],
+					['405', 'wrong HTTP verb', 'not handled']
+				],
+				visible: true
+			}
+		],
+		steps: [
+			{ say: 'Across pages and routes, five statuses showed up. Each layer of the store used them in its own way.', focus: ['t'] },
+			{ say: 'Known pages and the health route answer 200: served as asked.', set: { t: { hl: [0] } } },
+			{ say: 'An unknown product page is also 200, with a not-found body and a noindex tag, because the page streams before it knows the product is missing.', set: { t: { hl: [1] } } },
+			{ say: 'An unknown menu is 200 with null, but a malformed menu handle is 400. The first is a lookup that found nothing, the second is refused input.', set: { t: { hl: [2, 3] } } },
+			{ say: 'An unsigned webhook is 401: the caller is not allowed in, whatever it asked for.', set: { t: { hl: [4] } } },
+			{ say: 'An unknown route is a real 404 page, and a method the route does not handle is 405.', set: { t: { hl: [5, 6] } } },
+			{ say: 'So “unknown” has four answers here: 200 with noindex, 200 with null, 400 and 404. Each layer picked its own rule.', set: { t: { hl: [1, 2, 3, 5] } } }
+		]
+	},
+	{
+		id: 'ap-header-shapes',
+		topic: 'apis',
+		group: 'ap-status-and-headers',
+		title: 'Headers worth reading',
+		blurb: 'Which cache, cookie and CORS headers did the store and its APIs send?',
+		stage: { w: 360, h: 264 },
+		nodes: [
+			{ id: 'd1', kind: 'doc', x: 16, y: 10, w: 328, title: 'A page (dev mode)', lines: ['cache-control: no-store, must-revalidate', 'x-nextjs-cache: HIT', 'content-security-policy: frame-ancestors'] },
+			{ id: 'd2', kind: 'doc', x: 16, y: 98, w: 328, title: 'Any /api route, even an error', lines: ['cache-control: public, max-age=0,', '  s-maxage=600, stale-while-revalidate=3600'] },
+			{ id: 'd3', kind: 'doc', x: 16, y: 170, w: 328, title: 'Cookie and CORS', lines: ['set-cookie: locale=en; Path=/; SameSite=lax', 'access-control-allow-origin: <page origin>', 'access-control-allow-origin: *'] }
+		],
+		steps: [
+			{ say: 'A page in dev mode is never cached by the browser. The cache hit header shows the server reused a rendered page.', show: ['d1'], set: { d1: { hl: [0, 1] } } },
+			{ say: 'The only content security policy directive was frame-ancestors, which limits who may put the store in a frame.', set: { d1: { hl: [2] } } },
+			{ say: 'Every /api response carried one blanket cache rule, even a 401 or a 400. Check the headers that really arrive, not only the ones a route sets.', show: ['d2'], set: { d2: { hl: [0, 1] } } },
+			{ say: 'Pages set a locale cookie for a year, scoped to the whole site with SameSite=lax. It carries a language, not a login.', show: ['d3'], set: { d3: { hl: [0] } } },
+			{ say: 'The platform APIs answered CORS two ways: the page origin echoed from an allow-list, or a star for public data.', set: { d3: { hl: [1, 2] } } },
+			{ say: 'Read headers as decisions. Each line says who may keep the answer, who may read it, or who may embed the page.', focus: ['d1', 'd2', 'd3'] }
 		]
 	}
 ];

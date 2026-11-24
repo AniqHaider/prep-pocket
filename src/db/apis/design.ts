@@ -4,406 +4,402 @@ import type { Question } from '../../quiz/types';
 
 const md = (...lines: string[]) => lines.join('\n');
 
-// APIs in practice, part 3: design choices that keep Cardify Lite's API safe to call and safe to depend on, and an honest list of its gaps.
-// Every call number (15, 16, 24, 31, 32, 33 ...) refers to the live run recorded for this section; code facts come from backend/src,
-// admin/src/App.tsx, sdk/src/loader.ts and backend/test/app.test.ts of the project.
+// Names, hosts and ids from the observed store are changed. The shapes (paths, methods, statuses, headers, counts) are what was seen.
 
 export const topics: DbTopic[] = [
-	// ───────────────────────── Idempotent saves ─────────────────────────
+	// ───────────────────────── Configuration ─────────────────────────
 	{
-		id: 'ap-idempotent-save',
-		title: 'Idempotent saves and one request per burst',
+		id: 'ap-env-and-config',
+		title: 'Configuration that fails loudly',
 		level: 'mid',
-		summary: 'See why replacing a whole resource with PUT is safe to repeat, how an upsert and a debounce keep the API calm, and why the store sits behind one interface.',
-		scenes: ['ap-put-twice', 'ap-debounce-one-put', 'ap-repo-interface'],
+		summary: 'See which environment variables reach the browser, why an empty value is a trap, and how one value under two names hid a bug.',
+		scenes: ['ap-env-visibility', 'ap-empty-env', 'ap-two-names-silent-400'],
 		notes: md(
-			'**What the code does.** The admin saves settings with `PUT /cardify/admin/:merchantId/settings`. The body is the whole settings object (enabled, the design and the options), not a patch. The server validates it, then the repo saves it as an upsert: `onDuplicateKeyUpdate` inserts the merchant\'s row or updates it if it exists, in one statement.',
+			'**What was observed.** The store runs on Next.js. Its configuration lives in environment variables, and the framework sorts them into two groups: variables that stay on the server, and variables with a public prefix that are copied into the browser code when the app is built.',
 			'',
-			'**What the real runs showed.** Call 15 saved an overlay design and returned 200 with `"version":1795534284883`. Call 16 sent the identical body again: 200, the same settings, and `"version":1795534284949`, 66 ms later. The state is the same; only the stamp moved. That is idempotent: doing it twice leaves what doing it once would.',
+			'**The rule.** Anything with the public prefix is published to every visitor. So a token, a signing key or a store address that must stay private never goes in a public variable. The store keeps its platform token on the server and lets the browser call a same-origin route that adds it.',
 			'',
-			'**Why it matters.** A client can retry a PUT after a timeout without asking whether the first attempt landed. A POST that creates something, such as an order, would create a second one, so it needs an idempotency key that lets the server recognise the repeat.',
+			'**The empty-string trap.** An example env file often ships variables with no value, such as `MERCHANT_ID=`. A variable that is present but empty is the empty string, not undefined. The nullish operator `??` only falls back for undefined, so an empty value slipped straight through. The code uses `||`, which treats the empty string as missing.',
 			'',
-			'**Fewer requests too.** In the browser run, switching Cardify on, picking Editorial and unticking Product badge produced one PUT, not three. The admin restarts a 500 ms timer on every change (`admin/src/App.tsx`) and sends only when it stays quiet, and the status pill says Saving at once so the wait does not look like a hang. A later accent-colour change sent its own PUT about half a second after it.',
+			'**One value, two names.** The same merchant id was exposed as a server-only name and as a public name. An operator who set only the public one produced an empty `x-merchant-id` header, a 400 from the platform and, because the handler degrades to an empty list, no apps on the page and no visible error.',
 			'',
-			'**One interface, two stores.** The routes talk to `SettingsRepo` (`get` and `save`). `MemorySettingsRepo` keeps a Map and is used by tests and the local demo; `KyselySettingsRepo` writes MySQL. With no `DATABASE_URL` the server prints a warning and uses memory, so settings reset on restart.',
+			'**What to do.** Read both names, validate required values at boot so a bad value stops the start, and log every time a handler degrades. Degrading quietly is kind to visitors and unkind to operators unless it leaves a trace.',
 			'',
-			'**Trade-off.** Replacing the whole resource is simple and safe to repeat, but two admins saving at once means the last write wins: the save carries no version check.'
+			'**Trade-off.** Failing at boot is stricter, but a wrong value is found in seconds instead of weeks.'
 		),
 		try: [
 			{
-				label: 'An idempotent upsert and a debounce',
+				label: 'Empty env values and a boot check',
 				code: md(
-					'// A store like SettingsRepo: save is an upsert keyed by merchant id.',
-					'const rows = new Map();',
-					'let clock = 1000;',
-					'function save(id, settings) {',
-					'  const stored = { settings: { ...settings }, updatedAt: ++clock };',
-					'  rows.set(id, stored); // insert the row, or replace it: one step either way',
-					'  return { ...stored.settings, version: stored.updatedAt };',
-					'}',
-					"const body = { enabled: true, design: 'overlay', radius: 12 };",
-					"const a = save('demostore', body);",
-					"const b = save('demostore', body);",
-					'const same = (x, y) => JSON.stringify({ ...x, version: 0 }) === JSON.stringify({ ...y, version: 0 });',
-					"console.log('same settings after the repeat?', same(a, b));",
-					"console.log('rows stored:', rows.size, '| version', a.version, '->', b.version);",
+					'// Empty env values: ?? versus ||, plus a boot-time check.',
+					'const env = { MERCHANT_ID: "", STORE_NAME: undefined, API_TOKEN: "abc123" };',
+					'console.log("?? on empty :", JSON.stringify(env.MERCHANT_ID ?? "fallback"));',
+					'console.log("|| on empty :", JSON.stringify(env.MERCHANT_ID || "fallback"));',
+					'console.log("?? on unset :", JSON.stringify(env.STORE_NAME ?? "fallback"));',
 					'',
-					'// Debounce: every change restarts a 500 ms timer, and only the last one sends.',
-					'function debounced(send, ms) {',
-					'  let t;',
-					'  return (value) => {',
-					'    clearTimeout(t);',
-					'    t = setTimeout(() => send(value), ms);',
-					'  };',
+					'function checkConfig(e, required) {',
+					'  const missing = required.filter((k) => !e[k] || String(e[k]).trim() === "");',
+					'  return { ok: missing.length === 0, missing };',
 					'}',
-					'const sent = [];',
-					"const autosave = debounced((s) => { sent.push(s); console.log('PUT', JSON.stringify(s)); }, 500);",
-					'autosave({ enabled: true });',
-					"autosave({ enabled: true, design: 'editorial' });",
-					"autosave({ enabled: true, design: 'editorial', showBadge: false });",
-					'await new Promise((r) => setTimeout(r, 600));',
-					"console.log('edits: 3, PUT requests:', sent.length);"
+					'console.log(checkConfig(env, ["MERCHANT_ID", "API_TOKEN"]));',
+					'console.log(checkConfig({ ...env, MERCHANT_ID: "store-1" }, ["MERCHANT_ID", "API_TOKEN"]));'
 				)
 			}
 		]
 	},
 
-	// ───────────────────────── Fail-safe clients ─────────────────────────
+	// ───────────────────────── Third-party surface ─────────────────────────
 	{
-		id: 'ap-fail-safe-clients',
-		title: 'Fail-safe clients and safe defaults',
+		id: 'ap-third-party-surface',
+		title: 'The third-party surface',
 		level: 'advanced',
-		summary: 'Understand how a script on someone else\'s page can fail without breaking it, why unknown ids get defaults, and what the silence costs you.',
-		scenes: ['ap-loader-failsafe', 'ap-failsafe-shots', 'ap-defaults-not-404'],
+		summary: 'Count the outside hosts a page reaches, understand what a vendor script can do, and learn the controls that shrink that reach.',
+		scenes: ['ap-hosts-per-page', 'ap-script-reach', 'ap-script-controls'],
 		notes: md(
-			'**The rule.** The loader is a guest on someone else\'s page, so its first duty is to do no harm. `sdk/src/loader.ts` is built so every failure ends the same way: the store\'s own cards stay as they were.',
+			"**What was observed.** In a real browser, four page views of the store each reached 9 or 10 different outside hosts. The store answered 9 calls itself per page. Outside hosts answered 16 to 21: platform APIs for cart, reviews, search and recommendations, scripts for login and checkout, analytics, a pixel helper and a browser translation widget from Google (four hosts).",
 			'',
-			'**What it does.** It runs `refresh()` on page load and again whenever the tab regains focus or becomes visible; there is no timer. It fetches the public config with `cache: "no-store"` and sends no credentials. If the reply is not OK it returns. If anything throws, it is caught and written as a console warning. It loads the widget bundle only when the config says Cardify is on.',
+			"**Why it matters.** A script loaded on the page runs with the same rights as the store's own code. It can read the page, local storage and every cookie that is not HttpOnly, and it can send requests anywhere. Each vendor is a trust decision.",
 			'',
-			'**Failure cases.** Backend down: the fetch throws and nothing changes. Bundle blocked: the stored promise is reset to null, so the next refresh tries again. Config turned off after being on: the loader asks the widget to stop and the native cards return, because Cardify hides the native card and never removes it. The "seen" fingerprint (`version:enabled`) is saved only after success, so a failed load is retried and an unchanged config does no work.',
+			'**What I blocked.** To keep the run read-only I blocked tracker scripts (4 per page) and write requests (19 in all: 14 POSTs to the platform API and 5 batches of 1.5 to 9 KB to the analytics collector). Those writes are the pings and events a page sends while you browse.',
 			'',
-			'**Defaults, not errors, on the server.** A valid merchant id that was never saved gets 200, the default settings and `version: 0` (call 36); a malformed id gets 400. In the repo, a stored row that no longer validates, for example after a design was retired, reads as never configured instead of crashing the fetch. There is no 404 status to probe ids with, though version 0 against a timestamp still shows whether a merchant saved settings. That is fine for a config every storefront must read anyway.',
+			'**Controls that shrink the surface**',
 			'',
-			'**The cost.** A failure that never reaches the shopper also never reaches the team unless it is recorded. The loader writes `console.warn("[cardify]", err)`; watching the API itself (the request log and `/health`) is the other half.'
+			'- Load only what you need.',
+			'- Wait for consent where the rules require it.',
+			'- Use a first-party endpoint so a vendor sees less of the visitor.',
+			'- Add a content security policy with a `script-src` allow-list. The store sets only `frame-ancestors`, which controls who may embed it, not what may run on it.',
+			'',
+			'**Trade-off.** Vendor scripts bring checkout, login and analytics. Every one you remove is a feature you must build or give up, so measure what each one earns.'
 		),
 		try: [
 			{
-				label: 'A loader that fails safe, with a fingerprint',
+				label: 'Count outside hosts by role',
 				code: md(
-					"// A loader-like refresh: on any failure the page keeps its native cards.",
-					"const page = { cards: 'native' };",
-					"let seen = '';",
-					'let widgetPromise = null;',
-					'const loadWidget = (blocked) =>',
-					'  (widgetPromise ??= (blocked',
-					"    ? Promise.reject(new Error('bundle blocked'))",
-					"    : Promise.resolve({ apply: () => (page.cards = 'cardify'), stop: () => (page.cards = 'native') })",
-					'  ).catch((e) => { widgetPromise = null; throw e; }));',
-					'',
-					'async function refresh(fetchConfig, blocked = false) {',
-					'  try {',
-					'    const res = await fetchConfig();',
-					"    if (!res.ok) return 'ignored: status ' + res.status;",
-					'    const cfg = res.body;',
-					"    const fingerprint = cfg.version + ':' + cfg.enabled;",
-					"    if (fingerprint === seen) return 'unchanged, no work done';",
-					'    if (cfg.enabled) (await loadWidget(blocked)).apply();',
-					'    else if (widgetPromise) (await widgetPromise).stop();',
-					'    seen = fingerprint; // only after success, so a failure is retried',
-					"    return 'applied ' + fingerprint;",
-					'  } catch (err) {',
-					"    return 'warned: ' + err.message;",
-					'  }',
+					'// Classify requests by host role and count them, like the run summary.',
+					'const ROLE = {',
+					'  "store.example": "store",',
+					'  "api.platform.example": "platform API",',
+					'  "scripts.vendor.example": "vendor script",',
+					'  "events.analytics.example": "analytics",',
+					'  "translate.widget.example": "translation widget",',
+					'};',
+					'const requests = [',
+					'  { host: "store.example", method: "GET" },',
+					'  { host: "api.platform.example", method: "GET" },',
+					'  { host: "api.platform.example", method: "POST" },',
+					'  { host: "scripts.vendor.example", method: "GET" },',
+					'  { host: "events.analytics.example", method: "POST" },',
+					'  { host: "translate.widget.example", method: "GET" },',
+					'  { host: "translate.widget.example", method: "GET" },',
+					'];',
+					'const byRole = {};',
+					'for (const r of requests) {',
+					'  const role = ROLE[r.host] || "unknown";',
+					'  byRole[role] = (byRole[role] || 0) + 1;',
 					'}',
-					'const on = { ok: true, body: { version: 5, enabled: true } };',
-					"const show = async (label, run) => console.log(label.padEnd(22), (await run()).padEnd(26), '| cards:', page.cards);",
-					"await show('backend down', () => refresh(async () => { throw new Error('backend down'); }));",
-					"await show('reply is 503', () => refresh(async () => ({ ok: false, status: 503 })));",
-					"await show('bundle blocked', () => refresh(async () => on, true));",
-					"await show('next focus, retry', () => refresh(async () => on));",
-					"await show('same config again', () => refresh(async () => on));",
-					"await show('switched off', () => refresh(async () => ({ ok: true, body: { version: 6, enabled: false } })));"
+					'console.log(byRole);',
+					'const outside = requests.filter((r) => ROLE[r.host] !== "store");',
+					'console.log("outside hosts:", new Set(outside.map((r) => r.host)).size);',
+					'console.log("writes:", requests.filter((r) => r.method !== "GET").length);'
 				)
 			}
 		]
 	},
 
-	// ───────────────────────── Testing and operations ─────────────────────────
+	// ───────────────────────── Client storage ─────────────────────────
 	{
-		id: 'ap-testing-and-ops',
-		title: 'Tests, logs and running it',
+		id: 'ap-client-storage',
+		title: 'What the browser ends up holding',
+		level: 'advanced',
+		summary: 'Inventory the keys and cookies a visitor collects, read their flags, and judge what is sensitive and where it should live.',
+		scenes: ['ap-storage-inventory', 'ap-cookie-flags-seen', 'ap-guest-vs-credential'],
+		notes: md(
+			'**What was observed.** After four page views the browser held 13 local storage keys, 6 session storage keys and 15 cookies, several of them duplicated per domain. A per-store cart token was one of the local storage keys. The store itself set only one cookie, `locale`. The rest came from vendor scripts running on the page.',
+			'',
+			'**Flags.** Every cookie was readable by script: none was HttpOnly. Most vendor cookies used `SameSite=None; Secure` so they work across sites. A session-id cookie used the `__Host-` prefix and `Secure`, but a vendor script wrote it from the page, which is why it could not be HttpOnly.',
+			'',
+			'**Sensitive and not.** A guest cart id only names a cart, so local storage is an acceptable home for it. A login credential acts as the user: it belongs in a server session behind an HttpOnly, Secure cookie, or on the server of a backend-for-frontend. No login credential was seen in this run.',
+			'',
+			'**Why the prefix still helps.** Browsers accept a `__Host-` cookie only if it is Secure, has `Path=/` and sets no `Domain`, so another subdomain cannot overwrite it.',
+			'',
+			'**Link to Auth and tokens.** The token-storage lessons in that section compare local storage, memory, HttpOnly cookies and the backend-for-frontend pattern.',
+			'',
+			'**Trade-off.** Script-set cookies are easy for vendors to use but cannot be HttpOnly. Decide what each stored value is worth before you decide where it lives.'
+		),
+		try: [
+			{
+				label: 'Audit a list of cookie records',
+				code: md(
+					'// Audit cookie records for missing protections.',
+					'const cookies = [',
+					'  { name: "locale", secure: false, httpOnly: false, sameSite: "Lax", path: "/", days: 365 },',
+					'  { name: "__Host-session", secure: true, httpOnly: false, sameSite: "None", path: "/", days: 1 },',
+					'  { name: "vendor_uid", secure: true, httpOnly: false, sameSite: "None", path: "/", days: 365 },',
+					'  { name: "ana_id", secure: true, httpOnly: false, sameSite: "None", path: "/", days: 400 },',
+					'];',
+					'function audit(c) {',
+					'  const issues = [];',
+					'  if (!c.httpOnly) issues.push("readable by script");',
+					'  if (!c.secure) issues.push("not Secure");',
+					'  if (c.sameSite === "None" && !c.secure) issues.push("None needs Secure");',
+					'  if (c.name.startsWith("__Host-") && (!c.secure || c.path !== "/")) issues.push("prefix rules broken");',
+					'  if (c.days > 365) issues.push("lives over a year");',
+					'  return issues;',
+					'}',
+					'for (const c of cookies) console.log(c.name.padEnd(16), audit(c).join(", ") || "ok");'
+				)
+			}
+		]
+	},
+
+	// ───────────────────────── Observability ─────────────────────────
+	{
+		id: 'ap-observability',
+		title: 'Request ids, logs and health checks',
 		level: 'mid',
-		summary: 'Learn how the API\'s rules are checked without a port, what its log does and does not record, and what happens at start and stop.',
-		scenes: ['ap-inject-tests', 'ap-logs-and-boot'],
+		summary: 'Follow one request through responses and logs with an id, tell three kinds of health check apart, and see why silent skips hurt.',
+		scenes: ['ap-request-id-trace', 'ap-health-and-silence'],
 		notes: md(
-			'**Tests without a port.** `backend/test/app.test.ts` uses vitest and Fastify\'s `app.inject`. `buildApp` is called with a memory repo and a fixed test key; `inject` sends a fake request straight into the app and returns the response, so there is no port to clash with, no database and no network.',
+			'**What was observed.** The webhook route answers every request with a request id. An unsigned delivery got `401 {"error":"Invalid signature","requestId":"wh_<id>"}`. The id exists so anyone reporting a failed delivery can quote it.',
 			'',
-			'**What they cover:** the public config defaults and their headers (CORS `*`, `no-store`), a 400 for a malformed merchant id, a 401 for no key, a wrong key and a wrong-length key, saving settings and reading them back through the public route, 400 for an unknown design and an out-of-range radius, the CORS allow-list (204 with the origin for `http://localhost:5173`, no CORS header for `https://evil.example`), and start-up refusing to build without an admin key. They do not cover rate limiting, security headers or the MySQL repo, which is worth knowing before you lean on them.',
+			"**Tagged logs.** A browser-events route in the design logs every line with a `[PREFIX:<requestId>]` tag and a step name. One search for the id then follows a single request through every step, and the lines of other requests do not appear. The sender's own event id can serve as the correlation id.",
 			'',
-			'**Seeing it run.** `/health` returns `{"ok":true}`. With logging on, Fastify writes each request as JSON with a request id: method, URL, host and the caller\'s address, then a second line with the status code and the response time. Request headers are not logged, so a key sent in `x-admin-key` never appears. It did appear once in the run, because call 33 put the key in the query string and the URL is logged. Keep secrets out of URLs.',
+			'**Health checks.** The design has three kinds of probe: a shallow `/health` that returns 200 without checking anything behind it, a probe on the webhook route that returns only a status and a time and reveals nothing about configuration, and, where you need one, a deep check that verifies dependencies. A deep check tells more, so protect it.',
 			'',
-			'**Start and stop.** At boot the table is created with `CREATE TABLE IF NOT EXISTS`, so it is safe on every start. On SIGINT or SIGTERM the server closes the app and the database before exiting. With no `DATABASE_URL` it skips the database and keeps settings in memory, so a developer starts it with one command.'
+			'**No silent skips.** After a purge the handler can pre-render pages. If no base address is configured it logs that warming is disabled instead of skipping the step quietly.',
+			'',
+			'**Trade-off.** Logging every step costs storage and needs care not to log secrets. A short, consistent prefix and a request id give most of the value for little cost.'
 		),
 		try: [
 			{
-				label: 'A mini inject-style test of a handler',
+				label: 'A tagged logger and a grep',
 				code: md(
-					'// A tiny version of app.inject: call the handler directly with a fake request, no port.',
-					"const KEY = 'test-admin-key';",
-					'// Same shape as the real keyMatches: check the length first, then compare every character.',
-					'function keyMatches(provided, expected) {',
-					"  if (typeof provided !== 'string' || provided.length !== expected.length) return false;",
-					'  let diff = 0;',
-					'  for (let i = 0; i < expected.length; i++) diff |= provided.charCodeAt(i) ^ expected.charCodeAt(i);',
-					'  return diff === 0;',
-					'}',
-					'function handle(req) {',
-					"  if (!keyMatches(req.headers['x-admin-key'], KEY)) return { status: 401, body: { error: 'invalid or missing x-admin-key' } };",
-					"  if (!/^[a-z0-9]{6,32}$/.test(req.merchantId)) return { status: 400, body: { error: 'invalid merchant id' } };",
-					'  return { status: 200, body: { ok: true } };',
-					'}',
-					"const inject = (req) => handle({ headers: {}, merchantId: 'demostore', ...req });",
-					'const cases = [',
-					"  ['401 without a key', inject({}), 401],",
-					"  ['401 with a wrong-length key', inject({ headers: { 'x-admin-key': 'x' } }), 401],",
-					"  ['400 for a bad merchant id', inject({ headers: { 'x-admin-key': KEY }, merchantId: 'BAD!' }), 400],",
-					"  ['200 with the right key', inject({ headers: { 'x-admin-key': KEY } }), 200]",
-					'];',
-					'let bad = 0;',
-					'for (const [name, res, want] of cases) {',
-					'  const pass = res.status === want;',
-					'  if (!pass) bad++;',
-					"  console.log((pass ? 'ok   ' : 'MISS ') + name + ' -> ' + res.status);",
-					'}',
-					"console.log(bad ? bad + ' not as expected' : 'all passed');"
+					'// A tagged logger: one search follows one request.',
+					'const lines = [];',
+					'const logger = (prefix, id) => (step, msg) => lines.push(`[${prefix}:${id}] [${step}] ${msg}`);',
+					'const a = logger("EVT", "r1a2");',
+					'const b = logger("EVT", "r9z8");',
+					'a("AUTH", "OK");',
+					'b("AUTH", "missing signature");',
+					'a("SEND", "2 events");',
+					'b("RESPOND", "401");',
+					'const grep = (id) => lines.filter((l) => l.includes(":" + id + "]"));',
+					'console.log(grep("r9z8").join("\\n"));',
+					'console.log("r1a2 has", grep("r1a2").length, "lines");'
 				)
 			}
 		]
 	},
 
-	// ───────────────────────── Gaps and next steps ─────────────────────────
+	// ───────────────────────── Review ─────────────────────────
 	{
-		id: 'ap-gaps-and-next',
-		title: 'The honest review: gaps and what to fix first',
+		id: 'ap-review-and-next',
+		title: 'A balanced review and what to fix first',
 		level: 'advanced',
-		summary: 'List the gaps the real runs exposed, put them in a sensible fix order, and see what a safer admin login would look like.',
-		scenes: ['ap-gap-review', 'ap-fix-order', 'ap-safer-admin-login'],
+		summary: 'Weigh what the traffic shows working against eight outside-visible items, and put the fixes in a sensible order.',
+		scenes: ['ap-works-well', 'ap-review-findings', 'ap-fix-order'],
 		notes: md(
-			'**A review needs evidence.** The runs found real strengths (fail-closed config, a constant-time key check, per-path CORS, one shared schema) and real gaps. Each gap points at a call or a file.',
+			"**What works.** The traffic shows five practices holding up: a same-origin proxy that keeps credentials on the server, signed webhooks with a timestamp that refuse replays, tagged caching with webhook purges and page warming, shopper-aware rate limits (the shopper's IP is forwarded on uncached calls), and fail-soft reads that keep a last good page when the platform is unavailable.",
 			'',
-			'- **One shared admin key** for everyone. The README lists per-merchant admin auth as not included: no user identity, no audit trail of who changed what, no rotation story.',
-			'- **The key lives in `localStorage`** as plain text (`cardify.key`). A password field only masks it on screen; any script on that page can read it.',
-			'- **No rate limit:** 60 wrong keys in a row all got 401 (call 31), with no delay.',
-			'- **No security headers:** all six checked were absent (call 32).',
-			'- **Two error shapes:** an `error` field from the app, and `statusCode`, `code`, `error` and `message` from the framework (calls 19, 20, 25, 30).',
-			'- **Small contract slips:** 404 instead of 405 for a wrong method (calls 26, 27), and bundles sent with `public, max-age=0` although the source asks for `no-cache` (call 24).',
-			'- **A secret in a URL was logged** (call 33).',
+			'**What a reviewer would flag.** These items are all visible from outside, in dev mode, and each has an easy fix:',
 			'',
-			'**Fix order.** Cheapest risk first: a rate limit and a long random key, then security headers including a Content-Security-Policy. Then the structural change: replace the shared key with a real sign-in (OpenID Connect, or a password plus a second factor) that gives the browser only an HttpOnly session cookie, behind a small admin server that keeps any API credential to itself, with a role and a name on every change. Last, tidy the contract: one error shape, 405, the intended cache header.',
+			'- The same same-origin call fires three times per page view. Fetch once, share the result.',
+			'- One blanket cache header covers every `/api` response, including errors and routes that wanted no-store. Scope it.',
+			'- Not found is handled three ways: 200 with `noindex`, 200 `null` and 400. Pick one rule.',
+			'- No Strict-Transport-Security, X-Content-Type-Options or Referrer-Policy in dev, and the policy header only has `frame-ancestors`. Add them at the edge.',
+			'- Some pages send the `locale` cookie twice. Set it once.',
+			'- `/health` checks nothing. Keep it for liveness and add a protected deep check.',
+			'- About ten outside hosts per page. Trim, gate on consent and add a `script-src` list.',
+			'- A guest cart token lives in local storage. Fine for a cart id, never for a login.',
 			'',
-			'The Auth and tokens section covers each piece: token storage, cookies, CSRF and XSS, OAuth and OpenID Connect, API keys and authorization.'
+			'**What first.** Third-party scripts, then the repeated call, then the cache header, then hardening headers, then the small fixes.',
+			'',
+			'**Trade-off.** Dev mode changes headers and timings, so confirm each item against a production build before spending time on it.'
 		),
 		try: [
 			{
-				label: 'A gap checklist scorer',
+				label: 'Score response headers',
 				code: md(
-					"// Score a response and a burst against a short hardening checklist (the headers and counts of calls 31 and 32).",
-					"const wanted = ['strict-transport-security', 'x-content-type-options', 'x-frame-options', 'content-security-policy', 'referrer-policy', 'permissions-policy'];",
-					"const adminResponse = { 'content-type': 'application/json; charset=utf-8', 'content-length': '253' };",
-					'const have = Object.keys(adminResponse).map((h) => h.toLowerCase());',
-					'const missing = wanted.filter((h) => !have.includes(h));',
-					'',
-					'const burst = Array(60).fill(401); // 60 wrong keys, as in call 31',
-					'const limited = burst.filter((s) => s === 429).length;',
-					'',
-					'const checks = [',
-					"  { name: 'rate limit answers 429', pass: limited > 0, fix: 'add a rate limit and lockout' },",
-					"  { name: 'security headers present', pass: missing.length === 0, fix: 'add ' + missing.join(', ') },",
-					"  { name: 'one error shape', pass: false, fix: 'wrap framework errors in the app shape' }",
-					'];',
-					"console.log('headers present:', wanted.length - missing.length, 'of', wanted.length);",
-					"console.log('60 wrong keys ->', limited ? limited + ' were 429' : 'no 429 at all');",
-					"for (const c of checks) console.log((c.pass ? 'ok    ' : 'TODO  ') + c.name + (c.pass ? '' : ' -> ' + c.fix));",
-					"console.log('score:', checks.filter((c) => c.pass).length + ' / ' + checks.length);"
+					'// Score a response for hardening headers and for leaks.',
+					'const WANTED = ["strict-transport-security", "x-content-type-options", "referrer-policy", "content-security-policy"];',
+					'const LEAKS = ["x-powered-by", "server"];',
+					'function score(headers) {',
+					'  const names = Object.keys(headers).map((h) => h.toLowerCase());',
+					'  const missing = WANTED.filter((h) => !names.includes(h));',
+					'  const leaks = LEAKS.filter((h) => names.includes(h));',
+					'  return { points: WANTED.length - missing.length - leaks.length, of: WANTED.length, missing, leaks };',
+					'}',
+					'console.log(score({ "Content-Security-Policy": "frame-ancestors self", "X-Powered-By": "Next.js" }));',
+					'console.log(score({ "Strict-Transport-Security": "max-age=31536000", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "same-origin", "Content-Security-Policy": "script-src self" }));'
 				)
 			}
 		]
 	}
 ];
 
-// ───────────────────────── Questions ─────────────────────────
-const t = (topic: string) => builder('AP', topic);
+// ───────────────────────── ap-env-and-config ─────────────────────────
+const env = builder('AP', 'ap-env-and-config');
 
-// ap-idempotent-save
-const ids = t('ap-idempotent-save');
+env.add('basic', 'public-prefix',
+	"In a Next.js app, which environment variables end up in the code sent to every visitor's browser?",
+	'Only the ones with the public prefix, copied in at build time',
+	['All of them, because the server and the browser share one process', 'None, since the browser only ever talks to the server', 'Those marked required in the example env file'],
+	'The framework copies only public-prefixed variables into the client code during the build. Everything else stays on the server. The server and browser are separate runtimes, and being listed in the example file has no effect on visibility.');
 
-ids.add('basic', 'idempotent',
-	'The admin sends the same PUT with identical settings twice (calls 15 and 16). What differs between the two 200 answers?',
-	'Only the version stamp; the settings are the same',
-	['The settings themselves, because the second save adds to the first one',
-	 'Nothing at all, since the server quietly ignores a PUT it has already seen',
-	 'The status code, which becomes 409 Conflict for a duplicate request'],
-	'The second PUT replaced the row with the same values, so the settings match and only the version (the time of the save) moved, by 66 ms. The server does not ignore it, does not merge it, and does not answer 409.');
+env.add('mid', 'secret-in-public',
+	'A teammate puts an API token in a public-prefixed variable so a client component can call the platform. What is the right fix?',
+	'Keep it server-only and call the API from a same-origin route',
+	['Minify the production bundle so the token is much harder to find', 'Rename the variable to something less obvious to a casual reader', 'Encode the token in base64 before putting it in the variable'],
+	'A public-prefixed value is published with the JavaScript, so obscuring it does not help: minifying, renaming and encoding all leave it readable. The store keeps its token on the server and lets the browser call a same-origin route that adds it.');
 
-ids.add('mid', 'retry',
-	'A PUT times out and the client cannot tell whether it landed. What is the safe move?',
-	'Send it again, because repeating a PUT leaves the same state',
-	['Send a POST first, to find out what the server did with the PUT',
-	 'Never retry, and ask the user to reload the page and start over',
-	 'Wait a full day so the first request is certainly finished'],
-	'PUT replaces the whole resource, so a repeat lands on the same state. Switching to POST would create the risk the PUT avoids, and refusing to retry or waiting a day only leaves the user stuck.');
+env.add('mid', 'empty-string',
+	'An env var is set to nothing (MERCHANT_ID=). What does process.env.MERCHANT_ID ?? "fallback" evaluate to?',
+	'An empty string, because ?? only replaces null and undefined',
+	['The word fallback, because a variable with no value counts as unset', 'Undefined, because an empty variable is treated as not set at all', 'A runtime error, because empty values are rejected when the app starts'],
+	'A variable that is present but empty is the empty string, not undefined. The nullish operator only falls back for null or undefined, so the empty string passes through. The || operator treats it as missing and would use the fallback.');
 
-ids.add('mid', 'upsert',
-	'Why does the repo save with onDuplicateKeyUpdate?',
-	'One statement inserts a new merchant row or updates the existing one',
-	['It lets two admins edit the same row at once without any conflict ever',
-	 'It keeps a full history of every earlier version of the settings row',
-	 'It encrypts each row with a per-merchant key as it is written to MySQL'],
-	'An upsert covers both cases, a merchant who has never saved and one who has, in a single statement. It does not merge concurrent edits (the last write wins), keep history or encrypt anything.');
+env.add('mid', 'two-names',
+	'A merchant id is exposed under a server-only name and a public name, and an operator sets only the public one. What happened in the observed store?',
+	'The server sent an empty header, got a 400 and showed an empty list',
+	['The server used the public value automatically and everything worked fine', 'The build failed with a clear message about the missing variable', 'The browser blocked the request because of the mismatched names'],
+	'The server-only name stayed empty, so the x-merchant-id header was empty and the platform answered 400. The handler is built to degrade to an empty list, so no apps showed and nothing visible explained why.');
 
-ids.add('mid', 'debounce',
-	'The browser run switched Cardify on, picked Editorial and unticked Product badge, yet the log shows one PUT. What explains it?',
-	'Each change restarts a 500 ms timer, and only the last timer fires',
-	['The server merges requests that arrive close together into a single save',
-	 'The browser refuses a second request to the same URL within a second',
-	 'The PUT is only sent when the user presses a Save button at the bottom'],
-	'The admin autosaves with a debounce: every change clears the old timer and starts a new one, so a quick burst sends one request with the final settings. The server does not merge, the browser does not block, and there is no Save button.');
+env.add('advanced', 'validate-boot',
+	'Why does validating configuration at boot beat degrading quietly when a value is missing?',
+	'A bad value stops the start instead of hiding in an empty page',
+	['It lets the app retry the request until the missing value appears', 'It makes the environment variables available to the browser too', 'It removes the need to keep an example env file in the repository'],
+	'Quiet degrading is kind to visitors but hides configuration bugs, as the empty merchant id showed. Checking required values at startup surfaces the mistake in seconds. It does not retry anything, expose variables or replace the example file.');
 
-ids.add('advanced', 'post-vs-put',
-	'Why would creating an order with POST need an idempotency key when this PUT does not?',
-	'Repeating the POST can create a second order; repeating the PUT lands on the same state',
-	['A POST body is much larger than a PUT body, so sending it twice wastes bandwidth',
-	 'Idempotency keys are only needed when the request travels over HTTPS',
-	 'PUT requests are never retried by clients, so they cannot be repeated'],
-	'The point is the effect of a repeat. A PUT that replaces a resource ends in the same state either way, while a POST that creates something can create it again. An idempotency key lets the server recognise the repeat and return the first result.');
+// ───────────────────────── ap-third-party-surface ─────────────────────────
+const tp = builder('AP', 'ap-third-party-surface');
 
-// ap-fail-safe-clients
-const fs = t('ap-fail-safe-clients');
+tp.add('basic', 'host-count',
+	'How many distinct outside hosts did a product page of the observed store reach?',
+	'Ten outside hosts',
+	['Three outside hosts', 'Five outside hosts', 'Twenty-five outside hosts'],
+	'The four page views reached 9, 9, 10 and 10 distinct outside hosts, and the product page was one of the ten-host pages. The count includes platform APIs, vendor scripts, analytics and the translation widget.');
 
-fs.add('basic', 'backend-down',
-	'The backend is down when a storefront page loads. What do shoppers see?',
-	'The store\'s own native cards, exactly as before',
-	['An error banner drawn by the loader across the top of the product grid',
-	 'Blank card slots while the loader keeps waiting for the backend to return',
-	 'The last Cardify design that the merchant chose before the outage began'],
-	'The config fetch throws, the loader catches it and writes a console warning, and nothing on the page is touched. The native cards stay, so shoppers notice nothing.');
+tp.add('mid', 'script-reach',
+	'What can a vendor script loaded on your page read?',
+	'Whatever your own scripts can: the page, storage and readable cookies',
+	['Only the page parts named in the vendor settings screen', 'Nothing outside its own iframe, because scripts are sandboxed by default', 'Only data the visitor agreed to share in the consent banner'],
+	'A script loaded into the page runs with the same rights as the store code. It can read the page, local storage and any cookie that is not HttpOnly, and it can send requests anywhere. It is not sandboxed in an iframe by default.');
 
-fs.add('mid', 'retry-bundle',
-	'The widget bundle is blocked, for example by an ad blocker. What does the loader do with its stored promise?',
-	'Resets it to null, so the next refresh tries again',
-	['Keeps the rejected promise, so it never tries to load the bundle again',
-	 'Switches to polling the backend every second until the bundle loads',
-	 'Reloads the whole page repeatedly until the bundle finally loads'],
-	'A failed import would otherwise be remembered forever. Resetting it to null lets the next focus or visibility change retry, and there is no polling and no page reload involved.');
+tp.add('mid', 'frame-ancestors',
+	"The store's policy header only sets frame-ancestors. What does that directive control?",
+	'Which sites may embed the store in a frame',
+	['Which hosts may run scripts on the store pages', 'Which origins the store may send API requests to', 'Which cookies the store may set on its own domain'],
+	'frame-ancestors lists the sites allowed to embed the page in a frame. It does not restrict which scripts run, where requests may go or which cookies exist. Those need other directives such as script-src and connect-src.');
 
-fs.add('mid', 'fingerprint',
-	'When does the loader record a config fingerprint (version and enabled) as seen?',
-	'Only after the config was applied successfully',
-	['As soon as the response arrives, before the config is applied',
-	 'Only when the config says enabled is false, to remember it was off',
-	 'Every five seconds, from a timer that runs while the tab is open'],
-	'Saving it after success means a failed load leaves the old fingerprint, so the next refresh tries again. An unchanged fingerprint lets the loader skip work. It is not tied to enabled being false, and there is no timer.');
+tp.add('advanced', 'script-src',
+	'Which control stops a script from an unlisted host from running on the page?',
+	'A script-src allow-list in the content security policy',
+	['Setting SameSite=None on every cookie that the page sets', 'Putting the vendor script after the closing body tag', 'Serving the page with a long cache lifetime header'],
+	'A script-src list names the hosts allowed to run code and the browser refuses the rest. Cookie flags, script position and cache headers do not decide which scripts execute.');
 
-fs.add('advanced', 'defaults',
-	'An unknown but valid merchant id gets 200 with defaults and version 0. What does that choice achieve, and what does it not?',
-	'No 404 status to probe, yet version 0 against a timestamp still shows whether anything was saved',
-	['It hides completely whether a merchant has saved settings, since every reply looks identical',
-	 'It lets anyone overwrite the settings for that id without presenting any key',
-	 'It makes the config route require the admin key, so storefronts must authenticate'],
-	'The status code no longer separates known from unknown ids, and the loader always has a config to read. The version field still differs (0 against a timestamp), which is acceptable because the config is public by design. Writing still needs the key.');
+tp.add('advanced', 'blocked-writes',
+	'In the run, 19 write requests were blocked across four page views. Where were they sent?',
+	'14 to the platform API and 5 to the analytics collector',
+	['19 to the platform API and none to any analytics host at all', "All 19 to the store's own server routes under the API path", '10 to ad networks and 9 to the browser translation widget'],
+	'The blocked POSTs were 14 calls to the platform API (discount lookups and activity pings) and 5 batches of 1.5 to 9 KB to the analytics collector. None of them went to the store routes or the translation widget.');
 
-fs.add('advanced', 'silent',
-	'What is the real cost of a loader that fails silently for shoppers?',
-	'Nobody notices a broken backend unless it is logged or monitored',
-	['Shoppers see half-broken pages while the loader tries to recover from it',
-	 'The host store\'s own cards get removed and have to be restored by hand',
-	 'The loader retries without limit and floods the backend with new requests'],
-	'Failing safe protects the page, but it also hides the failure from the people who could fix it. That is why the loader writes a console warning and the API has a request log and a health check. The page is not broken and the native cards are never removed.');
+// ───────────────────────── ap-client-storage ─────────────────────────
+const cs = builder('AP', 'ap-client-storage');
 
-// ap-testing-and-ops
-const ops = t('ap-testing-and-ops');
+cs.add('basic', 'own-cookie',
+	'Which cookie did the store itself set during the run?',
+	'Only the locale cookie',
+	['A session id cookie with the __Host- prefix', 'A cart token cookie readable only by the server', 'An analytics cookie lasting 400 days'],
+	'The store set one cookie, locale, which holds a language. The __Host- session id, the analytics cookies and the others were written by vendor scripts running on the page.');
 
-ops.add('basic', 'inject',
-	'What does app.inject do in the Cardify tests?',
-	'Sends a fake request straight into the app without opening a port',
-	['Starts the server on port 4100 for each test and shuts it down after',
-	 'Adds the admin key to every request automatically so tests need not',
-	 'Replays recorded production traffic against the app to compare answers'],
-	'inject calls the app\'s request handling directly and returns the response object, so tests need no port, no network and no running server. It does not add a key for you, and nothing is replayed.');
+cs.add('mid', 'cookie-count',
+	'How many cookies did the browser hold after the four page views?',
+	'Fifteen, several of them duplicated per domain',
+	['Two, the locale cookie and a cart token', 'One per vendor, about five in total', 'None, since every value lived in local storage and session storage'],
+	'The run ended with 15 cookies, some appearing once per domain, alongside 13 local storage keys and 6 session storage keys. The cart token was in local storage, not in a cookie.');
 
-ops.add('mid', 'coverage',
-	'Which rule does the test file actually check?',
-	'A 401 for no key, a wrong key and a wrong-length key',
-	['That 60 wrong keys in a row eventually get a 429 from the server',
-	 'That every response carries the standard set of security headers',
-	 'That the MySQL repo survives a failure of its connection pool'],
-	'The tests cover the three 401 cases, validation, the CORS allow-list, saving and reading back, and the refusal to build without a key. Rate limiting, security headers and the MySQL repo are not in the file, so passing tests say nothing about them.');
+cs.add('mid', 'host-prefix',
+	'Why is the __Host- prefixed session cookie in the run not HttpOnly?',
+	'A script sets it from the page, so script code can read it',
+	['The prefix rules forbid the HttpOnly flag on prefixed cookies', 'Browsers drop HttpOnly on localhost during development', 'HttpOnly would stop the cookie being sent to the server'],
+	'HttpOnly can only be set by the server in a Set-Cookie header. A cookie that a vendor script writes through document.cookie is readable by script by definition. The prefix and HttpOnly are separate and compatible, and HttpOnly cookies are still sent to the server.');
 
-ops.add('mid', 'log-key',
-	'In the real run, where did the admin key appear in the server log?',
-	'Only in the URL of the call that put the key in the query string',
-	['In every request line, as the x-admin-key header the admin sends',
-	 'In the response lines of each 401 answer, to explain the refusal',
-	 'Nowhere at all, because Fastify redacts query strings in its logs'],
-	'Request headers are not logged, so the key sent as a header never showed. Call 33 sent it in the query string, the URL was logged, and the secret was written out. Fastify does not redact query strings.');
+cs.add('advanced', 'guest-cart-id',
+	'A guest cart id sits in local storage. When is that acceptable?',
+	'When it only names a cart and cannot act as a login',
+	['When it is encrypted with a key kept next to the data', 'When the site also sets the HttpOnly flag on it', 'When it is copied into a cookie with SameSite=None'],
+	'The risk of a stored value is what it can do if a script reads it. A guest cart id only names a cart, so the harm is small. Encrypting it beside the key, flagging it HttpOnly (impossible for local storage) or copying it into a cookie changes nothing.');
 
-ops.add('mid', 'migrate',
-	'The table is created with CREATE TABLE IF NOT EXISTS at every boot. Why is that safe?',
-	'Running it again changes nothing when the table already exists',
-	['It drops and recreates the table, so that every start is a clean one',
-	 'It only runs when a person confirms the change in the terminal',
-	 'It copies the whole table to a backup before each start of the server'],
-	'IF NOT EXISTS makes the statement idempotent: the first boot creates the table, and every later boot finds it and does nothing. It never drops data, asks for confirmation or makes backups.');
+cs.add('advanced', 'credential-home',
+	'Where should a login credential live instead of local storage?',
+	'In a server session behind an HttpOnly Secure cookie',
+	['In a cookie with SameSite=None so vendors can also read it', 'In session storage, which scripts cannot read at all', 'In a hidden field that is posted with every form'],
+	'A credential acts as the user, so scripts must not be able to read it. An HttpOnly, Secure cookie holding a session id, or a backend-for-frontend, keeps it out of script reach. Session storage is readable by script and a SameSite=None cookie is for cross-site vendors.');
 
-ops.add('advanced', 'shutdown',
-	'On SIGINT or SIGTERM the server closes the app and the database before it exits. Why?',
-	'So open requests and database connections are closed cleanly',
-	['So the admin key is wiped from memory before the process ends',
-	 'So the process can restart itself with a fresh copy of the code',
-	 'So the in-memory settings are written to disk for the next start'],
-	'A clean stop lets the server finish and close what is open instead of dropping connections mid-way. It does not wipe keys, restart anything, or persist the memory repo, which loses its settings on exit.');
+// ───────────────────────── ap-observability ─────────────────────────
+const ob = builder('AP', 'ap-observability');
 
-// ap-gaps-and-next
-const gaps = t('ap-gaps-and-next');
+ob.add('basic', 'request-id',
+	'Why does every webhook response carry a request id?',
+	'So a failed delivery can be quoted and traced in the logs',
+	['So the sender can sign its next request using that same id', 'So the browser can cache each response under that identifier', 'So the cache tags can be purged for the matching request'],
+	'The id lets whoever reports a failed delivery quote it, and the team then finds the matching log lines. It plays no part in signing, browser caching or cache purging.');
 
-gaps.add('basic', 'localstorage',
-	'The admin keeps the key in localStorage. What is the main risk?',
-	'Any script running on the admin page can read it',
-	['It is sent to the server twice with every single call it makes',
-	 'It expires as soon as the browser tab is closed by the user',
-	 'It shows up in the address bar for anyone looking over a shoulder'],
-	'localStorage is readable by every script on that origin, so one injected script can copy the key. The password-type field only masks it visually. The storage persists across tabs and restarts, and it is not part of the URL.');
+ob.add('mid', 'log-prefix',
+	'What does a log prefix like [PREFIX:requestId] make possible?',
+	'One search that follows a single request through every step',
+	['Faster requests because logging is skipped on all tagged lines', 'Automatic redaction of secrets from every logged line', 'Sending the logs to the browser for debugging'],
+	'A consistent tag with the request id means one grep returns every step of one request and nothing from other requests. It does not speed anything up, redact secrets or ship logs to the browser.');
 
-gaps.add('mid', 'rate-limit',
-	'Sixty wrong keys in a row all got 401 (call 31). What does that show?',
-	'Nothing slows or stops guessing: there is no rate limit',
-	['The key is hashed, so each guess costs the server noticeable time',
-	 'The server locks the account after ten tries and sends an alert',
-	 'CORS is blocking the requests before they reach the key check'],
-	'A constant 401 with no delay and no 429 means guesses are not limited. Only the key\'s length protects it. There is no hashing delay, no lockout, and CORS is not involved because the calls came from curl.');
+ob.add('mid', 'shallow-health',
+	'What is true of a shallow /health endpoint?',
+	'It answers 200 without checking anything behind it',
+	['It verifies the database and the cache before answering', 'It returns the full configuration for operators to read', 'It restarts the service when a dependency is down'],
+	'A shallow health check only proves the process is up. It does not test dependencies, expose configuration or repair anything. A deep check does the dependency testing and should sit behind protection.');
 
-gaps.add('mid', 'headers',
-	'Call 32 looked for six security headers on an authenticated admin response. How many were present?',
-	'None of the six',
-	['All six, each with its recommended value',
-	 'Only content-security-policy, set to a strict value',
-	 'Only strict-transport-security, with a long max-age'],
-	'The response carried just content-type and content-length. Strict-transport-security, x-content-type-options, x-frame-options, content-security-policy, referrer-policy and permissions-policy were all absent.');
+ob.add('advanced', 'probe-reveals',
+	'A public health probe should reveal nothing about configuration. Why?',
+	'Anyone can call it, so it should only say that it is healthy',
+	['Configuration is always secret and can never be logged anywhere', 'Probes are cached for an hour so details would go stale', 'Load balancers refuse probes that contain a JSON body'],
+	'A probe is reachable by anyone who finds the URL, so extra detail helps an attacker and not the operator. The reason is exposure, not caching or load balancer rules, and configuration can be logged safely when it is not secret.');
 
-gaps.add('advanced', 'fix-order',
-	'Why does the fix list put a rate limit before a full admin sign-in?',
-	'It is cheap and closes the easiest attack while the bigger change is built',
-	['A sign-in cannot work at all until a rate limit has first been put in place',
-	 'A rate limit also removes the key from localStorage as a useful side effect',
-	 'A rate limit makes every error use the same shape on all of the routes'],
-	'Order by cheapest risk reduction first: a rate limit and a long key are small changes that block guessing now, while a real sign-in is a larger project with the biggest payoff. The rate limit does not depend on the sign-in, nor fix storage or error shapes.');
+ob.add('advanced', 'silent-skip',
+	'What should a pipeline do when page warming after a purge is switched off?',
+	'Log that warming is off rather than skipping it silently',
+	['Skip it silently, since a disabled step needs no log message', 'Fail the whole purge so the operator notices at once', 'Warm the pages anyway using a default base address'],
+	'When no base address is set, the handler logs that warming is disabled. A silent skip hides a missing setting, failing the purge is too harsh and warming with a guessed address could hit the wrong site.');
 
-gaps.add('advanced', 'safer-login',
-	'In the safer admin design, what does the browser hold?',
-	'Only a session cookie that scripts cannot read (HttpOnly)',
-	['The API key, kept in sessionStorage so it ends with the tab',
-	 'A long-lived token kept in localStorage for the next visit',
-	 'The key, encrypted with a key derived from the user\'s password'],
-	'The aim is to keep credentials out of anything a script can read. The browser gets one HttpOnly cookie for the session, and a small admin server keeps any API credential. Storage in sessionStorage or localStorage stays readable by scripts.');
+// ───────────────────────── ap-review-and-next ─────────────────────────
+const rv = builder('AP', 'ap-review-and-next');
 
-export const banks: { out: Question[] }[] = [ids, fs, ops, gaps];
+rv.add('basic', 'proxy-practice',
+	'Which practice keeps the platform token out of the browser?',
+	'A same-origin route that calls the platform server-side',
+	['Calling the platform API directly from a client component', 'Storing the token in a cookie with SameSite=None set', 'Hiding the token in the page HTML comments instead'],
+	'The browser calls a route on the store, and that route adds the token and store address on the server. Direct client calls, cookies and comments all put the token where a script or a visitor can read it.');
+
+rv.add('mid', 'repeated-call',
+	'The same same-origin call fired three times per page view. What is the sensible fix?',
+	'Fetch it once and share the result across the page',
+	['Raise the server timeout so the three calls all finish', 'Add a longer cache header to the browser-side script', 'Move the call into a vendor script so it is hidden'],
+	'Three identical calls waste time and load, and each took up to 2 s in dev mode. Fetching once and sharing the result removes the duplicates. A longer timeout, a script cache header or hiding the call in a vendor script do not.');
+
+rv.add('mid', 'blanket-cache',
+	'Why can one blanket cache header on all /api routes be a problem?',
+	'It also covers error responses and routes that wanted no-store',
+	['It turns off caching for static assets such as fonts and images', 'It makes every route slower because the headers are so large', 'It stops cookies from being set on any response from an API route'],
+	'A rule on /api/:path* applies to every route under it, including 400 and 401 answers and routes that set their own no-store. It does not affect static assets, response speed or cookies.');
+
+rv.add('advanced', 'fix-first',
+	'Which item belongs first in the fix order, and why?',
+	'Trim third-party scripts: they have the widest reach into the page',
+	['Remove the doubled locale cookie, because it would break every login flow', 'Add a deep health check, because every probe must verify the cache first', 'Unify the not-found handling, because crawlers need one exact status code'],
+	'Third-party scripts can read the page and its storage, so trimming and gating them reduces the most risk for the visitor. The doubled cookie, the health check and not-found handling are real but small fixes.');
+
+rv.add('advanced', 'cart-token',
+	'A guest cart token is kept in local storage. What is the balanced judgment?',
+	'Acceptable as a guest id, but never as a login credential',
+	['Unacceptable, because any value in local storage is a leak', 'Fine for logins too, since the origin is the same for all scripts', 'Only acceptable when the token is longer than 64 characters'],
+	'What matters is what the value can do if a script reads it. A cart id names a cart, so local storage is acceptable. A login credential must not be readable by script, and token length does not change that.');
+
+export const banks: { out: Question[] }[] = [env, tp, cs, ob, rv];

@@ -56,9 +56,9 @@ export const btOrigin: Scene[] = [
 		id: 'bt-why-releases',
 		topic: 'built',
 		group: 'bt-why',
-		title: 'Twenty-three releases in 41 days',
-		blurb: 'What shipped when, from 1.0.0 on 14 October to 2.7.0 on 24 November?',
-		stage: { w: 360, h: 404 },
+		title: 'Twenty-four releases in 41 days',
+		blurb: 'What shipped when, from 1.0.0 on 14 October to 2.8.0 on 24 November?',
+		stage: { w: 360, h: 432 },
 		nodes: [
 			{
 				id: 't',
@@ -83,13 +83,14 @@ export const btOrigin: Scene[] = [
 					['2.4.1 · 2 Nov', 'OpenSearch topics'],
 					['2.5.0 · 6 Nov', 'How Preppy was built'],
 					['2.6.0 · 19 Nov', 'Google Cloud, screenshots'],
-					['2.7.0 · 24 Nov', 'Auth and APIs sections']
+					['2.7.0 · 24 Nov', 'Auth and tokens section'],
+					['2.8.0 · 24 Nov', 'APIs on a real store']
 				],
 				visible: true
 			}
 		],
 		steps: [
-			{ say: 'From 1.0.0 on 14 October to 2.7.0 on 24 November 2026 there were 23 releases in 41 days. These rows are the milestones.', focus: ['t'] },
+			{ say: 'From 1.0.0 on 14 October to 2.8.0 on 24 November 2026 there were 24 releases in 41 days. These rows are the milestones.', focus: ['t'] },
 			{ say: 'Day one: the offline app with the Backend lab, Svelte and TypeScript prep, drills and a tutor, then the 500-question React bank.', set: { t: { hl: [0, 1] } } },
 			{ say: 'Next came the Assistant and bigger on-device models, then the rename to Preppy with natural narration voices.', set: { t: { hl: [2, 3] } } },
 			{ say: 'On 23 and 24 October: visual lessons and three databases, six new sections with a JavaScript playground, then AWS and a video-style player.', set: { t: { hl: [4, 5, 6] } } },
@@ -98,7 +99,7 @@ export const btOrigin: Scene[] = [
 			{ say: 'On 1 and 2 November: newer models and an Assistant that checks the notes and the web, then the OpenSearch topics.', set: { t: { hl: [11, 12] } } },
 			{ say: 'On 6 November this section arrived: the story and every decision behind the app, written down as lessons.', set: { t: { hl: [13] } } },
 			{ say: 'On 19 November a Google Cloud section arrived, with real console screenshots and redrawn console screens in the AWS lessons.', set: { t: { hl: [14] } } },
-			{ say: 'On 24 November two sections arrived: Auth and tokens, and APIs in practice, a real API started locally and called.', set: { t: { hl: [15] } } }
+			{ say: 'On 24 November Auth and tokens arrived in 2.7.0, and 2.8.0 rebuilt APIs in practice around the traffic of a real online store.', set: { t: { hl: [15, 16] } } }
 		]
 	},
 
